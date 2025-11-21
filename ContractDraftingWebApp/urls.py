@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings # Import settings để cấu hình MEDIA
 from django.conf.urls.static import static # Import static để phục vụ MEDIA
-#from django_vb.document_automation.views import home_view
+#from ContractDraftingWebApp.document_automation.views import home_view
 
 # Import các View của Simple JWT
 from rest_framework_simplejwt.views import (
