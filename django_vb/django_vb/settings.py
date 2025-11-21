@@ -9,8 +9,9 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+from datetime import timedelta # <--- Đây là cách đúng
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_cleanup.apps.CleanupConfig',  # Thư viện dọn dẹp file
+    'rest_framework',
+    'document_automation',
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +53,55 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+#Cấu hình REST_FRAMEWORK để sử dụng JWT làm phương thức xác thực mặc định
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+
+        # Bạn có thể giữ hoặc thêm các loại xác thực khác nếu cần, ví dụ:
+        # 'rest_framework.authentication.SessionAuthentication', # Nếu muốn dùng session cho Django Admin
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated', # Mặc định tất cả API đều yêu cầu xác thực
+        # Bạn có thể thay đổi thành 'rest_framework.permissions.AllowAny' nếu muốn mặc định là không cần xác thực
+        # và chỉ áp dụng IsAuthenticated cho từng View cụ thể.
+    )
+}
+
+#Cấu hình thời gian sống của JWT tokens
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60), # Access token hết hạn sau 60 phút
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),   # Refresh token hết hạn sau 1 ngày
+
+    "ROTATE_REFRESH_TOKENS": True, # Tự động tạo refresh token mới mỗi khi refresh
+    "BLACKLIST_AFTER_ROTATION": True, # Blacklist refresh token cũ sau khi làm mới
+
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY, # Sử dụng SECRET_KEY của Django
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+
+    "AUTH_HEADER_TYPES": ("Bearer",), # Loại header xác thực (ví dụ: Authorization: Bearer <token>)
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+
+    "JTI_CLAIM": "jti",
+
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
+}
 
 ROOT_URLCONF = 'django_vb.urls'
 
@@ -73,12 +127,15 @@ WSGI_APPLICATION = 'django_vb.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "vietbank",
+        "USER": "postgres",
+        "PASSWORD": "080321",
+        "HOST": "127.0.0.1",
+        "PORT": "5432",
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -120,3 +177,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Lưu trữ các tệp mẫu
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') #Thư mục media trong thư mục gốc của dự án

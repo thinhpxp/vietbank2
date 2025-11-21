@@ -1,0 +1,6 @@
+Khởi động Django: python manage.py runserver
+Tạo user admin Django: python manage.py createsuperuser
+Tạo một app Django mới: python manage.py startapp ten_app
+//Sau khi định nghĩa hoặc thay đổi mô hình dữ liệu, chạy các lệnh sau để cập nhật cơ sở dữ liệu:
+python manage.py makemigrations document_automation
+python manage.py migrate
