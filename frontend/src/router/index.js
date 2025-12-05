@@ -1,14 +1,14 @@
 // Chức năng: Định nghĩa các tuyến đường cho ứng dụng Vue.js sử dụng Vue Router
 // Mục đích: Quản lý điều hướng giữa các trang Dashboard và LoanProfileForm
 import { createRouter, createWebHistory } from 'vue-router';
-import Dashboard from '../views/Dashboard.vue';     // Chúng ta sẽ tạo file này ở bước 2
+import DashboardView from '../views/DashboardView.vue';     // Chúng ta sẽ tạo file này ở bước 2
 import LoanProfileForm from '../views/LoanProfileForm.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Dashboard',
-    component: Dashboard
+    component: DashboardView
   },
   {
     path: '/create',

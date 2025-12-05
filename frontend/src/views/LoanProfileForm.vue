@@ -65,6 +65,8 @@ import PersonForm from '../components/PersonForm.vue';
 export default {
   name: 'LoanProfileForm',
   components: { DynamicForm, PersonForm },
+  // Thêm dòng này để nhận ID từ Router (nếu có)
+  props: ['id'],
   data() {
     return {
       loading: true,
@@ -76,7 +78,8 @@ export default {
       // Dữ liệu hồ sơ
       profileName: '',
       generalFieldValues: {}, // Chứa giá trị của KHOAN_VAY, TSBD...
-      people: [] // Mảng chứa các đối tượng Person
+      people: [], // Mảng chứa các đối tượng Person
+      currentId: null // Biến để lưu ID đang sửa
     }
   },
   computed: {
@@ -89,10 +92,18 @@ export default {
       return this.allFields.filter(f => f.group_name === 'KHACH_HANG');
     }
   },
+
   mounted() {
     this.fetchFields();
-    // Khởi tạo sẵn 1 người để user đỡ phải bấm thêm
-    this.addPerson();
+
+    // KIỂM TRA: Nếu có ID truyền vào (tức là đang Sửa), thì tải dữ liệu
+    if (this.id) {
+      this.currentId = this.id;
+      this.fetchProfileData(this.id);
+    } else {
+      // Nếu tạo mới thì thêm sẵn 1 người trống
+      this.addPerson();
+    }
   },
   methods: {
     async fetchFields() {
@@ -125,36 +136,84 @@ export default {
       // Cập nhật lại thông tin người trong mảng
       this.people[index] = updatedPerson;
     },
+    // THÊM HÀM MỚI: Tải dữ liệu hồ sơ cũ
+    async fetchProfileData(id) {
+      try {
+        this.loading = true;
+        const response = await axios.get(`http://127.0.0.1:8000/api/loan-profiles/${id}/`);
+        const data = response.data;
+
+        // 1. Điền tên hồ sơ
+        this.profileName = data.name;
+
+        // 2. Điền Field Values chung
+        // Backend trả về mảng field_values: [{field_id: 1, value: "abc", ...}]
+        // Ta cần chuyển nó về dạng Object: { placeholder_key: "abc" }
+        // Lưu ý: Backend cần trả về placeholder_key trong serializer hoặc ta phải map lại.
+        // Để đơn giản, giả sử Serializer của bạn trả về nested object đầy đủ.
+
+        // LOGIC TẠM THỜI (Cần chỉnh Serializer Backend để dễ dùng hơn):
+        // Nếu Backend trả về dạng raw nested, việc map lại ở Frontend khá cực.
+        // Tốt nhất là Serializer nên trả về format giống lúc save_form_data gửi lên.
+
+        // Tuy nhiên, để code chạy được ngay, ta sẽ xử lý đơn giản:
+        if (data.field_values) {
+           data.field_values.forEach(fv => {
+              if (fv.field && fv.field.placeholder_key) {
+                  this.generalFieldValues[fv.field.placeholder_key] = fv.value;
+              }
+           });
+        }
+
+        // 3. Điền People
+        // Tương tự, cần map lại cấu trúc data.loan_profile_people -> this.people
+        if (data.loan_profile_people) {
+           this.people = data.loan_profile_people.map(lpp => {
+               const p = lpp.person;
+               // Cần lấy field values riêng của người này
+               // Việc này hơi phức tạp nếu Backend không trả về sẵn.
+               return {
+                   id: p.id,
+                   ho_ten: p.name_for_display,
+                   cccd_so: p.cccd_so,
+                   roles: lpp.roles,
+                   individual_field_values: {} // Tạm thời để trống nếu chưa map được
+               };
+           });
+        }
+
+      } catch (e) {
+        console.error(e);
+        alert("Không tải được hồ sơ!");
+      } finally {
+        this.loading = false;
+      }
+    },
     async saveProfile() {
       if (!this.profileName) return alert('Vui lòng nhập tên hồ sơ!');
 
       this.isSaving = true;
 
       try {
-        // BƯỚC 1: TẠO "CÁI VỎ" HỒ SƠ MỚI TRƯỚC
-        // Gọi API gốc của DRF để tạo object LoanProfile
-        const createResponse = await axios.post('http://127.0.0.1:8000/api/loan-profiles/', {
-          name: this.profileName
-        });
+        let targetId = this.currentId;
 
-        const newLoanId = createResponse.data.id;
-        console.log("Đã tạo hồ sơ mới với ID:", newLoanId);
+            // Nếu chưa có ID (Tạo mới) -> Gọi API tạo vỏ
+            if (!targetId) {
+                const createRes = await axios.post('http://127.0.0.1:8000/api/loan-profiles/', { name: this.profileName });
+                targetId = createRes.data.id;
+            }
 
-        // BƯỚC 2: LƯU DỮ LIỆU CHI TIẾT VÀO ID VỪA TẠO
-        // Chuẩn bị payload
-        const payload = {
-          name: this.profileName,
-          field_values: this.generalFieldValues,
-          people: this.people
-        };
+            // Gọi API save_form_data
+            const payload = {
+                name: this.profileName,
+                field_values: this.generalFieldValues,
+                people: this.people
+            };
+            await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
 
-        const saveUrl = `http://127.0.0.1:8000/api/loan-profiles/${newLoanId}/save_form_data/`;
-        const saveResponse = await axios.post(saveUrl, payload);
-        console.log("Server phản hồi:", saveResponse.data); // <-- Thêm dòng này
-        alert('Tạo hồ sơ thành công! ID: ' + newLoanId);
-
-        // (Tùy chọn) Reset form hoặc chuyển hướng sau khi lưu thành công
-        // this.$router.push({ name: 'Dashboard' });
+            alert('Lưu thành công!');
+            // Quay về Dashboard
+            this.$router.push('/');
 
       } catch (error) {
         console.error(error);
