@@ -1,3 +1,6 @@
+# Serializers for Document Automation App
+# Chức năng: Chuyển đổi dữ liệu mô hình thành định dạng JSON và ngược lại
+# Có vai trò giống như một cầu nối giữa các mô hình dữ liệu và các API endpoints
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate
@@ -45,14 +48,45 @@ class FieldValueSerializer(serializers.ModelSerializer):
 
 # 6. Serializer cho LoanProfile
 class LoanProfileSerializer(serializers.ModelSerializer):
-    # Nested serializer để hiển thị dữ liệu con
-    field_values = FieldValueSerializer(source='fieldvalue_set', many=True, read_only=True)
-    linked_people = LoanProfilePersonSerializer(source='loanprofileperson_set', many=True,
-                                                read_only=True)  # Lưu ý: source khớp với related_name trong models
+    # Khai báo 2 trường tùy chỉnh mà Frontend cần
+    field_values = serializers.SerializerMethodField()
+    people = serializers.SerializerMethodField()
 
+    # Hiển thị tên người tạo thay vì ID
     created_by_user_name = serializers.CharField(source='created_by_user.username', read_only=True)
 
     class Meta:
         model = LoanProfile
-        fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'created_by_user']
+        fields = ['id', 'name', 'created_at', 'updated_at', 'created_by_user_name', 'field_values', 'people']
+        read_only_fields = ['created_at', 'updated_at']
+
+    # Logic 1: Gom các FieldValue chung (không thuộc về Person nào)
+    def get_field_values(self, obj):
+        # Lấy tất cả giá trị trường của hồ sơ này mà person là Null
+        fvs = obj.fieldvalue_set.filter(person__isnull=True)
+        # Chuyển thành Dict: { "so_tien_vay": "1 tỷ", "thoi_han": "12" }
+        return {fv.field.placeholder_key: fv.value for fv in fvs}
+
+    # Logic 2: Gom danh sách People và FieldValue riêng của họ
+    def get_people(self, obj):
+        result = []
+        # Lấy danh sách liên kết (sử dụng related_name='linked_people' đã định nghĩa trong Models)
+        # Nếu chưa có related_name, dùng loanprofileperson_set.all()
+        linked_people = obj.linked_people.select_related('person').all()
+
+        for link in linked_people:
+            person = link.person
+
+            # Lấy các giá trị trường riêng của người này trong hồ sơ này
+            person_fvs = obj.fieldvalue_set.filter(person=person)
+            individual_fv_dict = {fv.field.placeholder_key: fv.value for fv in person_fvs}
+
+            result.append({
+                "id": person.id,  # QUAN TRỌNG: ID để biết là người cũ khi sửa
+                "ho_ten": person.name_for_display,
+                "cccd_so": person.cccd_so,
+                "roles": link.roles,  # Lấy mảng roles từ bảng trung gian
+                "individual_field_values": individual_fv_dict  # Các trường động riêng
+            })
+
+        return result

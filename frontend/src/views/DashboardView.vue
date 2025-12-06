@@ -25,23 +25,42 @@
           <td>{{ formatDate(profile.created_at) }}</td>
           <td>
             <button class="btn-edit" @click="editProfile(profile.id)">Sửa</button>
-            <button class="btn-doc" @click="generateDoc(profile.id)">Xuất HĐ</button>
+
+            <!-- THAY ĐỔI 1: Gọi hàm mở Modal thay vì alert -->
+            <button class="btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <!-- THAY ĐỔI 2: Nhúng Component Modal vào đây -->
+    <ContractDownloader
+      :isOpen="isModalOpen"
+      :profileId="currentProfileId"
+      :profileName="currentProfileName"
+      @close="isModalOpen = false"
+    />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+// THAY ĐỔI 3: Import Component
+import ContractDownloader from '../components/ContractDownloader.vue';
 
 export default {
   name: 'DashboardView',
+  // THAY ĐỔI 4: Khai báo Component
+  components: { ContractDownloader },
   data() {
     return {
       profiles: [],
-      loading: true
+      loading: true,
+
+      // THAY ĐỔI 5: State cho Modal
+      isModalOpen: false,
+      currentProfileId: null,
+      currentProfileName: ''
     }
   },
   mounted() {
@@ -62,9 +81,11 @@ export default {
     editProfile(id) {
       this.$router.push(`/edit/${id}`);
     },
-    generateDoc(id) {
-      // Tính năng này chúng ta sẽ làm ở Bước 4, giờ cứ alert đã
-      alert(`Tính năng xuất hợp đồng cho ID ${id} sẽ được cập nhật!`);
+    // THAY ĐỔI 6: Hàm mở Modal
+    openDownloadModal(profile) {
+      this.currentProfileId = profile.id;
+      this.currentProfileName = profile.name;
+      this.isModalOpen = true;
     },
     formatDate(dateString) {
       if (!dateString) return '';

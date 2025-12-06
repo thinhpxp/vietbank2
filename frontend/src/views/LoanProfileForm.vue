@@ -147,44 +147,22 @@ export default {
         this.profileName = data.name;
 
         // 2. Điền Field Values chung
-        // Backend trả về mảng field_values: [{field_id: 1, value: "abc", ...}]
-        // Ta cần chuyển nó về dạng Object: { placeholder_key: "abc" }
-        // Lưu ý: Backend cần trả về placeholder_key trong serializer hoặc ta phải map lại.
-        // Để đơn giản, giả sử Serializer của bạn trả về nested object đầy đủ.
-
-        // LOGIC TẠM THỜI (Cần chỉnh Serializer Backend để dễ dùng hơn):
-        // Nếu Backend trả về dạng raw nested, việc map lại ở Frontend khá cực.
-        // Tốt nhất là Serializer nên trả về format giống lúc save_form_data gửi lên.
-
-        // Tuy nhiên, để code chạy được ngay, ta sẽ xử lý đơn giản:
-        if (data.field_values) {
-           data.field_values.forEach(fv => {
-              if (fv.field && fv.field.placeholder_key) {
-                  this.generalFieldValues[fv.field.placeholder_key] = fv.value;
-              }
-           });
-        }
+        // Backend đã trả về dạng object { key: value } nên gán thẳng luôn!
+        this.generalFieldValues = data.field_values || {};
 
         // 3. Điền People
-        // Tương tự, cần map lại cấu trúc data.loan_profile_people -> this.people
-        if (data.loan_profile_people) {
-           this.people = data.loan_profile_people.map(lpp => {
-               const p = lpp.person;
-               // Cần lấy field values riêng của người này
-               // Việc này hơi phức tạp nếu Backend không trả về sẵn.
-               return {
-                   id: p.id,
-                   ho_ten: p.name_for_display,
-                   cccd_so: p.cccd_so,
-                   roles: lpp.roles,
-                   individual_field_values: {} // Tạm thời để trống nếu chưa map được
-               };
-           });
+        // Backend đã trả về mảng đúng cấu trúc Frontend cần
+        if (data.people && data.people.length > 0) {
+           this.people = data.people;
+        } else {
+           // Nếu hồ sơ cũ chưa có người nào, reset về mảng rỗng hoặc thêm 1 người trống
+           this.people = [];
+           this.addPerson();
         }
 
       } catch (e) {
-        console.error(e);
-        alert("Không tải được hồ sơ!");
+        console.error("Lỗi load hồ sơ:", e);
+        alert("Không tải được dữ liệu hồ sơ!");
       } finally {
         this.loading = false;
       }
