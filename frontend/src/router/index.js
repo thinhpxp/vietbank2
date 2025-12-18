@@ -3,6 +3,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import DashboardView from '../views/DashboardView.vue';     // Chúng ta sẽ tạo file này ở bước 2
 import LoanProfileForm from '../views/LoanProfileForm.vue';
+// Import các view Admin (sẽ tạo sau)
+import AdminLayout from '../views/admin/AdminLayout.vue';
+import AdminGroups from '../views/admin/AdminGroups.vue';
+import AdminFields from '../views/admin/AdminFields.vue';
+import AdminTemplates from '../views/admin/AdminTemplates.vue';
+import AdminUsers from '../views/admin/AdminUsers.vue';
 
 const routes = [
   {
@@ -20,6 +26,17 @@ const routes = [
     name: 'EditProfile',
     component: LoanProfileForm,
     props: true // Cho phép truyền id vào component như một prop
+  },
+  {
+    path: '/admin',
+    component: AdminLayout,
+    children: [
+      { path: 'groups', component: AdminGroups },
+      { path: 'fields', component: AdminFields },
+      { path: 'templates', component: AdminTemplates },
+      { path: 'users', component: AdminUsers },
+      { path: '', redirect: '/admin/groups' } // Mặc định vào trang Groups
+    ]
   }
 ];
 

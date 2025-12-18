@@ -3,17 +3,64 @@
 # Có vai trò giống như một cầu nối giữa các mô hình dữ liệu và các API endpoints
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate
+from .models import Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, UserProfile
 
+# 1.1 Serializer cho FieldGroup (MỚI)
+class FieldGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FieldGroup
+        fields = ['id', 'name', 'order', 'note']
 
-# 1. Serializer cho Field
+# 1.2 Serializer cho Field
 class FieldSerializer(serializers.ModelSerializer):
+    # Hiển thị tên nhóm thay vì chỉ ID
+    group_name = serializers.CharField(source='group.name', read_only=True)
+    # Đánh dấu đây có phải là field dựng sẵn từ model (không phải record trong bảng Field)
+    is_model_field = serializers.BooleanField(read_only=True, default=False)
+
     class Meta:
         model = Field
-        fields = '__all__'
+        fields = ['id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'is_active', 'note', 'is_model_field']
 
 
-# 2. Serializer cho Person
+# 2.1 Serializer cho User (MỚI - Để quản lý End-user)
+class UserSerializer(serializers.ModelSerializer):
+    # Lấy note từ bảng UserProfile liên kết
+    note = serializers.CharField(source='profile.note', required=False, allow_blank=True)
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'is_staff', 'is_active', 'password', 'note']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        # Tách note ra khỏi dữ liệu user
+        note_data = validated_data.pop('profile', {}).get('note', '')
+        user = User.objects.create_user(**validated_data)
+        # Cập nhật note vào profile (đã được tạo tự động bởi Signal)
+        user.profile.note = note_data
+        user.profile.save()
+        return user
+
+    def update(self, instance, validated_data):
+        # Tách note ra khỏi dữ liệu user
+        note_data = validated_data.pop('profile', {}).get('note', None)
+
+        # Cập nhật mật khẩu nếu có
+        if 'password' in validated_data:
+            password = validated_data.pop('password')
+            instance.set_password(password)
+
+        # Cập nhật các trường khác của User
+        instance = super().update(instance, validated_data)
+
+        # Cập nhật note nếu có
+        if note_data is not None:
+            instance.profile.note = note_data
+            instance.profile.save()
+
+        return instance
+
+# 2.2 Serializer cho Person
 class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person

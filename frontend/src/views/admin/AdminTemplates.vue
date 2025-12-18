@@ -1,0 +1,75 @@
+<template>
+  <div>
+    <h2>Quản lý Mẫu Hợp đồng</h2>
+    <div class="actions">
+      <input type="text" v-model="newName" placeholder="Tên hiển thị mẫu">
+      <input type="text" v-model="newDesc" placeholder="Ghi chú mẫu này" style="flex: 2">
+      <input type="file" ref="fileInput" @change="handleFileChange">
+      <button @click="uploadTemplate" class="btn-create">Upload Mẫu</button>
+    </div>
+
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Tên Mẫu</th><th>Ghi chú</th><th>File</th><th>Hành động</th>
+</tr></thead>
+      <tbody>
+        <tr v-for="tpl in templates" :key="tpl.id">
+          <td>{{ tpl.id }}</td>
+          <td>{{ tpl.name }}</td>
+          <td>{{ tpl.description }}</td>
+          <td><a :href="tpl.file" target="_blank">Tải xuống</a></td>
+          <td>
+            <button @click="deleteTemplate(tpl.id)" class="btn-delete">Xóa</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+export default {
+  data() { return { templates: [], newName: '', newDesc: '', selectedFile: null } },
+  mounted() { this.fetchTemplates(); },
+  methods: {
+    async fetchTemplates() {
+      const res = await axios.get('http://127.0.0.1:8000/api/document-templates/');
+      this.templates = res.data;
+    },
+    handleFileChange(e) {
+      this.selectedFile = e.target.files[0];
+    },
+    async uploadTemplate() {
+      if(!this.selectedFile || !this.newName) return alert('Nhập tên và chọn file!');
+
+      const formData = new FormData();
+      formData.append('name', this.newName);
+      formData.append('description', this.newDesc);
+      formData.append('file', this.selectedFile);
+
+      try {
+        await axios.post('http://127.0.0.1:8000/api/document-templates/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        this.newName = ''; this.newDesc = ''; this.selectedFile = null; this.$refs.fileInput.value = '';
+        this.fetchTemplates();
+        alert('Upload thành công!');
+      } catch(e) { alert('Lỗi upload'); }
+    },
+    async deleteTemplate(id) {
+      if(confirm('Xóa mẫu này?')) {
+        await axios.delete(`http://127.0.0.1:8000/api/document-templates/${id}/`);
+        this.fetchTemplates();
+      }
+    }
+  }
+}
+</script>
+<style scoped>
+/* Reuse styles */
+.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+.data-table th, .data-table td { padding: 10px; border: 1px solid #ddd; }
+.actions { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+.btn-create { background: #42b983; color: white; border: none; padding: 8px; cursor: pointer; }
+.btn-delete { background: #e74c3c; color: white; border: none; cursor: pointer; padding: 5px; }
+</style>

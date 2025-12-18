@@ -10,22 +10,12 @@
     <div v-if="loading">Đang tải cấu hình...</div>
 
     <div v-else class="form-layout">
-
       <!-- CỘT TRÁI: THÔNG TIN CHUNG -->
       <div class="left-panel">
-        <div class="panel-section">
-          <h3>Thông tin Hồ sơ</h3>
-          <div class="field-group">
-             <label>Tên Hồ sơ (*)</label>
-             <input type="text" v-model="profileName" class="input-control" placeholder="VD: HS vay ông A">
-          </div>
-        </div>
-
-        <div class="panel-section" v-if="generalFields.length > 0">
-          <h3>Chi tiết Khoản vay & TSBĐ</h3>
-          <!-- Tái sử dụng DynamicForm cho các trường chung -->
+        <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="panel-section">
+          <h3>{{ groupName }}</h3>
           <DynamicForm
-            :fields="generalFields"
+            :fields="fields"
             v-model="generalFieldValues"
           />
         </div>
@@ -34,8 +24,8 @@
       <!-- CỘT PHẢI: DANH SÁCH NGƯỜI -->
       <div class="right-panel">
         <div class="panel-header">
-           <h3>Danh sách Người liên quan</h3>
-           <button class="btn-secondary" @click="addPerson">+ Thêm Người</button>
+          <h3>Danh sách Người liên quan</h3>
+          <button class="btn-secondary" @click="addPerson">+ Thêm Người</button>
         </div>
 
         <div v-if="people.length === 0" class="empty-state">
@@ -52,7 +42,6 @@
           />
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -65,50 +54,46 @@ import PersonForm from '../components/PersonForm.vue';
 export default {
   name: 'LoanProfileForm',
   components: { DynamicForm, PersonForm },
-  // Thêm dòng này để nhận ID từ Router (nếu có)
   props: ['id'],
   data() {
     return {
       loading: true,
       isSaving: false,
-
-      // Dữ liệu cấu hình từ API
       allFields: [],
-
-      // Dữ liệu hồ sơ
       profileName: '',
-      generalFieldValues: {}, // Chứa giá trị của KHOAN_VAY, TSBD...
-      people: [], // Mảng chứa các đối tượng Person
-      currentId: null // Biến để lưu ID đang sửa
-    }
+      generalFieldValues: {},
+      people: [],
+      currentId: null
+    };
   },
   computed: {
-    // Lọc ra các trường chung (KHOAN_VAY, TSBD, KHAC...)
-    generalFields() {
-      return this.allFields.filter(f => f.group_name !== 'KHACH_HANG');
+    groupedFields() {
+      // Nhóm các fields theo group_name
+      return this.allFields.reduce((groups, field) => {
+        const group = field.group_name || 'Khác';
+        if (!groups[group]) {
+          groups[group] = [];
+        }
+        groups[group].push(field);
+        return groups;
+      }, {});
     },
-    // Lọc ra các trường thuộc về Người (KHACH_HANG)
     personFields() {
       return this.allFields.filter(f => f.group_name === 'KHACH_HANG');
     }
   },
-
   mounted() {
     this.fetchFields();
-
-    // KIỂM TRA: Nếu có ID truyền vào (tức là đang Sửa), thì tải dữ liệu
     if (this.id) {
       this.currentId = this.id;
       this.fetchProfileData(this.id);
     } else {
-      // Nếu tạo mới thì thêm sẵn 1 người trống
       this.addPerson();
     }
   },
   methods: {
     async fetchFields() {
       try {
-        // Lưu ý: API này trả về mảng phẳng các trường
         const response = await axios.get('http://127.0.0.1:8000/api/fields/');
         this.allFields = response.data;
       } catch (e) {
@@ -120,7 +105,7 @@ export default {
     },
     addPerson() {
       this.people.push({
-        id: null, // null nghĩa là người mới
+        id: null,
         ho_ten: '',
         cccd_so: '',
         roles: [],
@@ -128,71 +113,46 @@ export default {
       });
     },
     removePerson(index) {
-      if(confirm('Bạn có chắc muốn xóa người này?')) {
+      if (confirm('Bạn có chắc muốn xóa người này?')) {
         this.people.splice(index, 1);
       }
     },
     updatePerson(index, updatedPerson) {
-      // Cập nhật lại thông tin người trong mảng
       this.people[index] = updatedPerson;
     },
-    // THÊM HÀM MỚI: Tải dữ liệu hồ sơ cũ
     async fetchProfileData(id) {
       try {
         this.loading = true;
         const response = await axios.get(`http://127.0.0.1:8000/api/loan-profiles/${id}/`);
         const data = response.data;
-
-        // 1. Điền tên hồ sơ
         this.profileName = data.name;
-
-        // 2. Điền Field Values chung
-        // Backend đã trả về dạng object { key: value } nên gán thẳng luôn!
         this.generalFieldValues = data.field_values || {};
-
-        // 3. Điền People
-        // Backend đã trả về mảng đúng cấu trúc Frontend cần
-        if (data.people && data.people.length > 0) {
-           this.people = data.people;
-        } else {
-           // Nếu hồ sơ cũ chưa có người nào, reset về mảng rỗng hoặc thêm 1 người trống
-           this.people = [];
-           this.addPerson();
-        }
-
+        this.people = data.people && data.people.length > 0 ? data.people : [];
+        if (this.people.length === 0) this.addPerson();
       } catch (e) {
-        console.error("Lỗi load hồ sơ:", e);
-        alert("Không tải được dữ liệu hồ sơ!");
+        console.error('Lỗi load hồ sơ:', e);
+        alert('Không tải được dữ liệu hồ sơ!');
       } finally {
         this.loading = false;
       }
     },
     async saveProfile() {
       if (!this.profileName) return alert('Vui lòng nhập tên hồ sơ!');
-
       this.isSaving = true;
-
       try {
         let targetId = this.currentId;
-
-            // Nếu chưa có ID (Tạo mới) -> Gọi API tạo vỏ
-            if (!targetId) {
-                const createRes = await axios.post('http://127.0.0.1:8000/api/loan-profiles/', { name: this.profileName });
-                targetId = createRes.data.id;
-            }
-
-            // Gọi API save_form_data
-            const payload = {
-                name: this.profileName,
-                field_values: this.generalFieldValues,
-                people: this.people
-            };
-            await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
-
-            alert('Lưu thành công!');
-            // Quay về Dashboard
-            this.$router.push('/');
-
+        if (!targetId) {
+          const createRes = await axios.post('http://127.0.0.1:8000/api/loan-profiles/', { name: this.profileName });
+          targetId = createRes.data.id;
+        }
+        const payload = {
+          name: this.profileName,
+          field_values: this.generalFieldValues,
+          people: this.people
+        };
+        await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
+        alert('Lưu thành công!');
+        this.$router.push('/');
       } catch (error) {
         console.error(error);
         alert('Lỗi khi lưu: ' + (error.response?.data?.message || error.message));
@@ -201,7 +161,7 @@ export default {
       }
     }
   }
-}
+};
 </script>
 
 <style scoped>
