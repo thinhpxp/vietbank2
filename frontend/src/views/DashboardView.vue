@@ -28,6 +28,7 @@
 
             <!-- THAY ĐỔI 1: Gọi hàm mở Modal thay vì alert -->
             <button class="btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
+            <button class="btn-delete" @click="deleteProfile(profile.id)">Xóa</button>
           </td>
         </tr>
       </tbody>
@@ -81,6 +82,18 @@ export default {
     editProfile(id) {
       this.$router.push(`/edit/${id}`);
     },
+    async deleteProfile(id) {
+      if (confirm('Bạn có chắc chắn muốn xóa hồ sơ này không? Hành động này không thể hoàn tác.')) {
+        try {
+          await axios.delete(`http://127.0.0.1:8000/api/loan-profiles/${id}/`);
+          alert('Đã xóa hồ sơ thành công!');
+          this.fetchProfiles(); // Refresh list
+        } catch (error) {
+          console.error(error);
+          alert('Lỗi khi xóa hồ sơ!');
+        }
+      }
+    },
     // THAY ĐỔI 6: Hàm mở Modal
     openDownloadModal(profile) {
       this.currentProfileId = profile.id;
@@ -103,5 +116,6 @@ export default {
 .data-table th, .data-table td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
 .data-table th { background: #f8f9fa; color: #333; }
 .btn-edit { background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-.btn-doc { background: #e67e22; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+.btn-doc { background: #e67e22; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+.btn-delete { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
 </style>

@@ -12,6 +12,19 @@
     <div v-else class="form-layout">
       <!-- CỘT TRÁI: THÔNG TIN CHUNG -->
       <div class="left-panel">
+        <div class="panel-section">
+          <h3>Thông tin cơ bản</h3>
+          <div class="field-group">
+            <label>Tên hồ sơ <span style="color:red">*</span></label>
+            <input 
+              type="text" 
+              v-model="profileName" 
+              class="input-control" 
+              placeholder="Nhập tên hồ sơ (VD: Hồ sơ ông A vay mua xe)..." 
+            />
+          </div>
+        </div>
+
         <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="panel-section">
           <h3>{{ groupName }}</h3>
           <DynamicForm
@@ -70,16 +83,28 @@ export default {
     groupedFields() {
       // Nhóm các fields theo group_name
       return this.allFields.reduce((groups, field) => {
-        const group = field.group_name || 'Khác';
-        if (!groups[group]) {
-          groups[group] = [];
+        const gName = field.group_name || 'Khác';
+        // [FIX] Loại bỏ các trường thuộc nhóm Person khỏi cột bên trái
+        // Chuẩn hóa tên nhóm để so sánh (lowercase)
+        const lowerGName = gName.toLowerCase();
+        if (lowerGName === 'thông tin cá nhân' || lowerGName === 'khach_hang') {
+            return groups;
         }
-        groups[group].push(field);
+
+        if (!groups[gName]) {
+          groups[gName] = [];
+        }
+        groups[gName].push(field);
         return groups;
       }, {});
     },
     personFields() {
-      return this.allFields.filter(f => f.group_name === 'KHACH_HANG');
+      // [FIX] Lọc các trường thuộc nhóm Person để truyền vào PersonForm
+      // Sử dụng toLowerCase để đảm bảo bắt đúng tên nhóm
+      return this.allFields.filter(f => {
+          const gName = (f.group_name || '').toLowerCase();
+          return gName === 'thông tin cá nhân' || gName === 'khach_hang';
+      });
     }
   },
   mounted() {

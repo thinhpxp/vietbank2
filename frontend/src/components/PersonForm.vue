@@ -7,16 +7,9 @@
 
     <div class="card-body">
       <!-- 1. Thông tin Cố định -->
-      <div class="form-row">
-        <div class="col">
-          <label>Họ và Tên (*)</label>
-          <input type="text" v-model="localPerson.ho_ten" class="input-control" placeholder="Nhập họ tên...">
-        </div>
-        <div class="col">
-          <label>Số CCCD</label>
-          <input type="text" v-model="localPerson.cccd_so" class="input-control" placeholder="Số giấy tờ tùy thân">
-        </div>
-      </div>
+      <!-- 1. Thông tin Cố định - ĐÃ BỎ do chuyển sang động -->
+      <!-- <div class="form-row">...</div> -->
+
 
       <!-- 2. Chọn Vai trò (Roles) -->
       <div class="roles-section">

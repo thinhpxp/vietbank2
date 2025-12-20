@@ -128,10 +128,17 @@ class LoanProfileSerializer(serializers.ModelSerializer):
             person_fvs = obj.fieldvalue_set.filter(person=person)
             individual_fv_dict = {fv.field.placeholder_key: fv.value for fv in person_fvs}
 
+            # [REFACTOR] Đảm bảo ho_ten và cccd_so luôn có trong dict này để frontend hiển thị
+            # Trước đây fallback vào column, giờ chỉ dựa vào FieldValue (đã được lưu khi save form)
+            if 'ho_ten' not in individual_fv_dict:
+                individual_fv_dict['ho_ten'] = ""
+            if 'cccd_so' not in individual_fv_dict:
+                 individual_fv_dict['cccd_so'] = ""
+
             result.append({
                 "id": person.id,  # QUAN TRỌNG: ID để biết là người cũ khi sửa
-                "ho_ten": person.name_for_display,
-                "cccd_so": person.cccd_so,
+                "ho_ten": individual_fv_dict.get('ho_ten', ''),
+                "cccd_so": individual_fv_dict.get('cccd_so', ''),
                 "roles": link.roles,  # Lấy mảng roles từ bảng trung gian
                 "individual_field_values": individual_fv_dict  # Các trường động riêng
             })
