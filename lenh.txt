@@ -1,16 +1,30 @@
 // ========= THAO TÁC VỚI DJANGO ==========
-Khởi động Django: python manage.py runserver
+
 Tạo user admin Django: python manage.py createsuperuser
 Tạo một app Django mới: python manage.py startapp ten_app
 //Sau khi định nghĩa hoặc thay đổi mô hình dữ liệu, chạy các lệnh sau để cập nhật cơ sở dữ liệu:
 python manage.py makemigrations document_automation
 python manage.py migrate
 
+==== Khởi động Django ====
+
+Bước 1: Khởi động môi trường ảo
+
+.\venv\Scripts\Activate.ps1
+
+Bước 2: Khởi động Django:
+
+python manage.py runserver
+
 Truy cập trang admin Django tại: http://localhost:8000/admin
 
 // ========= THAO TÁC VỚI SERVER VÀ FRONTEND VUE ==========
-Khởi động VUE
+Bước 1: di chuyển đến thư mục frontend
 
 cd frontend
+
+Bước 2: Khởi động frontend
+
 npm run serve
+
 Truy cập giao diện frontend tại: http://localhost:8080/

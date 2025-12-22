@@ -6,6 +6,7 @@
         <router-link to="/admin/groups">📂 Quản lý Nhóm Thông tin</router-link>
         <router-link to="/admin/fields">📝 Quản lý Trường Thông tin</router-link>
         <router-link to="/admin/templates">📄 Mẫu Hợp đồng</router-link>
+        <router-link to="/admin/roles">🎭 Quản lý Vai trò</router-link> <!-- MỚI -->
         <router-link to="/admin/users">👤 Người dùng</router-link>
         <hr>
         <router-link to="/">🏠 Về Dashboard</router-link>

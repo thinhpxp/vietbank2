@@ -16,7 +16,7 @@ from num2words import num2words # Cần pip install num2words
 import decimal
 from jinja2 import Environment
 # Import Models
-from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, FieldGroup
+from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, FieldGroup, Role
 
 # Import Serializers
 from .serializers import (
@@ -25,7 +25,10 @@ from .serializers import (
     PersonSerializer,
     DocumentTemplateSerializer,
     FieldGroupSerializer,
-    UserSerializer
+    DocumentTemplateSerializer,
+    FieldGroupSerializer,
+    UserSerializer,
+    RoleSerializer
 )
 # --- CÁC HÀM HỖ TRỢ JINJA2 (FORMAT TIỀN, NGÀY, CHỮ) ---
 def format_currency_filter(value):
@@ -66,6 +69,12 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
     serializer_class = FieldGroupSerializer
     # Chỉ Admin mới được đụng vào cấu hình này
     # permission_classes = [IsAdminUser] # Tạm thời để AllowAny nếu chưa làm login, nhưng nên là IsAdminUser
+    permission_classes = [AllowAny]
+
+# 1.3 ViewSet cho Role
+class RoleViewSet(viewsets.ModelViewSet):
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
     permission_classes = [AllowAny]
 
 # 1.2 ViewSet cho Field

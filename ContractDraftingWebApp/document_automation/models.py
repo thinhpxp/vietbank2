@@ -47,6 +47,19 @@ class Field(models.Model):
         verbose_name_plural = "Trường Dữ liệu"
 
 
+# --- MỚI: Bảng Vai trò (Dynamic Role) ---
+class Role(models.Model):
+    name = models.CharField(max_length=255, unique=True, verbose_name="Tên vai trò")
+    description = models.TextField(blank=True, null=True, verbose_name="Mô tả")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Vai trò (Role)"
+        verbose_name_plural = "Quản lý Vai trò"
+
+
 # 2. Bảng Mẫu Tài liệu (ĐÃ BỔ SUNG LẠI)
 class DocumentTemplate(models.Model):
     name = models.CharField(max_length=255, verbose_name="Tên mẫu")

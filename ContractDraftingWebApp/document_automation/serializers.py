@@ -3,7 +3,13 @@
 # Có vai trò giống như một cầu nối giữa các mô hình dữ liệu và các API endpoints
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, UserProfile
+from .models import Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, UserProfile, Role
+
+# 0. Serializer cho Role (MỚI)
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = '__all__'
 
 # 1.1 Serializer cho FieldGroup (MỚI)
 class FieldGroupSerializer(serializers.ModelSerializer):

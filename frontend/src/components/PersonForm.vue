@@ -43,12 +43,16 @@ export default {
   props: {
     index: Number,
     person: Object, // Dữ liệu của người này được truyền từ cha xuống
-    personFields: Array // Danh sách các trường động thuộc nhóm KHACH_HANG
+    personFields: Array, // Danh sách các trường động thuộc nhóm KHACH_HANG
+    availableRoles: {
+        type: Array,
+        default: () => []
+    }
   },
   emits: ['update:person', 'remove'],
   data() {
     return {
-      availableRoles: ['Bên Vay', 'Bên Bảo đảm', 'Vợ/Chồng', 'Người Hôn phối', 'Chủ tài sản'],
+      // availableRoles đã được chuyển thành props
       // Tạo bản sao cục bộ để tránh mutate props trực tiếp
       localPerson: JSON.parse(JSON.stringify(this.person))
     }

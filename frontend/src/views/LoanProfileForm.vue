@@ -50,6 +50,7 @@
             :index="index"
             :person="person"
             :personFields="personFields"
+            :availableRoles="availableRoles"
             @update:person="updatePerson(index, $event)"
             @remove="removePerson(index)"
           />
@@ -76,7 +77,8 @@ export default {
       profileName: '',
       generalFieldValues: {},
       people: [],
-      currentId: null
+      currentId: null,
+      availableRoles: [] // Danh sách role lấy từ API
     };
   },
   computed: {
@@ -109,6 +111,7 @@ export default {
   },
   mounted() {
     this.fetchFields();
+    this.fetchRoles(); // Load danh sách roles
     if (this.id) {
       this.currentId = this.id;
       this.fetchProfileData(this.id);
@@ -117,6 +120,17 @@ export default {
     }
   },
   methods: {
+    async fetchRoles() {
+        try {
+            const res = await axios.get('http://127.0.0.1:8000/api/roles/');
+            // Giả sử API trả về list object [{id, name, ...}]
+            // Ta chỉ cần lấy name để hiển thị checkbox hoặc lấy cả object nếu muốn lưu ID
+            // Hiện tại logic cũ đang lưu mảng string ["Bên Vay"], nên ta map lấy name
+            this.availableRoles = res.data.map(r => r.name);
+        } catch (e) {
+            console.error("Lỗi load roles:", e);
+        }
+    },
     async fetchFields() {
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/fields/');

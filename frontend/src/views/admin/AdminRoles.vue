@@ -1,0 +1,94 @@
+<template>
+  <div>
+    <h2>Quản lý Vai trò (Roles)</h2>
+    <div class="actions">
+      <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" style="flex: 1">
+      <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" style="flex: 2">
+      <button @click="addRole" class="btn-create">Thêm Vai trò</button>
+    </div>
+
+    <table class="data-table">
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tên Vai trò</th>
+        <th>Mô tả</th>
+        <th>Hành động</th>
+      </tr>
+      </thead>
+
+      <tbody>
+        <tr v-for="role in roles" :key="role.id">
+          <td>{{ role.id }}</td>
+          <td>
+             <input v-if="editingId === role.id" v-model="role.name">
+             <span v-else>{{ role.name }}</span>
+          </td>
+          <td>
+               <input v-if="editingId === role.id" v-model="role.description" style="width: 100%">
+               <span v-else>{{ role.description }}</span>
+          </td>
+          <td>
+            <button v-if="editingId === role.id" @click="updateRole(role)">Lưu</button>
+            <button v-else @click="editingId = role.id">Sửa</button>
+            <button @click="deleteRole(role.id)" class="btn-delete">Xóa</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+export default {
+  data() { return { roles: [], newRole: { name: '', description: '' }, editingId: null } },
+  mounted() { this.fetchRoles(); },
+  methods: {
+    async fetchRoles() {
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/roles/');
+        this.roles = res.data;
+      } catch (e) {
+        console.error("Lỗi tải roles:", e);
+      }
+    },
+    async addRole() {
+      if(!this.newRole.name) return alert('Vui lòng nhập tên vai trò');
+      try {
+        await axios.post('http://127.0.0.1:8000/api/roles/', this.newRole);
+        this.newRole.name = '';
+        this.newRole.description = '';
+        this.fetchRoles();
+      } catch (e) {
+        alert('Lỗi thêm vai trò: ' + e.response?.data?.message || e.message);
+      }
+    },
+    async deleteRole(id) {
+      if(confirm('Bạn có chắc muốn xóa vai trò này?')) {
+        try {
+            await axios.delete(`http://127.0.0.1:8000/api/roles/${id}/`);
+            this.fetchRoles();
+        } catch (e) {
+            alert('Lỗi xóa vai trò');
+        }
+      }
+    },
+    async updateRole(role) {
+      try {
+          await axios.put(`http://127.0.0.1:8000/api/roles/${role.id}/`, role);
+          this.editingId = null;
+      } catch (e) {
+          alert('Lỗi cập nhật vai trò');
+      }
+    }
+  }
+}
+</script>
+<style scoped>
+.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+.data-table th, .data-table td { padding: 10px; border: 1px solid #ddd; }
+.actions { margin-bottom: 20px; display: flex; gap: 10px; }
+.btn-create { background: #42b983; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+.btn-delete { background: #e74c3c; color: white; border: none; margin-left: 5px; cursor: pointer; }
+</style>

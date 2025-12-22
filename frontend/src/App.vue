@@ -5,7 +5,8 @@
       <div class="brand">Vietbank Contract App</div>
       <div class="links">
         <router-link to="/">Danh sách Hồ sơ</router-link> |
-        <router-link to="/create">Tạo Hồ sơ Mới</router-link>
+        <router-link to="/create">Tạo Hồ sơ Mới</router-link> |
+        <router-link to="/admin" style="color: #f1c40f">Admin Panel</router-link>
       </div>
     </nav>
 
