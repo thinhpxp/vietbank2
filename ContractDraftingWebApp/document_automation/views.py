@@ -16,7 +16,7 @@ from num2words import num2words # Cần pip install num2words
 import decimal
 from jinja2 import Environment
 # Import Models
-from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, FieldGroup, Role
+from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, FieldGroup, Role, Asset, LoanProfileAsset
 
 # Import Serializers
 from .serializers import (
@@ -231,11 +231,53 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                         except Field.DoesNotExist:
                             continue
 
-                # D. Dọn dẹp (Xóa những người bị remove khỏi form)
+                # D. Dọn dẹp People (Xóa những người bị remove khỏi form)
                 LoanProfilePerson.objects.filter(loan_profile=loan_profile).exclude(
                     person__id__in=current_person_ids).delete()
                 FieldValue.objects.filter(loan_profile=loan_profile, person__isnull=False).exclude(
                     person__id__in=current_person_ids).delete()
+
+                # E. Xử lý ASSETS (MỚI)
+                assets_data = data.get('assets', [])
+                current_asset_ids = []
+
+                for a_data in assets_data:
+                    a_field_values = a_data.get('asset_field_values', {})
+                    a_id = a_data.get('id')
+                    
+                    # Tìm hoặc Tạo Asset
+                    # Asset chỉ là ID holder, không có thuộc tính riêng (như name/cccd)
+                    if a_id:
+                         asset = Asset.objects.get(id=a_id)
+                    else:
+                         asset = Asset.objects.create()
+                    
+                    current_asset_ids.append(asset.id)
+
+                    # Liên kết Asset vào Profile
+                    LoanProfileAsset.objects.get_or_create(
+                        loan_profile=loan_profile,
+                        asset=asset
+                    )
+
+                    # Lưu FieldValues RIÊNG của Asset
+                    for key, val in a_field_values.items():
+                        try:
+                            field_obj = Field.objects.get(placeholder_key=key)
+                            FieldValue.objects.update_or_create(
+                                loan_profile=loan_profile,
+                                field=field_obj,
+                                asset=asset, # Link to Asset
+                                defaults={'value': str(val)}
+                            )
+                        except Field.DoesNotExist:
+                            continue
+
+                # F. Dọn dẹp Assets
+                LoanProfileAsset.objects.filter(loan_profile=loan_profile).exclude(
+                    asset__id__in=current_asset_ids).delete()
+                FieldValue.objects.filter(loan_profile=loan_profile, asset__isnull=False).exclude(
+                    asset__id__in=current_asset_ids).delete()
 
             return Response({"status": "success", "message": "Lưu dữ liệu thành công!"}, status=status.HTTP_200_OK)
 

@@ -3,7 +3,7 @@
 # Có vai trò giống như một cầu nối giữa các mô hình dữ liệu và các API endpoints
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, UserProfile, Role
+from .models import Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, UserProfile, Role, Asset, LoanProfileAsset
 
 # 0. Serializer cho Role (MỚI)
 class RoleSerializer(serializers.ModelSerializer):
@@ -26,7 +26,7 @@ class FieldSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Field
-        fields = ['id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'is_active', 'note', 'is_model_field']
+        fields = ['id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'is_active', 'note', 'is_model_field', 'order', 'width_cols', 'css_class']
 
 
 # 2.1 Serializer cho User (MỚI - Để quản lý End-user)
@@ -73,6 +73,17 @@ class PersonSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+# --- MỚI: Serializer cho Asset ---
+class AssetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Asset
+        fields = '__all__'
+
+
+
+
+
+
 # 3. Serializer cho DocumentTemplate (Bắt buộc phải có)
 class DocumentTemplateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -101,16 +112,17 @@ class FieldValueSerializer(serializers.ModelSerializer):
 
 # 6. Serializer cho LoanProfile
 class LoanProfileSerializer(serializers.ModelSerializer):
-    # Khai báo 2 trường tùy chỉnh mà Frontend cần
+    # Khai báo 3 trường tùy chỉnh mà Frontend cần
     field_values = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
+    assets = serializers.SerializerMethodField() # Mới: Field cho tài sản
 
     # Hiển thị tên người tạo thay vì ID
     created_by_user_name = serializers.CharField(source='created_by_user.username', read_only=True)
 
     class Meta:
         model = LoanProfile
-        fields = ['id', 'name', 'created_at', 'updated_at', 'created_by_user_name', 'field_values', 'people']
+        fields = ['id', 'name', 'created_at', 'updated_at', 'created_by_user_name', 'field_values', 'people', 'assets']
         read_only_fields = ['created_at', 'updated_at']
 
     # Logic 1: Gom các FieldValue chung (không thuộc về Person nào)
@@ -149,4 +161,22 @@ class LoanProfileSerializer(serializers.ModelSerializer):
                 "individual_field_values": individual_fv_dict  # Các trường động riêng
             })
 
+        return result
+
+    # Logic 3: Gom danh sách Assets và FieldValue riêng của chúng
+    def get_assets(self, obj):
+        result = []
+        linked_assets = obj.linked_assets.select_related('asset').all()
+
+        for link in linked_assets:
+            asset = link.asset
+            # Lấy các giá trị trường riêng của tài sản này
+            asset_fvs = obj.fieldvalue_set.filter(asset=asset)
+            asset_fv_dict = {fv.field.placeholder_key: fv.value for fv in asset_fvs}
+
+            result.append({
+                "id": asset.id,
+                "asset_field_values": asset_fv_dict
+            })
+        
         return result

@@ -36,6 +36,11 @@ class Field(models.Model):
     )
     group = models.ForeignKey(FieldGroup, on_delete=models.CASCADE, related_name='fields', verbose_name="Nhóm",
                               null=True)
+    # --- Layout Configuration ---
+    order = models.IntegerField(default=0, verbose_name="Thứ tự")
+    width_cols = models.IntegerField(default=12, verbose_name="Độ rộng (1-12)")
+    css_class = models.CharField(max_length=255, blank=True, null=True, verbose_name="CSS Class tùy chỉnh")
+    
     is_active = models.BooleanField(default=True)
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
 
@@ -92,8 +97,7 @@ class LoanProfile(models.Model):
 
 # 4. Bảng Người
 class Person(models.Model):
-    id = models.AutoField(primary_key=True)  # Explicitly define id field
-    # name_for_display và cccd_so đã được xóa để chuyển sang dùng FieldValue động
+    id = models.AutoField(primary_key=True)
     
     def __str__(self):
         return f"Person ID: {self.id}"
@@ -103,12 +107,22 @@ class Person(models.Model):
         verbose_name_plural = "Người Liên quan"
 
 
+# --- MỚI: Bảng Tài sản ---
+class Asset(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    def __str__(self):
+        return f"Asset ID: {self.id}"
+
+    class Meta:
+        verbose_name = "Tài sản"
+        verbose_name_plural = "Tài sản"
+
+
 # 5. Bảng Liên kết Hồ sơ - Người
 class LoanProfilePerson(models.Model):
     loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, related_name='linked_people')
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='linked_profiles')
-
-    # Lưu danh sách vai trò dưới dạng JSON (VD: ["Bên Vay", "Chủ tài sản"])
     roles = models.JSONField(default=list, verbose_name="Danh sách vai trò")
 
     class Meta:
@@ -120,17 +134,31 @@ class LoanProfilePerson(models.Model):
         return f"Person {self.person.id} -> {self.loan_profile.name}"
 
 
+# --- MỚI: Bảng Liên kết Hồ sơ - Tài sản ---
+class LoanProfileAsset(models.Model):
+    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, related_name='linked_assets')
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='linked_profiles')
+
+    class Meta:
+        unique_together = ('loan_profile', 'asset')
+        verbose_name = "Liên kết Hồ sơ và Tài sản"
+        verbose_name_plural = "Liên kết Hồ sơ và Tài sản"
+
+    def __str__(self):
+        return f"Asset {self.asset.id} -> {self.loan_profile.name}"
+
+
 # 6. Bảng Giá trị của các Trường trong Hồ sơ Vay
-#   Lưu trữ giá trị thực tế của các trường dữ liệu, có thể là chung cho hồ sơ hoặc riêng cho từng người
-#   Tức là class Field mới chỉ tạo ra trường thông tin, còn class FieldValue này để lưu trữ giá trị cụ thể
 class FieldValue(models.Model):
     loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE)
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, null=True, blank=True)  # Null nếu là thông tin chung
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, null=True, blank=True)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True) # Mới: Link tới Asset
     field = models.ForeignKey(Field, on_delete=models.CASCADE)
     value = models.TextField(verbose_name="Giá trị thực tế")
 
     class Meta:
-        unique_together = ('loan_profile', 'person', 'field')
+        # Cập nhật unique constraint để bao gồm asset
+        unique_together = ('loan_profile', 'person', 'asset', 'field')
         verbose_name = "Giá trị"
         verbose_name_plural = "Các giá trị"
 
