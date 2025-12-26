@@ -9,24 +9,24 @@
 
     <table class="data-table">
       <thead>
-      <tr>
-        <th>ID</th>
-        <th>Tên Vai trò</th>
-        <th>Mô tả</th>
-        <th>Hành động</th>
-      </tr>
+        <tr>
+          <th>ID</th>
+          <th>Tên Vai trò</th>
+          <th>Mô tả</th>
+          <th>Hành động</th>
+        </tr>
       </thead>
 
       <tbody>
         <tr v-for="role in roles" :key="role.id">
           <td>{{ role.id }}</td>
           <td>
-             <input v-if="editingId === role.id" v-model="role.name">
-             <span v-else>{{ role.name }}</span>
+            <input v-if="editingId === role.id" v-model="role.name">
+            <span v-else>{{ role.name }}</span>
           </td>
           <td>
-               <input v-if="editingId === role.id" v-model="role.description" style="width: 100%">
-               <span v-else>{{ role.description }}</span>
+            <input v-if="editingId === role.id" v-model="role.description" style="width: 100%">
+            <span v-else>{{ role.description }}</span>
           </td>
           <td>
             <button v-if="editingId === role.id" @click="updateRole(role)">Lưu</button>
@@ -36,13 +36,29 @@
         </tr>
       </tbody>
     </table>
+
+    <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
+      :message="`Bạn có chắc muốn xóa vai trò '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
+      @cancel="showDeleteModal = false" />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import ConfirmModal from '../../components/ConfirmModal.vue';
+
 export default {
-  data() { return { roles: [], newRole: { name: '', description: '' }, editingId: null } },
+  components: { ConfirmModal },
+  data() {
+    return {
+      roles: [],
+      newRole: { name: '', description: '' },
+      editingId: null,
+      showDeleteModal: false,
+      deleteTargetId: null,
+      deleteTargetName: ''
+    }
+  },
   mounted() { this.fetchRoles(); },
   methods: {
     async fetchRoles() {
@@ -54,7 +70,7 @@ export default {
       }
     },
     async addRole() {
-      if(!this.newRole.name) return alert('Vui lòng nhập tên vai trò');
+      if (!this.newRole.name) return alert('Vui lòng nhập tên vai trò');
       try {
         await axios.post('http://127.0.0.1:8000/api/roles/', this.newRole);
         this.newRole.name = '';
@@ -64,31 +80,68 @@ export default {
         alert('Lỗi thêm vai trò: ' + e.response?.data?.message || e.message);
       }
     },
-    async deleteRole(id) {
-      if(confirm('Bạn có chắc muốn xóa vai trò này?')) {
+    deleteRole(id) {
+      const role = this.roles.find(r => r.id === id);
+      this.deleteTargetId = id;
+      this.deleteTargetName = role ? role.name : '';
+      this.showDeleteModal = true;
+    },
+    async confirmDelete() {
+      if (this.deleteTargetId) {
         try {
-            await axios.delete(`http://127.0.0.1:8000/api/roles/${id}/`);
-            this.fetchRoles();
+          await axios.delete(`http://127.0.0.1:8000/api/roles/${this.deleteTargetId}/`);
+          this.showDeleteModal = false;
+          this.deleteTargetId = null;
+          this.fetchRoles();
         } catch (e) {
-            alert('Lỗi xóa vai trò');
+          alert('Lỗi xóa vai trò');
         }
       }
     },
     async updateRole(role) {
       try {
-          await axios.put(`http://127.0.0.1:8000/api/roles/${role.id}/`, role);
-          this.editingId = null;
+        await axios.put(`http://127.0.0.1:8000/api/roles/${role.id}/`, role);
+        this.editingId = null;
       } catch (e) {
-          alert('Lỗi cập nhật vai trò');
+        alert('Lỗi cập nhật vai trò');
       }
     }
   }
 }
 </script>
 <style scoped>
-.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
-.data-table th, .data-table td { padding: 10px; border: 1px solid #ddd; }
-.actions { margin-bottom: 20px; display: flex; gap: 10px; }
-.btn-create { background: #42b983; color: white; border: none; padding: 5px 10px; cursor: pointer; }
-.btn-delete { background: #e74c3c; color: white; border: none; margin-left: 5px; cursor: pointer; }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: white;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.actions {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-create {
+  background: #42b983;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.btn-delete {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  margin-left: 5px;
+  cursor: pointer;
+}
 </style>

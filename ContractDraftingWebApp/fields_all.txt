@@ -1,0 +1,28 @@
+Diện tích | dien_tich_thua_dat
+Sử dụng chung | hinh_thuc_su_dung_chung
+Ngày cấp | ngay_cap_tai_san
+Hợp đồng tín dụng số | hop_dong_tin_dung
+Địa chỉ tài sản | dia_chi_tai_san
+Hợp đồng thế chấp số | hop_dong_the_chap
+Nguồn gốc sử dụng | nguon_goc_su_dung_dat
+Số CCCD | cccd
+Thời hạn sử dụng | thoi_han_su_dung_dat
+Mục đích sử dụng | muc_dich_su_dung_dat
+Tên hồ sơ | ten_ho_so
+Họ tên | ho_ten
+Nơi cấp CCCD | noi_cap_cccd
+Ngày cấp CCCD | ngay_cap_cccd
+Nội dung thay đổi và cơ sở pháp lý | noi_dung_thay_doi_phap_ly
+Giá trị TSBĐ | gia_tri_tsbd
+Địa chỉ thường trú | dia_chi_thuong_tru
+Giấy chứng nhận số | so_giay_chung_nhan
+Số vào sổ | so_vao_so
+Tờ bản đồ số | to_ban_do
+Thời hạn vay | thoi_han_vay
+Mục đích vay | muc_dich_vay
+Lãi suất | lai_suat_vay
+Số tiền vay | so_tien_vay
+Mã CIF | cif
+Tổng giá trị TSBĐ | tong_gia_tri_tai_san
+Sử dụng riêng | hinh_thuc_su_dung_rieng
+Thửa đất số | thua_dat_so

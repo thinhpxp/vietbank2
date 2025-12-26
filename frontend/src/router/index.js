@@ -9,7 +9,8 @@ import AdminGroups from '../views/admin/AdminGroups.vue';
 import AdminFields from '../views/admin/AdminFields.vue';
 import AdminTemplates from '../views/admin/AdminTemplates.vue';
 import AdminUsers from '../views/admin/AdminUsers.vue';
-import AdminRoles from '../views/admin/AdminRoles.vue'; // <-- MỚI
+import AdminRoles from '../views/admin/AdminRoles.vue';
+import AdminForms from '../views/admin/AdminForms.vue'; // <-- MỚI
 
 const routes = [
   {
@@ -36,7 +37,8 @@ const routes = [
       { path: 'fields', component: AdminFields },
       { path: 'templates', component: AdminTemplates },
       { path: 'users', component: AdminUsers },
-      { path: 'roles', component: AdminRoles }, // <-- MỚI
+      { path: 'roles', component: AdminRoles },
+      { path: 'forms', component: AdminForms }, // <-- MỚI
       { path: '', redirect: '/admin/groups' } // Mặc định vào trang Groups
     ]
   }

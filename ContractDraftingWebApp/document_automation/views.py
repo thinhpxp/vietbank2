@@ -16,7 +16,11 @@ from num2words import num2words # Cần pip install num2words
 import decimal
 from jinja2 import Environment
 # Import Models
-from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, FieldGroup, Role, Asset, LoanProfileAsset
+from .models import (
+    Field, LoanProfile, Person, LoanProfilePerson, FieldValue, 
+    DocumentTemplate, FieldGroup, Role, Asset, LoanProfileAsset, 
+    FormView
+)
 
 # Import Serializers
 from .serializers import (
@@ -25,10 +29,9 @@ from .serializers import (
     PersonSerializer,
     DocumentTemplateSerializer,
     FieldGroupSerializer,
-    DocumentTemplateSerializer,
-    FieldGroupSerializer,
     UserSerializer,
-    RoleSerializer
+    RoleSerializer,
+    FormViewSerializer
 )
 # --- CÁC HÀM HỖ TRỢ JINJA2 (FORMAT TIỀN, NGÀY, CHỮ) ---
 def format_currency_filter(value):
@@ -50,25 +53,100 @@ def num2words_filter(value):
     except:
         return str(value)
 
+def to_roman_filter(value):
+    """Chuyển số thành ký tự La Mã viết thường (i, ii, iii...)"""
+    try:
+        n = int(value)
+        if not 0 < n < 4000: return str(value)
+        millions = ["", "m", "mm", "mmm"]
+        hundreds = ["", "c", "cd", "d", "dc", "dcc", "dccc", "cm"]
+        tens = ["", "x", "xx", "xxx", "xl", "l", "lx", "lxx", "lxxx", "xc"]
+        ones = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix"]
+        return millions[n // 1000] + hundreds[(n % 1000) // 100] + tens[(n % 100) // 10] + ones[n % 10]
+    except:
+        return str(value)
+
 def dateformat_filter(value, fmt="%d/%m/%Y"):
-    """Định dạng ngày tháng"""
-    if not value: return ""
+    """
+    Định dạng ngày tháng thông minh. 
+    Hỗ trợ cả object datetime và chuỗi văn bản (kể cả chuỗi thiếu thông tin).
+    Nếu thành phần nào thiếu (ví dụ ngày trống), sẽ tự động điền dấu chấm vào vị trí đó.
+    """
+    import re
+    empty_dots = " . . . . "
+    
+    if not value: 
+        return " . . . . . . . . " if fmt == "%d/%m/%Y" else empty_dots
+        
+    # 1. Thử parse thành object datetime nếu là chuỗi chuẩn
+    dt = None
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, str):
+        for str_fmt in ['%Y-%m-%d', '%d/%m/%Y', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S']:
+            try:
+                dt = datetime.strptime(value.strip(), str_fmt)
+                break
+            except:
+                continue
+                
+    if dt:
+        return dt.strftime(fmt)
+        
+    # 2. Xử lý chuỗi "văn bản tự do" (ví dụ: " /12/2025")
     if isinstance(value, str):
-        try:
-            # Thử parse string 'YYYY-MM-DD' sang date object
-            value = datetime.strptime(value, '%Y-%m-%d')
-        except:
-            return value
-    if isinstance(value, (datetime,)):
-        return value.strftime(fmt)
-    return str(value)
+        # Tách chuỗi bằng các ký tự phân cách phổ biến
+        parts = re.split(r'[/.\-]', value.strip())
+        
+        # Dự đoán vị trí Ngày, Tháng, Năm
+        day = month = year = None
+        
+        if len(parts) == 3:
+            # Giả định định dạng DD/MM/YYYY hoặc YYYY-MM-DD
+            if len(parts[0]) == 4: # YYYY-MM-DD
+                year, month, day = parts
+            else: # DD/MM/YYYY
+                day, month, year = parts
+        elif len(parts) == 2: # MM/YYYY
+            month, year = parts
+            
+        # Hàm kiểm tra xem một phần có "hợp lệ" hay không
+        def clean_part(v):
+            if not v or not re.search(r'\d', str(v)):
+                return empty_dots
+            return str(v).strip()
+            
+        # Thay thế các token trong định dạng bằng giá trị tương ứng
+        res = fmt
+        res = res.replace('%d', clean_part(day))
+        res = res.replace('%m', clean_part(month))
+        res = res.replace('%Y', clean_part(year))
+        # Hỗ trợ năm rút gọn %y
+        y_val = clean_part(year)
+        res = res.replace('%y', y_val[-2:] if len(y_val) >= 2 and y_val != empty_dots else empty_dots)
+        
+        return res
+        
+    return str(value) if value else " . . . . . . . . "
 # -----------------------------------------------------
 # 1.1 ViewSet cho FieldGroup (MỚI)
 class FieldGroupViewSet(viewsets.ModelViewSet):
     queryset = FieldGroup.objects.all().order_by('order')
     serializer_class = FieldGroupSerializer
-    # Chỉ Admin mới được đụng vào cấu hình này
-    # permission_classes = [IsAdminUser] # Tạm thời để AllowAny nếu chưa làm login, nhưng nên là IsAdminUser
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        form_slug = self.request.query_params.get('form_slug')
+        if form_slug:
+            # Chết độ lọc nghiêm ngặt: Chỉ lấy những nhóm được gắn trực tiếp với form này
+            queryset = queryset.filter(allowed_forms__slug=form_slug).distinct()
+        return queryset
+
+# 1.1b ViewSet cho FormView (MỚI)
+class FormViewViewSet(viewsets.ModelViewSet):
+    queryset = FormView.objects.all()
+    serializer_class = FormViewSerializer
     permission_classes = [AllowAny]
 
 # 1.3 ViewSet cho Role
@@ -81,27 +159,64 @@ class RoleViewSet(viewsets.ModelViewSet):
 class FieldViewSet(viewsets.ModelViewSet):
     queryset = Field.objects.all()
     serializer_class = FieldSerializer
-    permission_classes = [AllowAny]  # Để test
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('group')
+        form_slug = self.request.query_params.get('form_slug')
+        if form_slug:
+            from django.db.models import Q
+            # Trường (Field) hiển thị nếu:
+            # 1. Bản thân trường đó được gán cho form_slug này
+            # 2. HOẶC Trường đó chưa được gán cho bất kỳ form nào NHƯNG Nhóm (Group) của nó thì có gán cho form_slug này
+            queryset = queryset.filter(
+                Q(allowed_forms__slug=form_slug) | 
+                (Q(allowed_forms__isnull=True) & Q(group__allowed_forms__slug=form_slug))
+            ).distinct()
+        return queryset
+
+    def destroy(self, request, *args, **kwargs):
+        """Ngăn xóa các trường được bảo vệ"""
+        instance = self.get_object()
+        if instance.is_protected:
+            return Response(
+                {"error": "Không thể xóa trường được bảo vệ."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 
     @action(detail=False, methods=['get'])
     def active_fields_grouped(self, request):
-        """Trả về danh sách trường active nhóm theo FieldGroup"""
-        # Lấy tất cả các nhóm, sắp xếp theo thứ tự
-        groups = FieldGroup.objects.all().order_by('order').prefetch_related(
-            Prefetch('fields', queryset=Field.objects.filter(is_active=True))
+        """Trả về danh sách trường active nhóm theo FieldGroup, có lọc theo form_slug"""
+        form_slug = request.query_params.get('form_slug')
+        
+        from django.db.models import Q
+        
+        # 1. Lọc nhóm
+        groups_qs = FieldGroup.objects.all().order_by('order')
+        if form_slug:
+            groups_qs = groups_qs.filter(allowed_forms__slug=form_slug).distinct()
+            
+        # 2. Prefetch fields có lọc
+        # Logic: Trường hiện nếu nó được gán form ĐÓ hoặc nó chưa gán gì nhưng Group của nó thì có gán
+        fields_filter = Q(is_active=True)
+        if form_slug:
+            fields_filter &= (Q(allowed_forms__slug=form_slug) | Q(allowed_forms__isnull=True))
+            
+        groups = groups_qs.prefetch_related(
+            Prefetch('fields', queryset=Field.objects.filter(fields_filter).distinct())
         )
 
         result = {}
         for grp in groups:
-            # Chỉ lấy nhóm nào có trường dữ liệu
-            fields_data = FieldSerializer(grp.fields.all(), many=True).data  # Ensure related_name='fields' is correct
+            fields_data = FieldSerializer(grp.fields.all(), many=True).data
             if fields_data:
-                result[grp.name] = fields_data  # Frontend sẽ dùng key là tên nhóm để hiển thị tiêu đề
+                result[grp.name] = fields_data
 
-        # Add synthetic fields to the grouped response
-        result["Thông tin cá nhân"] = [] # Clear synthetic fields
+        # Synthetic fields: Tạm thời giữ nguyên
+        result["Thông tin cá nhân"] = [] 
 
         return Response(result)
 
@@ -140,6 +255,93 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             serializer.save()
 
     @action(detail=True, methods=['post'])
+    def duplicate(self, request, pk=None):
+        """
+        API tạo bản sao hồ sơ vay.
+        Input: { "new_name": "Tên hồ sơ mới" }
+        Output: { "id": new_profile_id, "name": "..." }
+        """
+        original = self.get_object()
+        new_name = request.data.get('new_name', f"{original.name} - copy")
+
+        try:
+            with transaction.atomic():
+                # 1. Tạo hồ sơ mới
+                new_profile = LoanProfile.objects.create(
+                    name=new_name,
+                    created_by_user=request.user if request.user.is_authenticated else None
+                )
+
+                # 2. Sao chép FieldValues chung (không liên kết Person/Asset)
+                general_fvs = original.fieldvalue_set.filter(person__isnull=True, asset__isnull=True)
+                for fv in general_fvs:
+                    FieldValue.objects.create(
+                        loan_profile=new_profile,
+                        field=fv.field,
+                        person=None,
+                        asset=None,
+                        value=fv.value
+                    )
+
+                # 3. Sao chép People
+                for link in original.linked_people.all():
+                    old_person = link.person
+                    # Tạo Person mới (vì Person chỉ là ID holder)
+                    new_person = Person.objects.create()
+                    
+                    # Liên kết vào hồ sơ mới với vai trò
+                    LoanProfilePerson.objects.create(
+                        loan_profile=new_profile,
+                        person=new_person,
+                        roles=link.roles
+                    )
+                    
+                    # Sao chép FieldValues của Person
+                    person_fvs = original.fieldvalue_set.filter(person=old_person)
+                    for fv in person_fvs:
+                        FieldValue.objects.create(
+                            loan_profile=new_profile,
+                            field=fv.field,
+                            person=new_person,
+                            asset=None,
+                            value=fv.value
+                        )
+
+                # 4. Sao chép Assets
+                for link in original.linked_assets.all():
+                    old_asset = link.asset
+                    new_asset = Asset.objects.create()
+                    
+                    LoanProfileAsset.objects.create(
+                        loan_profile=new_profile,
+                        asset=new_asset
+                    )
+                    
+                    # Sao chép FieldValues của Asset
+                    asset_fvs = original.fieldvalue_set.filter(asset=old_asset)
+                    for fv in asset_fvs:
+                        FieldValue.objects.create(
+                            loan_profile=new_profile,
+                            field=fv.field,
+                            person=None,
+                            asset=new_asset,
+                            value=fv.value
+                        )
+
+            return Response({
+                "status": "success",
+                "id": new_profile.id,
+                "name": new_profile.name,
+                "message": "Tạo bản sao thành công!"
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
     def save_form_data(self, request, pk=None):
         """
         API lưu dữ liệu tổng hợp:
@@ -167,6 +369,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                             loan_profile=loan_profile,
                             field=field_obj,
                             person=None,
+                            asset=None,  # Không phải FieldValue của Asset
                             defaults={'value': str(val)}
                         )
                     except Field.DoesNotExist:
@@ -226,6 +429,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                                 loan_profile=loan_profile,
                                 field=field_obj,
                                 person=person,
+                                asset=None,  # Person FieldValue không thuộc Asset nào
                                 defaults={'value': str(val)}
                             )
                         except Field.DoesNotExist:
@@ -267,7 +471,8 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                             FieldValue.objects.update_or_create(
                                 loan_profile=loan_profile,
                                 field=field_obj,
-                                asset=asset, # Link to Asset
+                                person=None,  # Asset FieldValue không thuộc Person nào
+                                asset=asset,
                                 defaults={'value': str(val)}
                             )
                         except Field.DoesNotExist:
@@ -318,11 +523,24 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
         # A. Thông tin cơ bản
         context['ten_ho_so'] = loan_profile.name
-        context['ngay_tao'] = loan_profile.created_at.strftime("%d/%m/%Y")
+        
+        # Xử lý Ngày lập hồ sơ (ngay_tao) ưu tiên lấy từ trường động 'ngay_lap_ho_so'
+        ngay_lap_fv = loan_profile.fieldvalue_set.filter(
+            field__placeholder_key='ngay_lap_ho_so', 
+            person__isnull=True, 
+            asset__isnull=True
+        ).first()
+        
+        if ngay_lap_fv:
+            # Nếu có dữ liệu (bao gồm cả chuỗi rỗng nếu người dùng muốn để trắng)
+            context['ngay_tao'] = ngay_lap_fv.value if ngay_lap_fv.value else ""
+        else:
+            # Fallback cho các hồ sơ cũ chưa có trường này
+            context['ngay_tao'] = loan_profile.created_at
 
-        # B. Các trường chung (FieldValues không gắn với Person)
+        # B. Các trường chung (FieldValues không gắn với Person hoặc Asset)
         # Biến đổi từ: {field: "so_tien", value: "100"} -> context["so_tien"] = "100"
-        general_fvs = loan_profile.fieldvalue_set.filter(person__isnull=True)
+        general_fvs = loan_profile.fieldvalue_set.filter(person__isnull=True, asset__isnull=True)
         for fv in general_fvs:
             context[fv.field.placeholder_key] = fv.value
 
@@ -343,7 +561,8 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
             p_data = {
                 'ho_ten': get_val('ho_ten'),
-                'cccd_so': get_val('cccd_so'),
+                'cccd_so': get_val('cccd_so') or get_val('cccd'),  # Linh hoạt cả 2 key
+                'cccd': get_val('cccd') or get_val('cccd_so'),     # Linh hoạt cả 2 key
                 'roles': link.roles,  # Mảng các vai trò
             }
             for fv in person_fvs:
@@ -353,11 +572,32 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
         context['people'] = people_list
 
-        # D. Tạo các danh sách lọc sẵn để tiện dùng trong Word
+        # D. Danh sách Tài sản (Assets List)
+        assets_list = []
+        asset_links = loan_profile.linked_assets.select_related('asset').all()
+
+        for link in asset_links:
+            asset = link.asset
+            asset_fvs = loan_profile.fieldvalue_set.filter(asset=asset)
+            
+            a_data = {
+                'id': asset.id
+            }
+            for fv in asset_fvs:
+                a_data[fv.field.placeholder_key] = fv.value
+                
+            assets_list.append(a_data)
+        
+        context['assets'] = assets_list
+
+        # E. Tạo các danh sách lọc sẵn để tiện dùng trong Word
         # Lọc những người có vai trò 'Bên Vay'
         context['ben_vay_list'] = [p for p in people_list if 'Bên Vay' in p['roles']]
         # Lọc những người có vai trò 'Bên Bảo đảm'
         context['ben_bao_dam_list'] = [p for p in people_list if 'Bên Bảo đảm' in p['roles']]
+        # MỚI: Lọc theo đúng tên vai trò trong database
+        context['ben_duoc_cap_tin_dung_list'] = [p for p in people_list if 'Bên được cấp tín dụng' in p['roles']]
+        context['ben_the_chap_list'] = [p for p in people_list if 'Bên thế chấp' in p['roles']]
 
         # 3. XỬ LÝ TEMPLATE VÀ SINH FILE
         try:
@@ -371,6 +611,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             jinja_env.filters['format_currency'] = format_currency_filter
             jinja_env.filters['num2words'] = num2words_filter
             jinja_env.filters['dateformat'] = dateformat_filter
+            jinja_env.filters['to_roman'] = to_roman_filter
 
             # 3. Truyền môi trường (jinja_env) vào hàm render
             doc.render(context, jinja_env=jinja_env)

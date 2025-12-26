@@ -9,8 +9,15 @@
     </div>
 
     <table class="data-table">
-      <thead><tr><th>ID</th><th>Tên Mẫu</th><th>Ghi chú</th><th>File</th><th>Hành động</th>
-</tr></thead>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tên Mẫu</th>
+          <th>Ghi chú</th>
+          <th>File</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
       <tbody>
         <tr v-for="tpl in templates" :key="tpl.id">
           <td>{{ tpl.id }}</td>
@@ -23,13 +30,30 @@
         </tr>
       </tbody>
     </table>
+
+    <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
+      :message="`Bạn có chắc muốn xóa mẫu '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
+      @cancel="showDeleteModal = false" />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import ConfirmModal from '../../components/ConfirmModal.vue';
+
 export default {
-  data() { return { templates: [], newName: '', newDesc: '', selectedFile: null } },
+  components: { ConfirmModal },
+  data() {
+    return {
+      templates: [],
+      newName: '',
+      newDesc: '',
+      selectedFile: null,
+      showDeleteModal: false,
+      deleteTargetId: null,
+      deleteTargetName: ''
+    }
+  },
   mounted() { this.fetchTemplates(); },
   methods: {
     async fetchTemplates() {
@@ -40,7 +64,7 @@ export default {
       this.selectedFile = e.target.files[0];
     },
     async uploadTemplate() {
-      if(!this.selectedFile || !this.newName) return alert('Nhập tên và chọn file!');
+      if (!this.selectedFile || !this.newName) return alert('Nhập tên và chọn file!');
 
       const formData = new FormData();
       formData.append('name', this.newName);
@@ -49,16 +73,24 @@ export default {
 
       try {
         await axios.post('http://127.0.0.1:8000/api/document-templates/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
         this.newName = ''; this.newDesc = ''; this.selectedFile = null; this.$refs.fileInput.value = '';
         this.fetchTemplates();
         alert('Upload thành công!');
-      } catch(e) { alert('Lỗi upload'); }
+      } catch (e) { alert('Lỗi upload'); }
     },
-    async deleteTemplate(id) {
-      if(confirm('Xóa mẫu này?')) {
-        await axios.delete(`http://127.0.0.1:8000/api/document-templates/${id}/`);
+    deleteTemplate(id) {
+      const tpl = this.templates.find(t => t.id === id);
+      this.deleteTargetId = id;
+      this.deleteTargetName = tpl ? tpl.name : '';
+      this.showDeleteModal = true;
+    },
+    async confirmDelete() {
+      if (this.deleteTargetId) {
+        await axios.delete(`http://127.0.0.1:8000/api/document-templates/${this.deleteTargetId}/`);
+        this.showDeleteModal = false;
+        this.deleteTargetId = null;
         this.fetchTemplates();
       }
     }
@@ -67,9 +99,39 @@ export default {
 </script>
 <style scoped>
 /* Reuse styles */
-.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
-.data-table th, .data-table td { padding: 10px; border: 1px solid #ddd; }
-.actions { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-.btn-create { background: #42b983; color: white; border: none; padding: 8px; cursor: pointer; }
-.btn-delete { background: #e74c3c; color: white; border: none; cursor: pointer; padding: 5px; }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: white;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.actions {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-create {
+  background: #42b983;
+  color: white;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.btn-delete {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+}
 </style>

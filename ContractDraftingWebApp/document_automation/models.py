@@ -7,10 +7,24 @@ from django.dispatch import receiver
 #   Các trường dữ liệu này được sử dụng để lưu trữ các giá trị tùy chỉnh trong hồ sơ vay
 #   Mỗi trường có một key định danh duy nhất, nhãn hiển thị, loại dữ liệu, nhóm và trạng thái kích hoạt
 #   Chúng được admin quản lý để thêm/sửa/xóa các trường theo nhu cầu thực tế mà không phụ thuộc vào code
+class FormView(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Tên Form")
+    slug = models.SlugField(max_length=100, unique=True, verbose_name="Mã định danh (Slug)")
+    note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Cấu hình Form"
+        verbose_name_plural = "Cấu hình Form"
+
+
 class FieldGroup(models.Model):
     name = models.CharField(max_length=255, verbose_name="Tên nhóm")
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
+    allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='groups', verbose_name="Hiển thị ở Form")
 
     def __str__(self):
         return self.name
@@ -27,6 +41,7 @@ class Field(models.Model):
         max_length=50,
         choices=[
             ('TEXT', 'Văn bản'),
+            ('TEXTAREA', 'Đoạn văn bản'),
             ('NUMBER', 'Số'),
             ('DATE', 'Ngày'),
             ('CHECKBOX', 'Hộp kiểm'),
@@ -42,6 +57,9 @@ class Field(models.Model):
     css_class = models.CharField(max_length=255, blank=True, null=True, verbose_name="CSS Class tùy chỉnh")
     
     is_active = models.BooleanField(default=True)
+    is_protected = models.BooleanField(default=False, verbose_name="Được bảo vệ (không xóa được)")
+    default_value = models.TextField(blank=True, null=True, verbose_name="Giá trị mặc định")
+    allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='fields', verbose_name="Hiển thị ở Form")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
 
     def __str__(self):

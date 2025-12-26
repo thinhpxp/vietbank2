@@ -10,7 +10,7 @@
         <input v-model="newUser.email" placeholder="Email" type="email">
       </div>
       <div class="row">
-      <input v-model="newUser.note" placeholder="Ghi chú (Chức vụ, Phòng ban...)" style="flex: 2">
+        <input v-model="newUser.note" placeholder="Ghi chú (Chức vụ, Phòng ban...)" style="flex: 2">
         <input v-model="newUser.password" placeholder="Mật khẩu (*)" type="password">
         <label class="checkbox-label">
           <input type="checkbox" v-model="newUser.is_staff"> Là Admin/Staff?
@@ -75,14 +75,20 @@
         </tr>
       </tbody>
     </table>
+
+    <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
+      :message="`Bạn có chắc muốn xóa người dùng '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
+      @cancel="showDeleteModal = false" />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import ConfirmModal from '../../components/ConfirmModal.vue';
 
 export default {
   name: 'AdminUsers',
+  components: { ConfirmModal },
   data() {
     return {
       users: [],
@@ -93,7 +99,10 @@ export default {
         email: '',
         is_staff: false,
         note: ''
-      }
+      },
+      showDeleteModal: false,
+      deleteTargetId: null,
+      deleteTargetName: ''
     }
   },
   mounted() {
@@ -139,10 +148,18 @@ export default {
         alert("Lỗi khi tạo user: " + JSON.stringify(error.response?.data));
       }
     },
-    async deleteUser(id) {
-      if (confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
+    deleteUser(id) {
+      const user = this.users.find(u => u.id === id);
+      this.deleteTargetId = id;
+      this.deleteTargetName = user ? user.username : '';
+      this.showDeleteModal = true;
+    },
+    async confirmDelete() {
+      if (this.deleteTargetId) {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/users/${id}/`);
+          await axios.delete(`http://127.0.0.1:8000/api/users/${this.deleteTargetId}/`);
+          this.showDeleteModal = false;
+          this.deleteTargetId = null;
           this.fetchUsers();
         } catch (error) {
           alert("Lỗi khi xóa user");
@@ -154,24 +171,117 @@ export default {
 </script>
 
 <style scoped>
-.add-box { background: #eee; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
-.row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-.row input { padding: 8px; flex: 1; border: 1px solid #ccc; border-radius: 4px; }
-.checkbox-label { display: flex; align-items: center; gap: 5px; font-weight: bold; cursor: pointer; }
-.btn-create { background: #42b983; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; }
-.btn-edit { background: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
-.btn-save { background: #2ecc71; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
-.data-table { width: 100%; border-collapse: collapse; background: white; }
-.data-table th, .data-table td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-.btn-delete { background: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; margin-left: 5px; }
-.inline-edit { padding: 5px; width: 100%; box-sizing: border-box; }
+.add-box {
+  background: #eee;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.row input {
+  padding: 8px;
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-create {
+  background: #42b983;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-edit {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-save {
+  background: #2ecc71;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.btn-delete {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-left: 5px;
+}
+
+.inline-edit {
+  padding: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
 
 /* Badges */
-.badge { padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; color: white; }
-.badge.admin { background-color: #8e44ad; }
-.badge.user { background-color: #3498db; }
+.badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: white;
+}
 
-.status { font-weight: bold; font-size: 0.8rem; }
-.status.active { color: #27ae60; }
-.status.inactive { color: #7f8c8d; }
+.badge.admin {
+  background-color: #8e44ad;
+}
+
+.badge.user {
+  background-color: #3498db;
+}
+
+.status {
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.status.active {
+  color: #27ae60;
+}
+
+.status.inactive {
+  color: #7f8c8d;
+}
 </style>

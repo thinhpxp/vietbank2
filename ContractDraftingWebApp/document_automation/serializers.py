@@ -3,7 +3,11 @@
 # Có vai trò giống như một cầu nối giữa các mô hình dữ liệu và các API endpoints
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, UserProfile, Role, Asset, LoanProfileAsset
+from .models import (
+    Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, 
+    FieldValue, DocumentTemplate, UserProfile, Role, Asset, 
+    LoanProfileAsset, FormView
+)
 
 # 0. Serializer cho Role (MỚI)
 class RoleSerializer(serializers.ModelSerializer):
@@ -11,11 +15,17 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = '__all__'
 
+# 0.1 Serializer cho FormView (MỚI)
+class FormViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FormView
+        fields = '__all__'
+
 # 1.1 Serializer cho FieldGroup (MỚI)
 class FieldGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = FieldGroup
-        fields = ['id', 'name', 'order', 'note']
+        fields = ['id', 'name', 'order', 'note', 'allowed_forms']
 
 # 1.2 Serializer cho Field
 class FieldSerializer(serializers.ModelSerializer):
@@ -26,7 +36,11 @@ class FieldSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Field
-        fields = ['id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'is_active', 'note', 'is_model_field', 'order', 'width_cols', 'css_class']
+        fields = [
+            'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 
+            'is_active', 'is_protected', 'default_value', 'note', 'is_model_field', 
+            'order', 'width_cols', 'css_class', 'allowed_forms'
+        ]
 
 
 # 2.1 Serializer cho User (MỚI - Để quản lý End-user)

@@ -1,0 +1,32 @@
+AVAILABLE PLACEHOLDER KEYS
+==============================
+ID    | Label                               | Key                       | Group
+-------------------------------------------------------------------------------------
+32    | Tên hồ sơ                           | ten_ho_so                 | Thông tin Hồ sơ
+33    | Hợp đồng thế chấp số                | hop_dong_the_chap         | Thông tin Hồ sơ
+34    | Hợp đồng tín dụng số                | hop_dong_tin_dung         | Thông tin Hồ sơ
+10    | Họ tên                              | ho_ten                    | Thông tin cá nhân
+15    | Số CCCD                             | cccd                      | Thông tin cá nhân
+1     | Nơi cấp CCCD                        | noi_cap_cccd              | Thông tin cá nhân
+2     | Ngày cấp CCCD                       | ngay_cap_cccd             | Thông tin cá nhân
+4     | Địa chỉ thường trú                  | dia_chi_thuong_tru        | Thông tin cá nhân
+30    | Mã CIF                              | cif                       | Thông tin cá nhân
+25    | Giấy chứng nhận số                  | so_giay_chung_nhan        | Thông tin tài sản
+26    | Số vào sổ                           | so_vao_so                 | Thông tin tài sản
+27    | Ngày cấp                            | ngay_cap_tai_san          | Thông tin tài sản
+17    | Tờ bản đồ số                        | to_ban_do                 | Thông tin tài sản
+13    | Thửa đất số                         | thua_dat_so               | Thông tin tài sản
+14    | Diện tích                           | dien_tich_thua_dat        | Thông tin tài sản
+19    | Sử dụng chung                       | hinh_thuc_su_dung_chung   | Thông tin tài sản
+18    | Sử dụng riêng                       | hinh_thuc_su_dung_rieng   | Thông tin tài sản
+20    | Thời hạn sử dụng                    | thoi_han_su_dung_dat      | Thông tin tài sản
+12    | Địa chỉ tài sản                     | dia_chi_tai_san           | Thông tin tài sản
+21    | Nguồn gốc sử dụng                   | nguon_goc_su_dung_dat     | Thông tin tài sản
+24    | Mục đích sử dụng                    | muc_dich_su_dung_dat      | Thông tin tài sản
+22    | Nội dung thay đổi và cơ sở pháp lý  | noi_dung_thay_doi_phap_ly | Thông tin tài sản
+23    | Giá trị TSBĐ                        | gia_tri_tsbd              | Thông tin tài sản
+3     | Số tiền vay                         | so_tien_vay               | Thông tin khoản vay
+29    | Thời hạn vay                        | thoi_han_vay              | Thông tin khoản vay
+16    | Lãi suất                            | lai_suat_vay              | Thông tin khoản vay
+28    | Mục đích vay                        | muc_dich_vay              | Thông tin khoản vay
+31    | Tổng giá trị TSBĐ                   | tong_gia_tri_tai_san      | Thông tin khoản vay
