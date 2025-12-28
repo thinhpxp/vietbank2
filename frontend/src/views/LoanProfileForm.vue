@@ -102,6 +102,7 @@ export default {
       assets: [], // Danh sách tài sản
       currentId: null,
       availableRoles: [],
+      currentFormSlug: null, // MỚI: Theo dõi slug form hiện tại
       // Resize logic
       leftPanelWidth: 50,
       isResizing: false,
@@ -218,11 +219,9 @@ export default {
     },
     async fetchFields() {
       try {
-        const form_slug = this.$route.query.form;
-        let url = 'http://127.0.0.1:8000/api/fields/';
-        if (form_slug) {
-          url += `?form_slug=${form_slug}`;
-        }
+        // Thứ tự ưu tiên: 1. Query Param (?form=) -> 2. Form lưu trong hồ sơ -> 3. Mặc định (Trống -> Ẩn hết)
+        const form_slug = this.$route.query.form || this.currentFormSlug || "";
+        const url = `http://127.0.0.1:8000/api/fields/?form_slug=${form_slug}`;
         const response = await axios.get(url);
         this.allFields = response.data;
 
@@ -335,7 +334,14 @@ export default {
         this.profileName = data.name;
         this.generalFieldValues = data.field_values || {};
         this.people = data.people || [];
-        this.assets = data.assets || []; // Load assets
+        this.assets = data.assets || [];
+
+        // Cập nhật slug form từ hồ sơ (nếu có)
+        if (data.form_view_slug) {
+          this.currentFormSlug = data.form_view_slug;
+          // Sau khi có form slug mới load lại fields cho đúng layout
+          await this.fetchFields();
+        }
 
         if (this.people.length === 0) this.addPerson();
         if (this.assets.length === 0) this.addAsset();
@@ -360,7 +366,8 @@ export default {
           name: this.profileName,
           field_values: this.generalFieldValues,
           people: this.people,
-          assets: this.assets // Gửi kèm assets
+          assets: this.assets,
+          form_slug: this.$route.query.form || this.currentFormSlug // Gửi kèm slug form để lưu
         };
         await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
         alert('Lưu thành công!');

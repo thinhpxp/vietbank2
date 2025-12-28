@@ -138,7 +138,7 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         form_slug = self.request.query_params.get('form_slug')
-        if form_slug:
+        if form_slug is not None:
             # Chết độ lọc nghiêm ngặt: Chỉ lấy những nhóm được gắn trực tiếp với form này
             queryset = queryset.filter(allowed_forms__slug=form_slug).distinct()
         return queryset
@@ -164,15 +164,9 @@ class FieldViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset().select_related('group')
         form_slug = self.request.query_params.get('form_slug')
-        if form_slug:
-            from django.db.models import Q
-            # Trường (Field) hiển thị nếu:
-            # 1. Bản thân trường đó được gán cho form_slug này
-            # 2. HOẶC Trường đó chưa được gán cho bất kỳ form nào NHƯNG Nhóm (Group) của nó thì có gán cho form_slug này
-            queryset = queryset.filter(
-                Q(allowed_forms__slug=form_slug) | 
-                (Q(allowed_forms__isnull=True) & Q(group__allowed_forms__slug=form_slug))
-            ).distinct()
+        if form_slug is not None:
+            # Chết độ cực kỳ nghiêm ngặt: Phải được gán đích danh Form này
+            queryset = queryset.filter(allowed_forms__slug=form_slug).distinct()
         return queryset
 
     def destroy(self, request, *args, **kwargs):
@@ -196,14 +190,14 @@ class FieldViewSet(viewsets.ModelViewSet):
         
         # 1. Lọc nhóm
         groups_qs = FieldGroup.objects.all().order_by('order')
-        if form_slug:
+        if form_slug is not None:
             groups_qs = groups_qs.filter(allowed_forms__slug=form_slug).distinct()
             
         # 2. Prefetch fields có lọc
-        # Logic: Trường hiện nếu nó được gán form ĐÓ hoặc nó chưa gán gì nhưng Group của nó thì có gán
+        # Chết độ cực kỳ nghiêm ngặt: Chỉ lấy trường được gán đích danh Form này
         fields_filter = Q(is_active=True)
-        if form_slug:
-            fields_filter &= (Q(allowed_forms__slug=form_slug) | Q(allowed_forms__isnull=True))
+        if form_slug is not None:
+            fields_filter &= Q(allowed_forms__slug=form_slug)
             
         groups = groups_qs.prefetch_related(
             Prefetch('fields', queryset=Field.objects.filter(fields_filter).distinct())
@@ -269,6 +263,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 # 1. Tạo hồ sơ mới
                 new_profile = LoanProfile.objects.create(
                     name=new_name,
+                    form_view=original.form_view,
                     created_by_user=request.user if request.user.is_authenticated else None
                 )
 
@@ -358,7 +353,15 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 # A. Cập nhật thông tin cơ bản
                 if 'name' in data:
                     loan_profile.name = data['name']
-                    loan_profile.save()
+                
+                # Lưu form_view nếu có form_slug truyền vào
+                form_slug = data.get('form_slug')
+                if form_slug:
+                    form_v = FormView.objects.filter(slug=form_slug).first()
+                    if form_v:
+                        loan_profile.form_view = form_v
+                
+                loan_profile.save()
 
                 # B. Lưu FieldValues CHUNG
                 general_fields = data.get('field_values', {})

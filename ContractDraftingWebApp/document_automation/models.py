@@ -104,6 +104,7 @@ class LoanProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=255, verbose_name="Tên hồ sơ", default="Hồ sơ mới")
+    form_view = models.ForeignKey(FormView, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Cấu hình Form")
 
     def __str__(self):
         return self.name

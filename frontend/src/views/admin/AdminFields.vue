@@ -38,17 +38,17 @@
       <thead>
         <tr>
           <th @click="toggleSort('id')" class="sortable">ID <span v-if="sortBy === 'id'">{{ sortDesc ? '▼' : '▲'
-              }}</span></th>
+          }}</span></th>
           <th @click="toggleSort('order')" class="sortable" width="50">Thứ tự <span v-if="sortBy === 'order'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('placeholder_key')" class="sortable">Key <span v-if="sortBy === 'placeholder_key'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('label')" class="sortable">Nhãn <span v-if="sortBy === 'label'">{{ sortDesc ? '▼' : '▲'
-              }}</span></th>
+          }}</span></th>
           <th @click="toggleSort('data_type')" class="sortable">Loại <span v-if="sortBy === 'data_type'">{{ sortDesc ?
             '▼' : '▲' }}</span></th>
           <th @click="toggleSort('group')" class="sortable">Nhóm <span v-if="sortBy === 'group'">{{ sortDesc ? '▼' : '▲'
-              }}</span></th>
+          }}</span></th>
           <th width="50">Rộng</th>
           <th>CSS</th>
           <th>Mặc định</th>
@@ -201,7 +201,7 @@ export default {
       this.allForms = res.data;
     },
     getFormNames(ids) {
-      if (!ids || ids.length === 0) return 'Tất cả';
+      if (!ids || ids.length === 0) return 'Chưa gán (Ẩn)';
       return this.allForms
         .filter(f => ids.includes(f.id))
         .map(f => f.name)

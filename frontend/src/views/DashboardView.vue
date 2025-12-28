@@ -14,6 +14,7 @@
           <th>Tên Hồ sơ</th>
           <th>Người tạo</th>
           <th>Ngày tạo</th>
+          <th>Loại Form</th>
           <th>Hành động</th>
         </tr>
       </thead>
@@ -23,6 +24,10 @@
           <td>{{ profile.name }}</td>
           <td>{{ profile.created_by_user_name || 'Admin' }}</td>
           <td>{{ formatDate(profile.created_at) }}</td>
+          <td>
+            <span class="badge-form" v-if="profile.form_view_name">{{ profile.form_view_name }}</span>
+            <span v-else class="text-muted">Mặc định</span>
+          </td>
           <td>
             <button class="btn-edit" @click="editProfile(profile.id)">Sửa</button>
             <button class="btn-copy" @click="openDuplicateModal(profile)">Sao chép</button>
@@ -229,5 +234,21 @@ export default {
   padding: 5px 10px;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.badge-form {
+  display: inline-block;
+  background: #e1f5fe;
+  color: #0288d1;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.text-muted {
+  color: #999;
+  font-style: italic;
+  font-size: 0.85em;
 }
 </style>

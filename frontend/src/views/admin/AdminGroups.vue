@@ -85,7 +85,7 @@ export default {
       this.allForms = res.data;
     },
     getFormNames(ids) {
-      if (!ids || ids.length === 0) return 'Tất cả';
+      if (!ids || ids.length === 0) return 'Chưa gán (Ẩn)';
       return this.allForms
         .filter(f => ids.includes(f.id))
         .map(f => f.name)

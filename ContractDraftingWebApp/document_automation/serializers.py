@@ -130,13 +130,18 @@ class LoanProfileSerializer(serializers.ModelSerializer):
     field_values = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
     assets = serializers.SerializerMethodField() # Mới: Field cho tài sản
+    form_view_slug = serializers.CharField(source='form_view.slug', read_only=True)
+    form_view_name = serializers.CharField(source='form_view.name', read_only=True)
 
     # Hiển thị tên người tạo thay vì ID
     created_by_user_name = serializers.CharField(source='created_by_user.username', read_only=True)
 
     class Meta:
         model = LoanProfile
-        fields = ['id', 'name', 'created_at', 'updated_at', 'created_by_user_name', 'field_values', 'people', 'assets']
+        fields = [
+            'id', 'name', 'created_at', 'updated_at', 'created_by_user_name', 
+            'field_values', 'people', 'assets', 'form_view_slug', 'form_view_name'
+        ]
         read_only_fields = ['created_at', 'updated_at']
 
     # Logic 1: Gom các FieldValue chung (không thuộc về Person nào)
