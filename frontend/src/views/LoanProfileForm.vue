@@ -1,7 +1,13 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <h2>Tạo / Cập nhật Hồ sơ Vay</h2>
+      <div class="header-title">
+        <h2>Tạo / Cập nhật Hồ sơ Vay</h2>
+        <div v-if="currentFormName" class="form-type-badge">
+          <span class="badge-label">Mẫu hồ sơ:</span>
+          <span class="badge-value">{{ currentFormName }}</span>
+        </div>
+      </div>
       <div class="header-buttons">
         <button v-if="id" class="btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
         <button class="btn-primary" @click="saveProfile" :disabled="isSaving">
@@ -103,6 +109,7 @@ export default {
       currentId: null,
       availableRoles: [],
       currentFormSlug: null, // MỚI: Theo dõi slug form hiện tại
+      currentFormName: '', // MỚI: Tên hiển thị của form
       // Resize logic
       leftPanelWidth: 50,
       isResizing: false,
@@ -218,9 +225,8 @@ export default {
       } catch (e) { console.error("Lỗi load roles:", e); }
     },
     async fetchFields() {
+      const form_slug = this.$route.query.form || this.currentFormSlug || "";
       try {
-        // Thứ tự ưu tiên: 1. Query Param (?form=) -> 2. Form lưu trong hồ sơ -> 3. Mặc định (Trống -> Ẩn hết)
-        const form_slug = this.$route.query.form || this.currentFormSlug || "";
         const url = `http://127.0.0.1:8000/api/fields/?form_slug=${form_slug}`;
         const response = await axios.get(url);
         this.allFields = response.data;
@@ -234,6 +240,22 @@ export default {
         alert('Lỗi tải cấu hình fields');
       } finally {
         this.loading = false;
+        this.fetchFormDetails(form_slug);
+      }
+    },
+    async fetchFormDetails(slug) {
+      if (!slug) {
+        this.currentFormName = '';
+        return;
+      }
+      try {
+        const res = await axios.get(`http://127.0.0.1:8000/api/form-views/`);
+        const target = res.data.find(f => f.slug === slug);
+        if (target) {
+          this.currentFormName = target.name;
+        }
+      } catch (e) {
+        console.error("Lỗi load chi tiết form:", e);
       }
     },
     applyDefaultsToGeneral() {
@@ -401,6 +423,38 @@ export default {
   display: flex;
   user-select: none;
   /* Tránh bôi đen text khi kéo chuột */
+}
+
+.header-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.header-title h2 {
+  margin: 0;
+}
+
+.form-type-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #e1f5fe;
+  color: #0288d1;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.9em;
+  border: 1px solid #b3e5fc;
+}
+
+.badge-label {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.badge-value {
+  font-weight: bold;
 }
 
 /* Resize Handle Styles */

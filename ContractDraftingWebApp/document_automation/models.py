@@ -58,6 +58,7 @@ class Field(models.Model):
     
     is_active = models.BooleanField(default=True)
     is_protected = models.BooleanField(default=False, verbose_name="Được bảo vệ (không xóa được)")
+    use_digit_grouping = models.BooleanField(default=False, verbose_name="Phân tách hàng nghìn (chuẩn vi-VN)")
     default_value = models.TextField(blank=True, null=True, verbose_name="Giá trị mặc định")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='fields', verbose_name="Hiển thị ở Form")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
@@ -73,6 +74,7 @@ class Field(models.Model):
 # --- MỚI: Bảng Vai trò (Dynamic Role) ---
 class Role(models.Model):
     name = models.CharField(max_length=255, unique=True, verbose_name="Tên vai trò")
+    slug = models.SlugField(max_length=100, unique=True, null=True, blank=True, verbose_name="Mã định danh (Slug)")
     description = models.TextField(blank=True, null=True, verbose_name="Mô tả")
 
     def __str__(self):

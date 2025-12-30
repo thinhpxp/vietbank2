@@ -3,6 +3,7 @@
     <h2>Quản lý Vai trò (Roles)</h2>
     <div class="actions">
       <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" style="flex: 1">
+      <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" style="flex: 1">
       <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" style="flex: 2">
       <button @click="addRole" class="btn-create">Thêm Vai trò</button>
     </div>
@@ -12,6 +13,7 @@
         <tr>
           <th>ID</th>
           <th>Tên Vai trò</th>
+          <th>Mã (Slug)</th>
           <th>Mô tả</th>
           <th>Hành động</th>
         </tr>
@@ -23,6 +25,10 @@
           <td>
             <input v-if="editingId === role.id" v-model="role.name">
             <span v-else>{{ role.name }}</span>
+          </td>
+          <td>
+            <input v-if="editingId === role.id" v-model="role.slug">
+            <span v-else>{{ role.slug || '---' }}</span>
           </td>
           <td>
             <input v-if="editingId === role.id" v-model="role.description" style="width: 100%">
@@ -52,7 +58,7 @@ export default {
   data() {
     return {
       roles: [],
-      newRole: { name: '', description: '' },
+      newRole: { name: '', slug: '', description: '' },
       editingId: null,
       showDeleteModal: false,
       deleteTargetId: null,
@@ -74,6 +80,7 @@ export default {
       try {
         await axios.post('http://127.0.0.1:8000/api/roles/', this.newRole);
         this.newRole.name = '';
+        this.newRole.slug = '';
         this.newRole.description = '';
         this.fetchRoles();
       } catch (e) {

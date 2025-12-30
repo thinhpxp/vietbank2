@@ -38,7 +38,7 @@ class FieldSerializer(serializers.ModelSerializer):
         model = Field
         fields = [
             'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 
-            'is_active', 'is_protected', 'default_value', 'note', 'is_model_field', 
+            'is_active', 'is_protected', 'use_digit_grouping', 'default_value', 'note', 'is_model_field', 
             'order', 'width_cols', 'css_class', 'allowed_forms'
         ]
 

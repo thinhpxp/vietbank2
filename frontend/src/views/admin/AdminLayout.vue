@@ -1,31 +1,40 @@
 <template>
-  <div class="admin-container" :class="{ 'sidebar-collapsed': isCollapsed }">
-    <aside class="sidebar">
-      <div class="sidebar-header">
+  <div class="admin-layout" :class="{ 'is-collapsed': isCollapsed }">
+    <!-- Sidebar -->
+    <aside class="layout-sidebar">
+      <header class="sidebar-header">
         <h3>Admin Panel</h3>
-      </div>
-      <nav>
-        <router-link to="/admin/groups">📂 Quản lý Nhóm Thông tin</router-link>
-        <router-link to="/admin/fields">📝 Quản lý Trường Thông tin</router-link>
-        <router-link to="/admin/templates">📄 Mẫu Hợp đồng</router-link>
-        <router-link to="/admin/roles">🎭 Quản lý Vai trò</router-link>
-        <router-link to="/admin/forms">📑 Cấu hình Form</router-link>
+      </header>
+
+      <nav class="sidebar-nav">
+        <router-link to="/admin/groups">📂 Quản lý Nhóm</router-link>
+        <router-link to="/admin/fields">📝 Trường</router-link>
+        <router-link to="/admin/templates">📄 Mẫu</router-link>
+        <router-link to="/admin/roles">🎭 Vai trò</router-link>
+        <router-link to="/admin/forms">📑 Form</router-link>
         <router-link to="/admin/users">👤 Người dùng</router-link>
-        <hr>
-        <router-link to="/">🏠 Về Dashboard</router-link>
+        <hr />
+        <router-link to="/">🏠 Dashboard</router-link>
       </nav>
     </aside>
-    <main class="content">
-      <button class="toggle-btn" @click="isCollapsed = !isCollapsed" :title="isCollapsed ? 'Hiện menu' : 'Ẩn menu'">
-        {{ isCollapsed ? '▶' : '◀' }}
-      </button>
-      <router-view /> <!-- Nội dung con sẽ hiện ở đây -->
+
+    <!-- Main -->
+    <main class="layout-main">
+      <router-view />
     </main>
+
+    <!-- Global Toggle -->
+    <button class="layout-toggle" @click="isCollapsed = !isCollapsed" :aria-expanded="!isCollapsed"
+      :title="isCollapsed ? 'Mở menu' : 'Đóng menu'">
+      {{ isCollapsed ? '▶' : '◀' }}
+    </button>
   </div>
 </template>
 
+
 <script>
 export default {
+  name: 'AdminLayout',
   data() {
     return {
       isCollapsed: false
@@ -35,92 +44,119 @@ export default {
 </script>
 
 <style scoped>
-.admin-container {
+/* =========================
+   DESIGN TOKENS
+========================= */
+.admin-layout {
+  --sidebar-width: 250px;
+  --sidebar-bg: #34495e;
+  --main-bg: #f4f6f8;
+  --toggle-size: 30px;
+}
+
+/* =========================
+   LAYOUT SHELL
+========================= */
+.admin-layout {
   display: flex;
   min-height: 100vh;
   position: relative;
 }
 
-.sidebar {
-  width: 250px;
-  background: #34495e;
+
+/* =========================
+   SIDEBAR
+========================= */
+.layout-sidebar {
+  text-align: left;
+  width: var(--sidebar-width);
+  background: var(--sidebar-bg);
   color: white;
-  padding: 20px;
-  transition: all 0.3s ease;
-  overflow-x: hidden;
-  white-space: nowrap;
+  /* padding: 20px; */
+  transition: width 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
 }
 
-.sidebar-collapsed .sidebar {
-  width: 0;
-  padding: 20px 0;
+.admin-layout.is-collapsed {
+  --sidebar-width: 0px;
+}
+
+.admin-layout.is-collapsed .layout-sidebar {
   opacity: 0;
   pointer-events: none;
 }
 
-.sidebar-header {
-  margin-bottom: 20px;
-}
-
-.sidebar h3 {
-  margin: 0;
-}
-
-.sidebar a {
+/* =========================
+   NAV
+========================= */
+.sidebar-nav a {
   display: block;
-  color: #ecf0f1;
   padding: 10px;
+  color: #ecf0f1;
   text-decoration: none;
-  margin-bottom: 5px;
   border-radius: 4px;
 }
 
-.sidebar a.router-link-active {
+.sidebar-nav a.router-link-active {
   background: #42b983;
 }
 
-.content {
+/* =========================
+   MAIN CONTENT
+========================= */
+.layout-main {
   flex: 1;
   padding: 20px;
-  background: #f4f6f8;
-  transition: all 0.3s ease;
-  position: relative;
+  background: var(--main-bg);
+  overflow-y: auto;
 }
 
-.toggle-btn {
-  position: absolute;
-  left: 0;
+/* =========================
+   TOGGLE BUTTON
+========================= */
+.layout-toggle {
+  position: fixed;
   top: 15px;
+  left: var(--sidebar-width);
   transform: translateX(-50%);
+  width: var(--toggle-size);
+  height: var(--toggle-size);
+
   background: #2c3e50;
   color: white;
   border: none;
-  width: 30px;
-  height: 30px;
   border-radius: 50%;
   cursor: pointer;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+
+  z-index: 1000;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  transition: left 0.3s ease, transform 0.3s ease;
 }
 
-.sidebar-collapsed .toggle-btn {
+.admin-layout.is-collapsed .layout-toggle {
   left: 10px;
-  transform: translateX(0);
+  transform: none;
 }
 
-.toggle-btn:hover {
+/* =========================
+   HOVER
+========================= */
+.layout-toggle:hover {
   background: #42b983;
 }
 
+/* =========================
+   MOBILE
+========================= */
 @media (max-width: 768px) {
-  .sidebar {
-    position: absolute;
-    height: 100%;
-    z-index: 99;
+  .layout-sidebar {
+    position: fixed;
+    height: 100vh;
+    z-index: 999;
   }
 }
 </style>

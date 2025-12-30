@@ -165,8 +165,12 @@ class FieldViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset().select_related('group')
         form_slug = self.request.query_params.get('form_slug')
         if form_slug is not None:
-            # Chết độ cực kỳ nghiêm ngặt: Phải được gán đích danh Form này
-            queryset = queryset.filter(allowed_forms__slug=form_slug).distinct()
+            # Chết độ cực kỳ nghiêm ngặt: Phải được gán đích danh Form này 
+            # VÀ Nhóm của nó cũng phải được gán cho Form này
+            queryset = queryset.filter(
+                allowed_forms__slug=form_slug,
+                group__allowed_forms__slug=form_slug
+            ).distinct()
         return queryset
 
     def destroy(self, request, *args, **kwargs):
@@ -195,6 +199,8 @@ class FieldViewSet(viewsets.ModelViewSet):
             
         # 2. Prefetch fields có lọc
         # Chết độ cực kỳ nghiêm ngặt: Chỉ lấy trường được gán đích danh Form này
+        # (Lưu ý: groups_qs đã được lọc theo form_slug ở trên nên trường thuộc group này 
+        #  chắc chắn đã thoả mãn điều kiện group__allowed_forms)
         fields_filter = Q(is_active=True)
         if form_slug is not None:
             fields_filter &= Q(allowed_forms__slug=form_slug)
@@ -593,14 +599,40 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         
         context['assets'] = assets_list
 
-        # E. Tạo các danh sách lọc sẵn để tiện dùng trong Word
-        # Lọc những người có vai trò 'Bên Vay'
-        context['ben_vay_list'] = [p for p in people_list if 'Bên Vay' in p['roles']]
-        # Lọc những người có vai trò 'Bên Bảo đảm'
-        context['ben_bao_dam_list'] = [p for p in people_list if 'Bên Bảo đảm' in p['roles']]
-        # MỚI: Lọc theo đúng tên vai trò trong database
-        context['ben_duoc_cap_tin_dung_list'] = [p for p in people_list if 'Bên được cấp tín dụng' in p['roles']]
-        context['ben_the_chap_list'] = [p for p in people_list if 'Bên thế chấp' in p['roles']]
+        # E. Tạo các danh sách lọc sẵn dựa trên VAI TRÒ (Dùng Slug mới)
+        all_system_roles = Role.objects.exclude(slug__isnull=True).exclude(slug='')
+        # Dùng lowercase cho key để map chính xác không phân biệt hoa thường
+        role_map = {r.name.lower(): r.slug for r in all_system_roles}
+        
+        # Hàm kiểm tra quyền
+        def has_role_slug(person, slug):
+            p_roles = person.get('roles', [])
+            # Map tên vai trò sang slug và kiểm tra (case-insensitive cho tên vai trò)
+            p_slugs = [role_map.get(rname.lower()) for rname in p_roles if role_map.get(rname.lower())]
+            return slug.lower() in [s.lower() for s in p_slugs]
+
+        # 1. Tự động tạo danh sách cho tất cả các role có slug định nghĩa
+        for r in all_system_roles:
+            context[f"{r.slug}_list"] = [p for p in people_list if has_role_slug(p, r.slug)]
+
+        # 2. Giữ lại các biến cũ để tương thích ngược (Legacy support)
+        # Hàm check role theo tên (Case-insensitive)
+        def has_role_name(person, role_names):
+            p_roles = [r.lower() for r in person.get('roles', [])]
+            for rn in role_names:
+                if rn.lower() in p_roles:
+                    return True
+            return False
+
+        context['ben_vay_list'] = [p for p in people_list if has_role_name(p, ['Bên Vay', 'Bên được cấp tín dụng'])]
+        context['ben_bao_dam_list'] = [p for p in people_list if has_role_name(p, ['Bên Bảo đảm', 'Bên thế chấp', 'Bên Bảo Đảm'])]
+        
+        # Các danh sách bổ sung
+        if 'ben_duoc_cap_tin_dung_list' not in context:
+            context['ben_duoc_cap_tin_dung_list'] = [p for p in people_list if has_role_name(p, ['Bên được cấp tín dụng'])]
+        if 'ben_the_chap_list' not in context:
+            context['ben_the_chap_list'] = [p for p in people_list if has_role_name(p, ['Bên thế chấp'])]
+        context['ben_bao_lanh_list'] = [p for p in people_list if has_role_name(p, ['Bên bảo lãnh', 'Bên Bảo lãnh'])]
 
         # 3. XỬ LÝ TEMPLATE VÀ SINH FILE
         try:

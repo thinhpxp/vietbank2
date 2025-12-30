@@ -32,9 +32,16 @@
       </div>
 
       <!-- Number Input -->
-      <input v-else-if="field.data_type === 'NUMBER'" type="number" :id="field.placeholder_key"
-        :value="modelValue[field.placeholder_key]" @input="updateValue(field.placeholder_key, $event.target.value)"
-        class="input-control" />
+      <template v-else-if="field.data_type === 'NUMBER'">
+        <!-- Nếu bật phân tách hàng nghìn: Dùng text input để format linh hoạt -->
+        <input v-if="field.use_digit_grouping" type="text" :id="field.placeholder_key"
+          :value="formatNumber(modelValue[field.placeholder_key])"
+          @input="handleNumberInput(field.placeholder_key, $event.target.value)" class="input-control"
+          placeholder="0" />
+        <!-- Nếu không: Dùng number input truyền thống -->
+        <input v-else type="number" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
+          @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control" />
+      </template>
 
       <!-- Date Input (Option 2: Hybrid Text + Date Picker) -->
       <div v-else-if="field.data_type === 'DATE'" class="date-input-wrapper">
@@ -83,6 +90,22 @@ export default {
       const newData = { ...this.modelValue, [key]: value };
       this.$emit('update:modelValue', newData);
     },
+    // --- Các hàm hỗ trợ cho Number Formatting ---
+    formatNumber(val) {
+      if (!val) return '';
+      // Loại bỏ mọi ký tự không phải số để bắt đầu sạch
+      const cleanVal = val.toString().replace(/\D/g, '');
+      if (!cleanVal) return '';
+      // Format dùng chuẩn vi-VN (dấu chấm phân tách nghìn)
+      return new Intl.NumberFormat('vi-VN').format(parseInt(cleanVal));
+    },
+    handleNumberInput(key, rawValue) {
+      // Khi người dùng gõ, chỉ lấy các chữ số
+      const digitsOnly = rawValue.replace(/\D/g, '');
+      // Phát sự kiện cập nhật giá trị thô (chỉ số) lên cha
+      this.updateValue(key, digitsOnly);
+    },
+    // --- Các hàm khác ---
     openPicker(key) {
       const picker = this.$refs['picker_' + key];
       if (picker && picker[0]) {

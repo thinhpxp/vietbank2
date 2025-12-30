@@ -5,7 +5,6 @@
       <div class="brand">Vietbank Contract App</div>
       <div class="links">
         <router-link to="/">Danh sách Hồ sơ</router-link> |
-        <router-link to="/create">Tạo Hồ sơ Mới</router-link> |
         <router-link to="/admin" style="color: #f1c40f">Admin Panel</router-link>
       </div>
     </nav>
@@ -23,10 +22,39 @@ export default {
 
 <style>
 /* CSS cơ bản cho đẹp */
-body { margin: 0; background-color: #f4f6f8; font-family: sans-serif; }
-#app { text-align: center; color: #2c3e50; }
-.navbar { background: #2c3e50; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; }
-.brand { font-weight: bold; font-size: 1.2rem; }
-.links a { color: #ecf0f1; text-decoration: none; margin: 0 10px; }
-.links a.router-link-active { color: #42b983; font-weight: bold; }
+body {
+  margin: 0;
+  background-color: #f4f6f8;
+  font-family: sans-serif;
+}
+
+#app {
+  text-align: center;
+  color: #2c3e50;
+}
+
+.navbar {
+  background: #2c3e50;
+  padding: 15px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.links a {
+  color: #ecf0f1;
+  text-decoration: none;
+  margin: 0 10px;
+}
+
+.links a.router-link-active {
+  color: #42b983;
+  font-weight: bold;
+}
 </style>
