@@ -36,10 +36,18 @@ Dữ liệu người dùng được gửi dưới dạng danh sách (List).
 
 ### Biến danh sách chính:
 - `people`: Tất cả người trong hồ sơ.
+
+#### 1. Danh sách theo Vai trò (Động):
+Hệ thống tự động tạo các danh sách dựa trên **Mã định danh (Slug)** của Vai trò được cấu hình trong Admin.
+- Cú pháp: `{{ slug }}_list`
+- Ví dụ: Nếu vai trò "Người thừa kế" có slug là `nguoi_thua_ke` -> Sử dụng: `nguoi_thua_ke_list`.
+
+#### 2. Danh sách mặc định (Tương thích ngược):
 - `ben_duoc_cap_tin_dung_list`: Những người có vai trò "Bên được cấp tín dụng".
 - `ben_the_chap_list`: Những người có vai trò "Bên thế chấp".
-- `ben_vay_list`: (Tìm theo "Bên Vay" - dùng cho các template cũ).
-- `ben_bao_dam_list`: (Tìm theo "Bên Bảo đảm" - dùng cho các template cũ).
+- `ben_vay_list`: Tương đương `ben_duoc_cap_tin_dung_list`.
+- `ben_bao_dam_list`: Tương đương `ben_the_chap_list`.
+- `ben_bao_lanh_list`: Những người có vai trò "Bên bảo lãnh".
 
 ### Các thuộc tính bên trong mỗi người (person):
 Khi dùng trong vòng lặp `{%tr for p in people %}`, bạn truy cập bằng `p.key_name`.
@@ -97,11 +105,15 @@ DANH MỤC TÀI SẢN:
 ## 5. Các Bộ lọc (Filters) hỗ trợ
 Sử dụng sau dấu gạch đứng `|`.
 
-1. **Tiền tệ:** `{{ gia_tri | format_currency }}` (Vd: 1.000.000)
-2. **Số thành chữ:** `{{ gia_tri | num2words }}` (Vd: Một triệu)
-3. **Ngày tháng:** `{{ ngay | dateformat('%d/%m/%Y') }}`
+1. **Tiền tệ:** `{{ gia_tri | format_currency }}` 
+   - Đầu vào: `1000000` -> Kết quả: `1.000.000`
+2. **Số thành chữ:** `{{ gia_tri | num2words }}` 
+   - Đầu vào: `1200000` -> Kết quả: `Một triệu hai trăm nghìn`
+3. **Ngày tháng thông minh:** `{{ ngay | dateformat('%d/%m/%Y') }}`
+   - Cơ chế: Nếu trường ngày bị trống, hệ thống tự điền dấu chấm `.. / .. / ....` để ký tay.
 4. **Nối mảng:** `{{ p.roles | join(', ') }}`
-5. **Số La Mã:** `({{ loop.index | to_roman }})` (Vd: (i), (ii))
+5. **Số La Mã:** `({{ loop.index | to_roman }})`
+   - Kết quả: `(i)`, `(ii)`, `(iii)`...
 
 ---
 *Tài liệu được xuất tự động từ hệ thống ngày 24/12/2025.*

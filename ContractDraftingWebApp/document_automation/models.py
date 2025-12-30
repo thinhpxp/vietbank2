@@ -59,6 +59,7 @@ class Field(models.Model):
     is_active = models.BooleanField(default=True)
     is_protected = models.BooleanField(default=False, verbose_name="Được bảo vệ (không xóa được)")
     use_digit_grouping = models.BooleanField(default=False, verbose_name="Phân tách hàng nghìn (chuẩn vi-VN)")
+    show_amount_in_words = models.BooleanField(default=False, verbose_name="Hiển thị số thành chữ (Frontend)")
     default_value = models.TextField(blank=True, null=True, verbose_name="Giá trị mặc định")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='fields', verbose_name="Hiển thị ở Form")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")

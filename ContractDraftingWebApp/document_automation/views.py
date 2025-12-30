@@ -44,13 +44,40 @@ def format_currency_filter(value):
         return str(value)
 
 def num2words_filter(value):
-    """Chuyển số thành chữ Tiếng Việt"""
+    """Chuyển số thành chữ Tiếng Việt (có hỗ trợ số thập phân)"""
     if not value: return ""
     try:
-        # Xóa dấu chấm/phẩy nếu là string định dạng tiền
-        clean_val = str(value).replace('.', '').replace(',', '')
-        return num2words(clean_val, lang='vi').capitalize()
-    except:
+        import re
+        # Chuẩn hóa: phẩy -> chấm, xóa khoảng trắng
+        s_val = str(value).replace(',', '.').replace(' ', '')
+        # Loại bỏ các dấu chấm phân tách hàng nghìn (dots that are not the decimal point)
+        # Tuy nhiên, cách an toàn nhất là chỉ giữ lại dấu chấm cuối cùng nếu có nhiều hơn 1 dot
+        # Hoặc đơn giản hơn: Theo logic mới của Frontend, state chỉ có duy nhất 1 dấu chấm cho decimal.
+        # Vậy ta chỉ cần strip mọi dấu chấm trừ cái cuối cùng? Không, strip mọi dấu chấm trừ cái duy nhất.
+        
+        # Logic: Tìm dot cuối cùng. Xóa tất cả dot khác.
+        parts = s_val.split('.')
+        if len(parts) > 2:
+            # Có nhiều hơn 1 dot -> Có dấu phân tách nghìn lọt vào
+            clean_val = "".join(parts[:-1]) + "." + parts[-1]
+        else:
+            clean_val = s_val
+            
+        # Chỉ giữ lại số và dấu chấm
+        clean_val = re.sub(r'[^\d.]', '', clean_val)
+        
+        if not clean_val: return str(value)
+        
+        # Đọc số (Dùng float nếu có dấu chấm)
+        if '.' in clean_val:
+            val_to_read = float(clean_val)
+        else:
+            val_to_read = int(clean_val)
+            
+        result = num2words(val_to_read, lang='vi').capitalize()
+        return result
+    except Exception as e:
+        print(f"DEBUG: num2words_filter failed for value '{value}': {e}")
         return str(value)
 
 def to_roman_filter(value):

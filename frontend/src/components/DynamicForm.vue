@@ -41,6 +41,11 @@
         <!-- Nếu không: Dùng number input truyền thống -->
         <input v-else type="number" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control" />
+
+        <!-- Hiển thị số thành chữ (MỚI - Có thể bật/tắt) -->
+        <div v-if="field.show_amount_in_words && modelValue[field.placeholder_key]" class="amount-in-words">
+          {{ numberToWords(modelValue[field.placeholder_key]) }}
+        </div>
       </template>
 
       <!-- Date Input (Option 2: Hybrid Text + Date Picker) -->
@@ -90,20 +95,108 @@ export default {
       const newData = { ...this.modelValue, [key]: value };
       this.$emit('update:modelValue', newData);
     },
-    // --- Các hàm hỗ trợ cho Number Formatting ---
     formatNumber(val) {
-      if (!val) return '';
-      // Loại bỏ mọi ký tự không phải số để bắt đầu sạch
-      const cleanVal = val.toString().replace(/\D/g, '');
-      if (!cleanVal) return '';
-      // Format dùng chuẩn vi-VN (dấu chấm phân tách nghìn)
-      return new Intl.NumberFormat('vi-VN').format(parseInt(cleanVal));
+      if (val === undefined || val === null || val === '') return '';
+      const sVal = val.toString();
+      const parts = sVal.split('.');
+
+      // Lấy phần nguyên, xóa mọi ký tự không phải số (phòng hờ)
+      const integerPart = parts[0].replace(/\D/g, '') || "0";
+
+      // Định dạng phần nguyên dùng dấu chấm phân tách nghìn (Chuẩn VN)
+      // Dùng en-US rồi replace để đảm bảo kết quả ổn định trên mọi trình duyệt
+      let formattedInt = new Intl.NumberFormat('en-US').format(parseInt(integerPart));
+      formattedInt = formattedInt.replace(/,/g, '.');
+
+      if (parts.length > 1) {
+        // Phần thập phân phân tách bằng dấu phẩy (Chuẩn VN)
+        return formattedInt + ',' + parts[1].replace(/\D/g, '');
+      }
+      return formattedInt;
     },
     handleNumberInput(key, rawValue) {
-      // Khi người dùng gõ, chỉ lấy các chữ số
-      const digitsOnly = rawValue.replace(/\D/g, '');
-      // Phát sự kiện cập nhật giá trị thô (chỉ số) lên cha
-      this.updateValue(key, digitsOnly);
+      // 1. Xóa tất cả dấu chấm (dấu phân tách hàng nghìn của UI)
+      let clean = rawValue.replace(/\./g, '');
+      // 2. Chuyển dấu phẩy thành dấu chấm (để lưu trữ thô chuẩn JS)
+      clean = clean.replace(',', '.');
+      // 3. Chỉ giữ lại số và dấu chấm thập phân duy nhất
+      clean = clean.replace(/[^0-9.]/g, '');
+      const parts = clean.split('.');
+      if (parts.length > 2) {
+        clean = parts[0] + '.' + parts.slice(1).join('');
+      }
+      this.updateValue(key, clean);
+    },
+    // --- Chuyển số thành chữ (JS Implementation) ---
+    numberToWords(val) {
+      if (!val) return "";
+      let sVal = val.toString().replace(',', '.'); // Chuẩn hóa dấu phẩy thành chấm
+      if (!/[0-9]/.test(sVal)) return "";
+
+      const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+      const placeValues = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+
+      const readThreeDigits = (n, showZeroHundred) => {
+        let res = "";
+        const hundred = Math.floor(n / 100);
+        const ten = Math.floor((n % 100) / 10);
+        const unit = n % 10;
+        if (hundred > 0) {
+          res += units[hundred] + " trăm ";
+        } else if (showZeroHundred) {
+          res += "không trăm ";
+        }
+        if (ten > 1) {
+          res += units[ten] + " mươi ";
+        } else if (ten === 1) {
+          res += "mười ";
+        } else if ((hundred > 0 || showZeroHundred) && unit > 0 && ten === 0) {
+          res += "lẻ ";
+        }
+        if (unit === 1 && ten > 1) {
+          res += "mốt";
+        } else if (unit === 5 && ten > 0) {
+          res += "lăm";
+        } else if (unit > 0) {
+          res += units[unit];
+        }
+        return res.trim();
+      };
+
+      const readInteger = (sNum) => {
+        if (sNum === "0" || sNum === "") return "không";
+        let chunks = [];
+        let temp = sNum;
+        while (temp.length > 0) {
+          chunks.push(parseInt(temp.slice(-3)));
+          temp = temp.slice(0, -3);
+        }
+        let res = "";
+        for (let i = chunks.length - 1; i >= 0; i--) {
+          if (chunks[i] > 0) {
+            res += readThreeDigits(chunks[i], i < chunks.length - 1) + " " + placeValues[i] + " ";
+          }
+        }
+        return res.trim();
+      };
+
+      // Tách phần nguyên và phần thập phân
+      const parts = sVal.split('.');
+      const integerPart = parts[0].replace(/\D/g, '') || "0";
+      const decimalPart = parts.length > 1 ? parts[1].replace(/\D/g, '') : "";
+
+      let result = readInteger(integerPart);
+
+      if (decimalPart) {
+        result += " phẩy";
+        for (let i = 0; i < decimalPart.length; i++) {
+          const digit = parseInt(decimalPart[i]);
+          result += " " + (digit === 0 ? "không" : units[digit]);
+        }
+      }
+
+      const finalResult = result.trim();
+      return finalResult.charAt(0).toUpperCase() + finalResult.slice(1);
     },
     // --- Các hàm khác ---
     openPicker(key) {
@@ -243,5 +336,15 @@ export default {
   height: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+.amount-in-words {
+  font-size: 0.85em;
+  color: #de5d06;
+  font-style: italic;
+  margin-top: 4px;
+  background: #fdfdfd;
+  padding: 2px 5px;
+  border-left: 2px solid #42b983;
 }
 </style>

@@ -68,23 +68,25 @@ Sử dụng cú pháp Jinja2 chuẩn để lặp qua danh sách trong đoạn v�
 {%tr endfor %}
 ```
 
-### 5. Danh sách lọc sẵn
+### 5. Danh sách lọc theo Vai trò
 
-Ứng dụng cung cấp các danh sách lọc theo vai trò:
+Hệ thống cung cấp tính năng tạo danh sách động dựa trên **Mã định danh (Slug)** của Vai trò.
 
-| Biến | Mô tả |
+| Biến | Cách tạo & Sử dụng |
 |------|-------|
-| `people` | Tất cả người liên quan |
-| `ben_vay_list` | Những người có vai trò "Bên Vay" |
-| `ben_bao_dam_list` | Những người có vai trò "Bên Bảo đảm" |
+| `{{ slug }}_list` | 1. Vào **Admin -> Vai trò**, đặt Slug cho vai trò (VD: `bao_lanh`). <br> 2. Trong Word, dùng `bao_lanh_list`. |
+| `people` | Tất cả người liên quan trong hồ sơ. |
 
 **Ví dụ:**
-```
-BÊN VAY:
-{%tr for p in ben_vay_list %}
+```jinja2
+DANH SÁCH BÊN BẢO LÃNH:
+{% for p in bao_lanh_list %}
 - Ông/Bà {{ p.ho_ten }}, CCCD số {{ p.cccd_so }}
-{%tr endfor %}
+{% endfor %}
 ```
+
+> [!TIP]
+> **Danh sách mặc định:** Hệ thống vẫn hỗ trợ các biến cũ như `ben_vay_list`, `ben_bao_dam_list` để tương thích với các mẫu có sẵn của bạn.
 
 ---
 
@@ -151,6 +153,17 @@ ngày {% if ngay_tao %}{{ ngay_tao | dateformat('%d') }}{% else %}............{%
 
 - **Khi có dữ liệu:** ngày 25 tháng 12 năm 2025
 - **Khi để trống:** ngày ............ tháng ............ năm ................
+
+---
+
+## 8. Các tính năng hỗ trợ nhập liệu (Giao diện)
+
+Để giúp end-user nhập liệu nhanh và chính xác, ứng dụng có các tính năng tự động:
+
+1.  **Phận tách hàng nghìn:** Ô nhập Số sẽ tự động thêm dấu chấm (VD: `1.000.000`) khi gõ.
+    - *Cấu hình:* Admin có thể bật/tắt trong phần **Quản lý Trường -> Tách nghìn**.
+2.  **Đọc số thành chữ ngay lúc nhập:** Bên dưới ô nhập Số sẽ hiện dòng chữ đọc số tương ứng (VD: "Một triệu đồng") để người dùng kiểm tra ngay lập tức.
+    - Tính năng này mặc định áp dụng cho tất cả các trường kiểu **Số**.
 
 ---
 

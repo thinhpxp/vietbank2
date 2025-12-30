@@ -441,11 +441,11 @@ export default {
   align-items: center;
   gap: 8px;
   background: #e1f5fe;
-  color: #0288d1;
+  color: #f6142f;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.9em;
-  border: 1px solid #b3e5fc;
+  border: 1px solid #f40606;
 }
 
 .badge-label {
