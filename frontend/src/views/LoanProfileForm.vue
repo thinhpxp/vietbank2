@@ -9,7 +9,8 @@
         </div>
       </div>
       <div class="header-buttons">
-        <button v-if="id" class="btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
+        <button v-if="id || currentId" class="btn-doc" @click="openDownloadModal">Xuất HĐ</button>
+        <button v-if="id || currentId" class="btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
         <button class="btn-primary" @click="saveProfile" :disabled="isSaving">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
         </button>
@@ -82,6 +83,10 @@
     <InputModal :visible="showDuplicateModal" title="Tạo bản sao hồ sơ" label="Tên hồ sơ mới:"
       :defaultValue="duplicateDefaultName" confirmText="Tạo bản sao" @confirm="confirmDuplicate"
       @cancel="showDuplicateModal = false" />
+
+    <!-- Contract Downloader Modal -->
+    <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="currentId || id" :profileName="profileName"
+      @close="isDownloadModalOpen = false" />
   </div>
 </template>
 
@@ -92,10 +97,11 @@ import PersonForm from '../components/PersonForm.vue';
 import AssetForm from '../components/AssetForm.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
+import ContractDownloader from '../components/ContractDownloader.vue';
 
 export default {
   name: 'LoanProfileForm',
-  components: { DynamicForm, PersonForm, AssetForm, ConfirmModal, InputModal },
+  components: { DynamicForm, PersonForm, AssetForm, ConfirmModal, InputModal, ContractDownloader },
   props: ['id'],
   data() {
     return {
@@ -120,7 +126,10 @@ export default {
       deleteModalMessage: '',
       deleteAction: null,
       deleteIndex: null,
-      // Duplicate Modal State
+      // Download Modal
+      isDownloadModalOpen: false,
+
+      // Duplicate Modal
       showDuplicateModal: false,
       duplicateDefaultName: ''
     };
@@ -164,15 +173,16 @@ export default {
       });
     }
   },
-  mounted() {
-    this.fetchFields();
+  async mounted() {
+    await this.fetchFields(); // Chờ load xong fields trước khi làm tiếp
     this.fetchRoles();
     if (this.id) {
       this.currentId = this.id;
       this.fetchProfileData(this.id);
     } else {
-      this.addPerson();
-      this.addAsset();
+      // Đã có fields rồi nên gọi addPerson/addAsset ở đây sẽ có default values
+      if (this.people.length === 0) this.addPerson();
+      if (this.assets.length === 0) this.addAsset();
     }
   },
   watch: {
@@ -231,10 +241,27 @@ export default {
         const response = await axios.get(url);
         this.allFields = response.data;
 
-        // Nếu tạo hồ sơ mới (không có id), áp dụng giá trị mặc định cho generalFieldValues
-        if (!this.id && !this.currentId) {
-          this.applyDefaultsToGeneral();
-        }
+        // Luôn kiểm tra và áp dụng giá trị mặc định cho các trường chung còn trống
+        this.applyDefaultsToGeneral();
+
+        // MỞ RỘNG: Áp dụng giá trị mặc định cho cả Người và Tài sản (truy thu cho hồ sơ cũ)
+        this.people.forEach(p => {
+          const defaults = this.getDefaultValuesFor(this.personFields);
+          const currentValues = p.individual_field_values || {};
+          Object.keys(defaults).forEach(key => {
+            if (!currentValues[key]) currentValues[key] = defaults[key];
+          });
+          p.individual_field_values = { ...currentValues };
+        });
+
+        this.assets.forEach(a => {
+          const defaults = this.getDefaultValuesFor(this.assetFields);
+          const currentValues = a.asset_field_values || {};
+          Object.keys(defaults).forEach(key => {
+            if (!currentValues[key]) currentValues[key] = defaults[key];
+          });
+          a.asset_field_values = { ...currentValues };
+        });
       } catch (e) {
         console.error(e);
         alert('Lỗi tải cấu hình fields');
@@ -259,13 +286,20 @@ export default {
       }
     },
     applyDefaultsToGeneral() {
-      // Áp dụng giá trị mặc định cho các trường chung và core
-      const fieldsToApply = [...this.coreFields, ...Object.values(this.groupedFields).flat()];
-      fieldsToApply.forEach(field => {
-        if (field.default_value && !this.generalFieldValues[field.placeholder_key]) {
-          this.generalFieldValues[field.placeholder_key] = field.default_value;
+      // Áp dụng giá trị mặc định cho tất cả các trường KHÔNG thuộc nhóm Người hoặc Tài sản
+      const currentValues = { ...this.generalFieldValues };
+      this.allFields.forEach(field => {
+        const gName = (field.group_name || '').toLowerCase();
+        const isPersonGroup = gName === 'thông tin cá nhân' || gName === 'khach_hang';
+        const isAssetGroup = gName.includes('tài sản');
+
+        if (!isPersonGroup && !isAssetGroup) {
+          if (field.default_value && !currentValues[field.placeholder_key]) {
+            currentValues[field.placeholder_key] = field.default_value;
+          }
         }
       });
+      this.generalFieldValues = currentValues;
     },
     getDefaultValuesFor(fieldsArray) {
       // Tạo object chứa giá trị mặc định cho một mảng fields
@@ -282,11 +316,12 @@ export default {
       const personDefaults = this.getDefaultValuesFor(this.personFields);
       this.people.push({
         id: null,
-        ho_ten: personDefaults.ho_ten || '',
-        cccd_so: personDefaults.cccd_so || '',
+        ho_ten: '', // Xóa phần gán cứng, tất cả sẽ lấy từ personDefaults bên dưới
+        cccd_so: '',
         roles: [],
-        individual_field_values: personDefaults
+        individual_field_values: { ...personDefaults }
       });
+      // Nếu personDefaults có ho_ten hoặc cccd_so thì nó sẽ tự map vào form nhờ v-model
     },
     removePerson(index) {
       const person = this.people[index];
@@ -302,7 +337,10 @@ export default {
     // Asset Actions
     addAsset() {
       const assetDefaults = this.getDefaultValuesFor(this.assetFields);
-      this.assets.push({ id: null, asset_field_values: assetDefaults });
+      this.assets.push({
+        id: null,
+        asset_field_values: { ...assetDefaults }
+      });
     },
     removeAsset(index) {
       const asset = this.assets[index];
@@ -392,14 +430,24 @@ export default {
           form_slug: this.$route.query.form || this.currentFormSlug // Gửi kèm slug form để lưu
         };
         await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
+
+        // Cập nhật currentId nếu là hồ sơ mới tạo thành công
+        if (!this.currentId) {
+          this.currentId = targetId;
+        }
+
         alert('Lưu thành công!');
-        this.$router.push('/');
+        // KHÔNG chuyển trang nữa theo yêu cầu của User
+        // this.$router.push('/');
       } catch (error) {
         console.error(error);
         alert('Lỗi khi lưu: ' + (error.response?.data?.message || error.message));
       } finally {
         this.isSaving = false;
       }
+    },
+    openDownloadModal() {
+      this.isDownloadModalOpen = true;
     }
   }
 };
@@ -593,6 +641,15 @@ export default {
 
 .btn-copy:hover {
   background: #8e44ad;
+}
+
+.btn-doc {
+  background: #f39c12;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .btn-secondary {

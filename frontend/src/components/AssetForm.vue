@@ -3,17 +3,14 @@
     <div class="card-header" @click="isCollapsed = !isCollapsed">
       <div class="header-left">
         <span class="toggle-icon" :class="{ 'collapsed': isCollapsed }">▼</span>
-        <h4>Tài sản #{{ index + 1 }} <span v-if="displayInfo" class="asset-info">- {{ displayInfo }}</span></h4>
+        <h4>Tài sản BĐ #{{ index + 1 }} <span v-if="displayInfo" class="asset-info">- {{ displayInfo }}</span></h4>
       </div>
       <button class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
     </div>
 
     <div class="card-body" v-show="!isCollapsed">
-      <DynamicForm
-        :fields="assetFields"
-        :modelValue="localAssetData.asset_field_values"
-        @update:modelValue="onUpdateFieldValues"
-      />
+      <DynamicForm :fields="assetFields" :modelValue="localAssetData.asset_field_values"
+        @update:modelValue="onUpdateFieldValues" />
     </div>
   </div>
 </template>
@@ -67,9 +64,10 @@ export default {
   border-radius: 8px;
   margin-bottom: 20px;
   background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -80,10 +78,28 @@ export default {
   cursor: pointer;
   user-select: none;
 }
-.header-left { display: flex; align-items: center; gap: 10px; }
-.card-header h4 { margin: 0; color: #e67e22; }
-.asset-info { font-weight: normal; color: #888; font-size: 0.9em; }
-.card-body { padding: 15px; }
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-header h4 {
+  margin: 0;
+  color: #e67e22;
+}
+
+.asset-info {
+  font-weight: normal;
+  color: #888;
+  font-size: 0.9em;
+}
+
+.card-body {
+  padding: 15px;
+}
+
 .btn-remove {
   background: #e74c3c;
   color: white;
@@ -95,6 +111,13 @@ export default {
 }
 
 /* Toggle Icon */
-.toggle-icon { font-size: 12px; transition: transform 0.2s; color: #666; }
-.toggle-icon.collapsed { transform: rotate(-90deg); }
+.toggle-icon {
+  font-size: 12px;
+  transition: transform 0.2s;
+  color: #666;
+}
+
+.toggle-icon.collapsed {
+  transform: rotate(-90deg);
+}
 </style>

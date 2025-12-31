@@ -626,40 +626,60 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         
         context['assets'] = assets_list
 
-        # E. Tạo các danh sách lọc sẵn dựa trên VAI TRÒ (Dùng Slug mới)
+        # E. Tạo các danh sách lọc sẵn dựa trên VAI TRÒ (Gộp cả Slug động và Legacy)
+        # 1. Lấy danh sách Role từ DB để làm bản đồ Mapping
         all_system_roles = Role.objects.exclude(slug__isnull=True).exclude(slug='')
-        # Dùng lowercase cho key để map chính xác không phân biệt hoa thường
-        role_map = {r.name.lower(): r.slug for r in all_system_roles}
         
-        # Hàm kiểm tra quyền
-        def has_role_slug(person, slug):
-            p_roles = person.get('roles', [])
-            # Map tên vai trò sang slug và kiểm tra (case-insensitive cho tên vai trò)
-            p_slugs = [role_map.get(rname.lower()) for rname in p_roles if role_map.get(rname.lower())]
-            return slug.lower() in [s.lower() for s in p_slugs]
-
-        # 1. Tự động tạo danh sách cho tất cả các role có slug định nghĩa
+        # Bản đồ: tên_vai_trò (lowercase) -> slug (lowercase)
+        role_name_to_slug = {}
+        all_active_slugs = set()
         for r in all_system_roles:
-            context[f"{r.slug}_list"] = [p for p in people_list if has_role_slug(p, r.slug)]
+            s = r.slug.strip().lower()
+            role_name_to_slug[r.name.strip().lower()] = s
+            all_active_slugs.add(s)
 
-        # 2. Giữ lại các biến cũ để tương thích ngược (Legacy support)
-        # Hàm check role theo tên (Case-insensitive)
-        def has_role_name(person, role_names):
-            p_roles = [r.lower() for r in person.get('roles', [])]
-            for rn in role_names:
-                if rn.lower() in p_roles:
-                    return True
-            return False
+        # 2. Định nghĩa các Slug mặc định (Legacy)
+        legacy_slug_map = {
+            'ben_vay': ['bên vay', 'bên được cấp tín dụng'],
+            'ben_duoc_cap_tin_dung': ['bên được cấp tín dụng'],
+            'ben_the_chap': ['bên thế chấp', 'bên bảo đảm'],
+            'ben_bao_dam': ['bên bảo đảm', 'bên thế chấp', 'bên bảo đảm'],
+            'ben_bao_lanh': ['bên bảo lãnh']
+        }
+        for s in legacy_slug_map:
+            all_active_slugs.add(s)
 
-        context['ben_vay_list'] = [p for p in people_list if has_role_name(p, ['Bên Vay', 'Bên được cấp tín dụng'])]
-        context['ben_bao_dam_list'] = [p for p in people_list if has_role_name(p, ['Bên Bảo đảm', 'Bên thế chấp', 'Bên Bảo Đảm'])]
+        # 3. Khởi tạo các danh sách trong context (tất cả là lowercase slug)
+        role_data_lists = {s: [] for s in all_active_slugs}
+
+        # 4. Phân loại từng người vào các danh sách phù hợp
+        for p in people_list:
+            p_assigned_roles = [r.strip().lower() for r in p.get('roles', [])]
+            matched_slugs = set()
+            
+            for rname in p_assigned_roles:
+                # a. Tìm theo Slug động trong DB
+                if rname in role_name_to_slug:
+                    matched_slugs.add(role_name_to_slug[rname])
+                
+                # b. Tìm theo logic Legacy (fallback)
+                for l_slug, l_names in legacy_slug_map.items():
+                    if rname in l_names:
+                        matched_slugs.add(l_slug)
+            
+            # Đưa người này vào tất cả các danh sách đã khớp
+            for s in matched_slugs:
+                role_data_lists[s].append(p)
         
-        # Các danh sách bổ sung
-        if 'ben_duoc_cap_tin_dung_list' not in context:
-            context['ben_duoc_cap_tin_dung_list'] = [p for p in people_list if has_role_name(p, ['Bên được cấp tín dụng'])]
-        if 'ben_the_chap_list' not in context:
-            context['ben_the_chap_list'] = [p for p in people_list if has_role_name(p, ['Bên thế chấp'])]
-        context['ben_bao_lanh_list'] = [p for p in people_list if has_role_name(p, ['Bên bảo lãnh', 'Bên Bảo lãnh'])]
+        # 5. Đưa vào context với hậu tố _list
+        for s, plist in role_data_lists.items():
+            context[f"{s}_list"] = plist
+            
+        # 6. Alias đặc biệt (Chống lỗi gõ thiếu dấu hoặc sai legacy key)
+        if 'ben_vay_list' in context:
+            context['tin_dung_list'] = context['ben_vay_list'] # Alias phổ biến
+        if 'ben_bao_dam_list' in context:
+            context['bao_dam_list'] = context['ben_bao_dam_list'] # Alias phổ biến
 
         # 3. XỬ LÝ TEMPLATE VÀ SINH FILE
         try:
