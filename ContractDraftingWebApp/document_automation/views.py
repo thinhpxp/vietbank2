@@ -24,14 +24,11 @@ from .models import (
 
 # Import Serializers
 from .serializers import (
-    FieldSerializer,
-    LoanProfileSerializer,
-    PersonSerializer,
-    DocumentTemplateSerializer,
-    FieldGroupSerializer,
-    UserSerializer,
-    RoleSerializer,
-    FormViewSerializer
+    FieldSerializer, FieldGroupSerializer, LoanProfileSerializer, 
+    PersonSerializer, FieldValueSerializer, DocumentTemplateSerializer,
+    RoleSerializer, AssetSerializer, LoanProfilePersonSerializer,
+    LoanProfileAssetSerializer, UserSerializer, FormViewSerializer, 
+    MasterPersonSerializer, MasterAssetSerializer
 )
 # --- CÁC HÀM HỖ TRỢ JINJA2 (FORMAT TIỀN, NGÀY, CHỮ) ---
 def format_currency_filter(value):
@@ -214,22 +211,24 @@ class FieldViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def active_fields_grouped(self, request):
-        """Trả về danh sách trường active nhóm theo FieldGroup, có lọc theo form_slug"""
+        """Trả về danh sách trường active nhóm theo FieldGroup, có lọc theo form_slug hoặc entity_type"""
         form_slug = request.query_params.get('form_slug')
+        entity_type = request.query_params.get('entity_type') # MỚI: Lọc theo đối tượng (PERSON, ASSET, ...)
         
         from django.db.models import Q
         
         # 1. Lọc nhóm
         groups_qs = FieldGroup.objects.all().order_by('order')
-        if form_slug is not None:
+        if entity_type:
+            groups_qs = groups_qs.filter(entity_type=entity_type)
+        elif form_slug:
             groups_qs = groups_qs.filter(allowed_forms__slug=form_slug).distinct()
             
-        # 2. Prefetch fields có lọc
-        # Chết độ cực kỳ nghiêm ngặt: Chỉ lấy trường được gán đích danh Form này
-        # (Lưu ý: groups_qs đã được lọc theo form_slug ở trên nên trường thuộc group này 
-        #  chắc chắn đã thoả mãn điều kiện group__allowed_forms)
+        # 2. Prefetch fields
         fields_filter = Q(is_active=True)
-        if form_slug is not None:
+        # Nếu là Master Data (có entity_type), ta lấy tất cả fields của group đó
+        # Nếu là Hồ sơ (có form_slug), ta lọc fields được phép hiển thị ở form đó
+        if not entity_type and form_slug:
             fields_filter &= Q(allowed_forms__slug=form_slug)
             
         groups = groups_qs.prefetch_related(
@@ -242,8 +241,9 @@ class FieldViewSet(viewsets.ModelViewSet):
             if fields_data:
                 result[grp.name] = fields_data
 
-        # Synthetic fields: Tạm thời giữ nguyên
-        result["Thông tin cá nhân"] = [] 
+        # Synthetic fields: Chỉ hiện ở bản cũ hoặc khi không có entity_type
+        if not entity_type:
+            result["Thông tin cá nhân"] = [] 
 
         return Response(result)
 
@@ -289,7 +289,8 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         Output: { "id": new_profile_id, "name": "..." }
         """
         original = self.get_object()
-        new_name = request.data.get('new_name', f"{original.name} - copy")
+        new_name = request.data.get('new_name', f"Bản sao - {original.name}")
+        updating_user = request.user if request.user.is_authenticated else None
 
         try:
             with transaction.atomic():
@@ -315,7 +316,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 for link in original.linked_people.all():
                     old_person = link.person
                     # Tạo Person mới (vì Person chỉ là ID holder)
-                    new_person = Person.objects.create()
+                    new_person = Person.objects.create(last_updated_by=updating_user)
                     
                     # Liên kết vào hồ sơ mới với vai trò
                     LoanProfilePerson.objects.create(
@@ -338,7 +339,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 # 4. Sao chép Assets
                 for link in original.linked_assets.all():
                     old_asset = link.asset
-                    new_asset = Asset.objects.create()
+                    new_asset = Asset.objects.create(last_updated_by=updating_user)
                     
                     LoanProfileAsset.objects.create(
                         loan_profile=new_profile,
@@ -383,6 +384,9 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
+                # Xử lý Người dùng thực hiện (Audit)
+                updating_user = request.user if request.user.is_authenticated else None
+
                 # A. Cập nhật thông tin cơ bản
                 if 'name' in data:
                     loan_profile.name = data['name']
@@ -425,8 +429,6 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                     p_cccd = p_individual_fields.get('cccd_so') or p_data.get('cccd_so', '')
 
                     if not p_name: continue
-
-                    if not p_name: continue
                     
                     # Tìm hoặc Tạo Person (Ưu tiên tìm theo CCCD)
                     person = None
@@ -441,12 +443,15 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                         
                         if existing_fv:
                             person = existing_fv.person
+                            # Cập nhật thông tin truy vết - Audit
+                            person.last_updated_by = updating_user
+                            person.save()
                         else:
                             # Nếu không thấy, tạo mới (Person giờ chỉ là ID holder)
-                            person = Person.objects.create()
+                            person = Person.objects.create(last_updated_by=updating_user)
                     else:
                         # Nếu không có CCCD, tạo mới luôn
-                        person = Person.objects.create()
+                        person = Person.objects.create(last_updated_by=updating_user)
 
                     current_person_ids.append(person.id)  # Ensure Person model has id attribute
 
@@ -488,9 +493,15 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                     # Tìm hoặc Tạo Asset
                     # Asset chỉ là ID holder, không có thuộc tính riêng (như name/cccd)
                     if a_id:
-                         asset = Asset.objects.get(id=a_id)
+                        try:
+                            asset = Asset.objects.get(id=a_id)
+                            asset.last_updated_by = updating_user
+                            asset.save()
+                        except Asset.DoesNotExist:
+                            # Nếu ID không tồn tại (hiếm khi xảy ra do UI), tạo mới
+                            asset = Asset.objects.create(last_updated_by=updating_user)
                     else:
-                         asset = Asset.objects.create()
+                         asset = Asset.objects.create(last_updated_by=updating_user)
                     
                     current_asset_ids.append(asset.id)
 
@@ -725,3 +736,115 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             import traceback
             traceback.print_exc()
             return Response({"error": f"Lỗi sinh file: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# 10. ViewSets phục vụ Master Data (Quản lý tập trung)
+def save_master_field_values(instance, field_values, entity_type_obj='person'):
+    """Helper để lưu dynamic field values cho Master Data (loan_profile=None)"""
+    if not field_values:
+        return
+    
+    for key, val in field_values.items():
+        try:
+            field_obj = Field.objects.get(placeholder_key=key)
+            # Chỉ lưu nếu field này thuộc về đúng entity type (tránh lưu rác)
+            if field_obj.group and field_obj.group.entity_type.lower() != entity_type_obj.lower():
+                # Đặc biệt: Nếu là person, chấp nhận cả 'PERSON'
+                # Nếu là asset, chấp nhận cả 'ASSET'
+                pass
+
+            params = {
+                'loan_profile': None,
+                'field': field_obj,
+                'defaults': {'value': str(val)}
+            }
+            if entity_type_obj == 'person':
+                params['person'] = instance
+                params['asset'] = None
+            else:
+                params['asset'] = instance
+                params['person'] = None
+            
+            FieldValue.objects.update_or_create(**params)
+        except Field.DoesNotExist:
+            continue
+
+class MasterPersonViewSet(viewsets.ModelViewSet):
+    queryset = Person.objects.all().order_by('-id')
+    serializer_class = MasterPersonSerializer
+    permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        updating_user = self.request.user if not self.request.user.is_anonymous else None
+        instance = serializer.save(last_updated_by=updating_user)
+        field_values = self.request.data.get('field_values', {})
+        save_master_field_values(instance, field_values, 'person')
+
+    def perform_update(self, serializer):
+        updating_user = self.request.user if not self.request.user.is_anonymous else None
+        instance = serializer.save(last_updated_by=updating_user)
+        field_values = self.request.data.get('field_values', {})
+        save_master_field_values(instance, field_values, 'person')
+
+    @action(detail=True, methods=['get'])
+    def related_profiles(self, request, pk=None):
+        person = self.get_object()
+        links = LoanProfilePerson.objects.filter(person=person).select_related('loan_profile')
+        profiles = [link.loan_profile for link in links]
+        data = []
+        for p in profiles:
+            data.append({
+                'id': p.id,
+                'name': p.name,
+                'created_at': p.created_at,
+                'form_name': p.form_view.name if p.form_view else 'Mặc định'
+            })
+        return Response(data)
+
+    @action(detail=True, methods=['get'])
+    def related_assets(self, request, pk=None):
+        person = self.get_object()
+        profile_ids = LoanProfilePerson.objects.filter(person=person).values_list('loan_profile_id', flat=True)
+        asset_links = LoanProfileAsset.objects.filter(loan_profile_id__in=profile_ids).select_related('asset')
+        assets = set([link.asset for link in asset_links])
+        
+        data = []
+        for a in assets:
+            fv = FieldValue.objects.filter(asset=a, field__placeholder_key='so_giay_chung_nhan').first()
+            data.append({
+                'id': a.id,
+                'so_giay_chung_nhan': fv.value if fv else 'N/A',
+                'created_at': a.created_at
+            })
+        return Response(data)
+
+class MasterAssetViewSet(viewsets.ModelViewSet):
+    queryset = Asset.objects.all().order_by('-id')
+    serializer_class = MasterAssetSerializer
+    permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        updating_user = self.request.user if not self.request.user.is_anonymous else None
+        instance = serializer.save(last_updated_by=updating_user)
+        field_values = self.request.data.get('field_values', {})
+        save_master_field_values(instance, field_values, 'asset')
+
+    def perform_update(self, serializer):
+        updating_user = self.request.user if not self.request.user.is_anonymous else None
+        instance = serializer.save(last_updated_by=updating_user)
+        field_values = self.request.data.get('field_values', {})
+        save_master_field_values(instance, field_values, 'asset')
+
+    @action(detail=True, methods=['get'])
+    def related_profiles(self, request, pk=None):
+        asset = self.get_object()
+        links = LoanProfileAsset.objects.filter(asset=asset).select_related('loan_profile')
+        profiles = [link.loan_profile for link in links]
+        data = []
+        for p in profiles:
+            data.append({
+                'id': p.id,
+                'name': p.name,
+                'created_at': p.created_at,
+                'form_name': p.form_view.name if p.form_view else 'Mặc định'
+            })
+        return Response(data)

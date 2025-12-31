@@ -4,9 +4,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
-    Field, FieldGroup, LoanProfile, Person, LoanProfilePerson, 
-    FieldValue, DocumentTemplate, UserProfile, Role, Asset, 
-    LoanProfileAsset, FormView
+    Field, FieldGroup, LoanProfile, Person, FieldValue, DocumentTemplate, 
+    Role, LoanProfilePerson, Asset, LoanProfileAsset, FormView, UserProfile
 )
 
 # 0. Serializer cho Role (MỚI)
@@ -181,7 +180,6 @@ class LoanProfileSerializer(serializers.ModelSerializer):
             })
 
         return result
-
     # Logic 3: Gom danh sách Assets và FieldValue riêng của chúng
     def get_assets(self, obj):
         result = []
@@ -199,3 +197,92 @@ class LoanProfileSerializer(serializers.ModelSerializer):
             })
         
         return result
+
+# 6.5 Serializer cho LoanProfileAsset (MỚI)
+class LoanProfileAssetSerializer(serializers.ModelSerializer):
+    asset = AssetSerializer(read_only=True)
+
+    class Meta:
+        model = LoanProfileAsset
+        fields = '__all__'
+
+# 7. Serializers phục vụ Master Data (Quản lý tập trung)
+class MasterPersonSerializer(serializers.ModelSerializer):
+    ho_ten = serializers.SerializerMethodField()
+    cccd_so = serializers.SerializerMethodField()
+    last_updated_by_name = serializers.CharField(source='last_updated_by.username', read_only=True)
+    profiles_count = serializers.SerializerMethodField()
+    assets_count = serializers.SerializerMethodField()
+    field_values = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Person
+        fields = [
+            'id', 'ho_ten', 'cccd_so', 'created_at', 'updated_at', 
+            'last_updated_by_name', 'profiles_count', 'assets_count', 'field_values'
+        ]
+
+    def get_latest_fv(self, obj, key):
+        # Ưu tiên lấy giá trị "Gốc" (không thuộc hồ sơ nào)
+        fv = FieldValue.objects.filter(person=obj, field__placeholder_key=key, loan_profile__isnull=True).first()
+        if not fv:
+            # Nếu không có giá trị gốc, lấy giá trị mới nhất từ bất kỳ hồ sơ nào
+            fv = FieldValue.objects.filter(person=obj, field__placeholder_key=key).order_by('-id').first()
+        return fv.value if fv else ""
+
+    def get_ho_ten(self, obj):
+        return self.get_latest_fv(obj, 'ho_ten')
+
+    def get_cccd_so(self, obj):
+        return self.get_latest_fv(obj, 'cccd_so')
+
+    def get_profiles_count(self, obj):
+        return obj.linked_profiles.count()
+
+    def get_assets_count(self, obj):
+        profile_ids = obj.linked_profiles.values_list('loan_profile_id', flat=True)
+        return Asset.objects.filter(linked_profiles__loan_profile_id__in=profile_ids).distinct().count()
+
+    def get_field_values(self, obj):
+        # Chỉ trả về các giá trị "Gốc" (Master Data)
+        fvs = FieldValue.objects.filter(person=obj, loan_profile__isnull=True)
+        return {fv.field.placeholder_key: fv.value for fv in fvs}
+
+class MasterAssetSerializer(serializers.ModelSerializer):
+    so_giay_chung_nhan = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
+    last_updated_by_name = serializers.CharField(source='last_updated_by.username', read_only=True)
+    profiles_count = serializers.SerializerMethodField()
+    field_values = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Asset
+        fields = [
+            'id', 'so_giay_chung_nhan', 'owner_name', 'created_at', 'updated_at', 
+            'last_updated_by_name', 'profiles_count', 'field_values'
+        ]
+
+    def get_latest_fv(self, obj, key):
+        # Ưu tiên lấy giá trị "Gốc"
+        fv = FieldValue.objects.filter(asset=obj, field__placeholder_key=key, loan_profile__isnull=True).first()
+        if not fv:
+            fv = FieldValue.objects.filter(asset=obj, field__placeholder_key=key).order_by('-id').first()
+        return fv.value if fv else ""
+
+    def get_so_giay_chung_nhan(self, obj):
+        return self.get_latest_fv(obj, 'so_giay_chung_nhan')
+
+    def get_owner_name(self, obj):
+        # Ưu tiên lấy tên chủ sở hữu từ Master Data
+        # Đối với Asset, owner thường được lưu là một FieldValue 'ho_ten' có person link
+        fv_owner = FieldValue.objects.filter(asset=obj, field__placeholder_key='ho_ten', person__isnull=False).first()
+        if fv_owner:
+            return fv_owner.value
+        return "Chưa xác định"
+
+    def get_profiles_count(self, obj):
+        return obj.linked_profiles.count()
+
+    def get_field_values(self, obj):
+        fvs = FieldValue.objects.filter(asset=obj, loan_profile__isnull=True)
+        return {fv.field.placeholder_key: fv.value for fv in fvs}

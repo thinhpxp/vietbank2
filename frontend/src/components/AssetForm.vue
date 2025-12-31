@@ -4,6 +4,8 @@
       <div class="header-left">
         <span class="toggle-icon" :class="{ 'collapsed': isCollapsed }">▼</span>
         <h4>Tài sản BĐ #{{ index + 1 }} <span v-if="displayInfo" class="asset-info">- {{ displayInfo }}</span></h4>
+        <button type="button" class="btn-search-master" @click.stop="isModalOpen = true"
+          title="Chọn từ danh sách đã có">🔍</button>
       </div>
       <button class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
     </div>
@@ -12,15 +14,18 @@
       <DynamicForm :fields="assetFields" :modelValue="localAssetData.asset_field_values"
         @update:modelValue="onUpdateFieldValues" />
     </div>
+
+    <ObjectSelectModal :isOpen="isModalOpen" type="asset" @close="isModalOpen = false" @select="onAssetSelect" />
   </div>
 </template>
 
 <script>
 import DynamicForm from './DynamicForm.vue';
+import ObjectSelectModal from './ObjectSelectModal.vue';
 
 export default {
   name: 'AssetForm',
-  components: { DynamicForm },
+  components: { DynamicForm, ObjectSelectModal },
   props: {
     index: { type: Number, required: true },
     asset: { type: Object, required: true },
@@ -30,7 +35,8 @@ export default {
   data() {
     return {
       localAssetData: { ...this.asset },
-      isCollapsed: false // Mặc định mở
+      isCollapsed: false,
+      isModalOpen: false
     };
   },
   computed: {
@@ -53,6 +59,18 @@ export default {
     onUpdateFieldValues(newValues) {
       this.localAssetData.asset_field_values = newValues;
       this.$emit('update:asset', this.localAssetData);
+    },
+    onAssetSelect(asset) {
+      if (!this.localAssetData.asset_field_values) {
+        this.localAssetData.asset_field_values = {};
+      }
+
+      // Auto-fill thông tin từ master
+      if (asset.so_giay_chung_nhan) {
+        this.localAssetData.asset_field_values.so_giay_chung_nhan = asset.so_giay_chung_nhan;
+      }
+
+      alert(`Đã chọn tài sản: ${asset.so_giay_chung_nhan}`);
     }
   }
 }
@@ -94,6 +112,26 @@ export default {
   font-weight: normal;
   color: #888;
   font-size: 0.9em;
+}
+
+.btn-search-master {
+  background: #e67e22;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-left: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-search-master:hover {
+  background: #d35400;
 }
 
 .card-body {

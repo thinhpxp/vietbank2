@@ -11,6 +11,7 @@ import AdminTemplates from '../views/admin/AdminTemplates.vue';
 import AdminUsers from '../views/admin/AdminUsers.vue';
 import AdminRoles from '../views/admin/AdminRoles.vue';
 import AdminForms from '../views/admin/AdminForms.vue'; // <-- MỚI
+import MasterData from '../views/admin/MasterData.vue';
 
 const routes = [
   {
@@ -39,6 +40,7 @@ const routes = [
       { path: 'users', component: AdminUsers },
       { path: 'roles', component: AdminRoles },
       { path: 'forms', component: AdminForms }, // <-- MỚI
+      { path: 'master-data', component: MasterData },
       { path: '', redirect: '/admin/groups' } // Mặc định vào trang Groups
     ]
   }

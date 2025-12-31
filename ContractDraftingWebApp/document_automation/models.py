@@ -21,7 +21,19 @@ class FormView(models.Model):
 
 
 class FieldGroup(models.Model):
+    ENTITY_CHOICES = [
+        ('PROFILE', 'Hồ sơ'),
+        ('PERSON', 'Cá nhân'),
+        ('ASSET', 'Tài sản'),
+        ('SAVINGS', 'Sổ tiết kiệm'),
+    ]
     name = models.CharField(max_length=255, verbose_name="Tên nhóm")
+    entity_type = models.CharField(
+        max_length=20, 
+        choices=ENTITY_CHOICES, 
+        default='PROFILE',
+        verbose_name="Đối tượng áp dụng"
+    )
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='groups', verbose_name="Hiển thị ở Form")
@@ -120,6 +132,9 @@ class LoanProfile(models.Model):
 # 4. Bảng Người
 class Person(models.Model):
     id = models.AutoField(primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+    last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_people')
     
     def __str__(self):
         return f"Person ID: {self.id}"
@@ -132,6 +147,9 @@ class Person(models.Model):
 # --- MỚI: Bảng Tài sản ---
 class Asset(models.Model):
     id = models.AutoField(primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+    last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_assets')
 
     def __str__(self):
         return f"Asset ID: {self.id}"
@@ -172,7 +190,7 @@ class LoanProfileAsset(models.Model):
 
 # 6. Bảng Giá trị của các Trường trong Hồ sơ Vay
 class FieldValue(models.Model):
-    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE)
+    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, null=True, blank=True)
     person = models.ForeignKey(Person, on_delete=models.CASCADE, null=True, blank=True)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True) # Mới: Link tới Asset
     field = models.ForeignKey(Field, on_delete=models.CASCADE)
