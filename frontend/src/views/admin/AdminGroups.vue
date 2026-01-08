@@ -126,6 +126,7 @@
 <script>
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import { makeTableResizable } from '../../utils/resizable-table';
 
 export default {
   components: { ConfirmModal },
@@ -145,6 +146,7 @@ export default {
     await this.fetchGroups();
     await this.fetchForms();
     await this.fetchObjectTypes();  // NEW
+    this.initResizable();
   },
   methods: {
     getFormNames(ids) {
@@ -158,7 +160,14 @@ export default {
       try {
         const groupsRes = await axios.get('http://127.0.0.1:8000/api/groups/');
         this.groups = groupsRes.data.sort((a, b) => a.order - b.order);
+        this.$nextTick(() => this.initResizable());
       } catch (e) { console.error('Lỗi tải nhóm:', e); }
+    },
+    initResizable() {
+      const table = this.$el.querySelector('.data-table');
+      if (table) {
+        makeTableResizable(table, 'admin-groups');
+      }
     },
     async fetchForms() {
       try {

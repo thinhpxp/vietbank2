@@ -42,6 +42,7 @@
 <script>
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import { makeTableResizable } from '../../utils/resizable-table';
 
 export default {
   components: { ConfirmModal },
@@ -56,11 +57,21 @@ export default {
       deleteTargetName: ''
     }
   },
-  mounted() { this.fetchTemplates(); },
+  mounted() {
+    this.fetchTemplates();
+    this.initResizable();
+  },
   methods: {
     async fetchTemplates() {
       const res = await axios.get('http://127.0.0.1:8000/api/document-templates/');
       this.templates = res.data;
+      this.$nextTick(() => this.initResizable());
+    },
+    initResizable() {
+      const table = this.$el.querySelector('.data-table');
+      if (table) {
+        makeTableResizable(table, 'admin-templates');
+      }
     },
     handleFileChange(e) {
       this.selectedFile = e.target.files[0];

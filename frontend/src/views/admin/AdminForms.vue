@@ -55,6 +55,7 @@
 
 <script>
 import axios from 'axios';
+import { makeTableResizable } from '../../utils/resizable-table';
 
 export default {
     data() {
@@ -64,11 +65,21 @@ export default {
             newForm: { name: '', slug: '', note: '' }
         }
     },
-    mounted() { this.fetchData(); },
+    mounted() {
+        this.fetchData();
+        this.initResizable();
+    },
     methods: {
         async fetchData() {
             const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
             this.forms = res.data;
+            this.$nextTick(() => this.initResizable());
+        },
+        initResizable() {
+            const table = this.$el.querySelector('.data-table');
+            if (table) {
+                makeTableResizable(table, 'admin-forms');
+            }
         },
         async addForm() {
             if (!this.newForm.name || !this.newForm.slug) return alert('Vui lòng nhập đủ Tên và Slug!');

@@ -113,6 +113,8 @@ export default {
   padding: 20px;
   background: var(--main-bg);
   overflow-y: auto;
+  text-align: left;
+  /* Chèn ghi đè text-align: center từ App.vue */
 }
 
 /* =========================

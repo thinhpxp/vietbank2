@@ -2,7 +2,13 @@
     <div class="admin-page dashboard-container">
         <div class="header-actions">
             <h2>Quản lý Dữ liệu gốc (Master Data)</h2>
-            <button class="btn-action btn-create" @click="openCreateModal">+ Thêm mới</button>
+            <div class="action-buttons" style="display: flex; gap: 10px;">
+                <button class="btn-action btn-secondary" @click="fetchData" :disabled="loading">
+                    <span v-if="loading">⏳...</span>
+                    <span v-else>🔄 Làm mới</span>
+                </button>
+                <button class="btn-action btn-create" @click="openCreateModal">+ Thêm mới</button>
+            </div>
         </div>
 
         <!-- TABS -->
@@ -39,7 +45,10 @@
                         </td>
                         <td>
                             <!-- Hiển thị CCCD hoặc Chủ sở hữu -->
-                            {{ item.cccd_so || item.owner_name || '---' }}
+                            <span v-if="activeTab === 'PERSON'">CCCD: {{ item.cccd }}</span>
+                            <span v-else-if="activeTab === 'VEHICLE'">Hãng: {{ item.nhan_hieu_xe }}</span>
+                            <span v-else-if="activeTab === 'REALESTATE'">Số vào sổ: {{ item.so_vao_so }}</span>
+                            <span v-else>{{ item.owner_name }}</span>
                         </td>
                         <td>{{ formatDate(item.created_at) }}</td>
                         <td>
@@ -108,6 +117,7 @@
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import MasterCreateModal from '../../components/MasterCreateModal.vue';
+import { makeTableResizable } from '../../utils/resizable-table';
 
 export default {
     name: 'MasterData',
@@ -152,6 +162,7 @@ export default {
     },
     async mounted() {
         await this.fetchObjectTypes();
+        this.initResizable();
     },
     methods: {
         async fetchObjectTypes() {
@@ -181,6 +192,15 @@ export default {
                 console.error('Lỗi khi tải dữ liệu master:', error);
             } finally {
                 this.loading = false;
+                this.$nextTick(() => {
+                    this.initResizable();
+                });
+            }
+        },
+        initResizable() {
+            const table = this.$el.querySelector('.data-table');
+            if (table) {
+                makeTableResizable(table, 'master-data-' + this.activeTab);
             }
         },
         async viewRelated(obj, type) {
@@ -250,18 +270,6 @@ export default {
 </script>
 
 <style scoped>
-.dashboard-container {
-    max-width: 95%;
-    margin: 20px auto;
-}
-
-.header-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
 .badge-unlinked {
     background: #fff3e0;
     color: #e67e22;

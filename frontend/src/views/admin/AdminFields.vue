@@ -94,8 +94,8 @@
           <th>Mặc định</th>
           <th>Tách nghìn</th>
           <th>Hiện chữ</th>
-          <th>Hiển thị ở Form</th>
-          <th>Loại đối tượng áp dụng</th>
+          <th>Form</th>
+          <th>Loại đối tượng</th>
           <th>Hành động</th>
         </tr>
       </thead>
@@ -229,7 +229,7 @@ export default {
   mounted() {
     this.fetchData();
     this.fetchForms();
-    makeTableResizable(this.$refs.resizableTable);
+    this.initResizable();
   },
   computed: {
     sortedFields() {
@@ -283,6 +283,13 @@ export default {
       this.fields = resFields.data;
       this.groups = resGroups.data;
       this.objectTypes = resTypes.data;
+      this.$nextTick(() => this.initResizable());
+    },
+    initResizable() {
+      const table = this.$refs.resizableTable;
+      if (table) {
+        makeTableResizable(table, 'admin-fields');
+      }
     },
     async fetchForms() {
       const res = await axios.get('http://127.0.0.1:8000/api/form-views/');

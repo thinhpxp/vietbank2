@@ -87,6 +87,7 @@
 <script>
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import { makeTableResizable } from '../../utils/resizable-table';
 
 export default {
   name: 'AdminUsers',
@@ -109,6 +110,7 @@ export default {
   },
   mounted() {
     this.fetchUsers();
+    this.initResizable();
   },
   methods: {
     async fetchUsers() {
@@ -117,6 +119,14 @@ export default {
         this.users = response.data;
       } catch (error) {
         console.error("Lỗi tải users:", error);
+      } finally {
+        this.$nextTick(() => this.initResizable());
+      }
+    },
+    initResizable() {
+      const table = this.$el.querySelector('.data-table');
+      if (table) {
+        makeTableResizable(table, 'admin-users');
       }
     },
     async updateUser(user) {

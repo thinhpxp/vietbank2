@@ -54,6 +54,7 @@
 <script>
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import { makeTableResizable } from '../../utils/resizable-table';
 
 export default {
   components: { ConfirmModal },
@@ -67,14 +68,24 @@ export default {
       deleteTargetName: ''
     }
   },
-  mounted() { this.fetchRoles(); },
+  mounted() {
+    this.fetchRoles();
+    this.initResizable();
+  },
   methods: {
     async fetchRoles() {
       try {
         const res = await axios.get('http://127.0.0.1:8000/api/roles/');
         this.roles = res.data;
+        this.$nextTick(() => this.initResizable());
       } catch (e) {
         console.error("Lỗi tải roles:", e);
+      }
+    },
+    initResizable() {
+      const table = this.$el.querySelector('.data-table');
+      if (table) {
+        makeTableResizable(table, 'admin-roles');
       }
     },
     async addRole() {
