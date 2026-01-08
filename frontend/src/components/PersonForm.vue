@@ -3,7 +3,7 @@
     <div class="card-header" @click="isCollapsed = !isCollapsed">
       <div class="header-left">
         <span class="toggle-icon" :class="{ 'collapsed': isCollapsed }">▼</span>
-        <h4>Người liên quan #{{ index + 1 }} <span v-if="displayName" class="person-name">- {{ displayName }}</span>
+        <h4>{{ personLabel }} #{{ index + 1 }} <span v-if="displayName" class="person-name">- {{ displayName }}</span>
         </h4>
         <button type="button" class="btn-search-master" @click.stop="isModalOpen = true"
           title="Chọn từ danh sách đã có">🔍</button>
@@ -25,7 +25,11 @@
       <!-- 3. Các trường động của Người (Địa chỉ, SĐT...) -->
       <div class="dynamic-section" v-if="personFields.length > 0">
         <hr>
-        <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values" />
+        <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values"
+          @field-blur="handleFieldBlur" />
+        <div v-if="duplicateWarning" class="alert-warning">
+          <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
+        </div>
       </div>
     </div>
 
@@ -34,6 +38,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
 
@@ -44,21 +49,33 @@ export default {
     index: Number,
     person: Object,
     personFields: Array,
-    availableRoles: { type: Array, default: () => [] }
+    availableRoles: { type: Array, default: () => [] },
+    availableTypes: { type: Array, default: () => [] }
   },
   emits: ['update:person', 'remove'],
   data() {
     return {
       localPerson: JSON.parse(JSON.stringify(this.person)),
       isCollapsed: false,
-      isModalOpen: false
+      isModalOpen: false,
+      duplicateWarning: null
     }
   },
   computed: {
     // Hiển thị tên hoặc CCCD khi collapse
     displayName() {
       const fv = this.localPerson.individual_field_values || {};
+      const type = this.availableTypes.find(t => t.code === 'PERSON');
+
+      if (type && type.identity_field_key) {
+        return fv[type.identity_field_key] || '';
+      }
+
       return fv.ho_ten || fv.cccd_so || '';
+    },
+    personLabel() {
+      const type = this.availableTypes.find(t => t.code === 'PERSON');
+      return type ? type.name : 'Người liên quan';
     }
   },
   watch: {
@@ -70,18 +87,63 @@ export default {
     }
   },
   methods: {
+    toggleCollapse() {
+      this.isCollapsed = !this.isCollapsed;
+    },
     onPersonSelect(person) {
+      // 1. Link to Master Object
+      this.localPerson.master_object = { id: person.id };
+
+      // 2. Auto-fill all field values
       if (!this.localPerson.individual_field_values) {
         this.localPerson.individual_field_values = {};
       }
 
-      // Auto-fill thông tin từ master
-      // Chúng ta sẽ giả định các key cơ bản ho_ten, cccd_so có dữ liệu
-      if (person.ho_ten) this.localPerson.individual_field_values.ho_ten = person.ho_ten;
-      if (person.cccd_so) this.localPerson.individual_field_values.cccd_so = person.cccd_so;
+      // Copy all values from master (person.field_values contains the raw data)
+      if (person.field_values) {
+        this.localPerson.individual_field_values = {
+          ...this.localPerson.individual_field_values,
+          ...person.field_values
+        };
+      }
 
-      // Nếu Backend trả về nhiều Field hơn, chúng ta cũng có thể mapping thêm ở đây
-      alert(`Đã chọn: ${person.ho_ten}`);
+      this.$emit('update:person', this.localPerson);
+      alert(`Đã chọn: ${person.display_name}`);
+    },
+    async handleFieldBlur({ key, value }) {
+      if (!value) {
+        this.duplicateWarning = null;
+        return;
+      }
+
+      // 1. Tìm cấu hình loại PERSON
+      let typeConfig = this.availableTypes.find(t => t.code === 'PERSON');
+
+      // Nếu chưa có cấu hình từ prop, thử tìm trong data nếu có (phòng hờ)
+      if (!typeConfig) {
+        console.warn('PersonForm: availableTypes empty or PERSON not found');
+        return;
+      }
+
+      const idKey = typeConfig.identity_field_key || 'cccd'; // Fallback to 'cccd'
+      if (idKey !== key) return;
+
+      // 2. Nếu là trường định danh, gọi API kiểm tra
+      try {
+        const url = `http://127.0.0.1:8000/api/master-objects/check_identity/?object_type=PERSON&key=${key}&value=${encodeURIComponent(value)}`;
+        const res = await axios.get(url);
+        if (res.data.exists) {
+          if (this.localPerson.master_object?.id === res.data.id) {
+            this.duplicateWarning = null;
+            return;
+          }
+          this.duplicateWarning = `Mã định danh '${value}' đã tồn tại trong Dữ liệu gốc (Đối tượng: ${res.data.display_name}). Khi lưu, hồ sơ sẽ tự động liên kết với dữ liệu đã có.`;
+        } else {
+          this.duplicateWarning = null;
+        }
+      } catch (error) {
+        console.error('Lỗi kiểm tra định danh:', error);
+      }
     }
   }
 }
@@ -201,5 +263,16 @@ export default {
 
 .toggle-icon.collapsed {
   transform: rotate(-90deg);
+}
+
+.alert-warning {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+  color: #856404;
+  font-size: 0.9em;
+  text-align: left;
 }
 </style>

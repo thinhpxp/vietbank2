@@ -1,11 +1,23 @@
 <template>
-  <div>
+  <div class="admin-page">
     <h2>Quản lý Nhóm Thông tin</h2>
     <div class="actions">
       <input v-model="newGroup.name" placeholder="Tên nhóm mới">
+      <input v-model="newGroup.slug" placeholder="Mã (Slug - Tùy chọn)" style="width: 15%">
+      <select v-model="newGroup.layout_position" style="width: 120px">
+        <option value="LEFT">Cột Trái</option>
+        <option value="RIGHT">Cột Phải</option>
+      </select>
+      <label>Phân loại:</label>
+      <select v-model="newGroup.object_type" style="width: 200px">
+        <option :value="null">-- Chung (CORE) --</option>
+        <option v-for="type in objectTypes" :key="type.id" :value="type.id">
+          {{ type.name }}
+        </option>
+      </select>
       <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" style="flex: 2">
       <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="width: 60px">
-      <button @click="addGroup" class="btn-create">Thêm Nhóm</button>
+      <button @click="addGroup" class="btn-action btn-create">Thêm Nhóm</button>
     </div>
 
     <table class="data-table">
@@ -13,19 +25,37 @@
         <tr>
           <th>ID</th>
           <th>Tên Nhóm</th>
+          <th>Mã (Slug)</th>
+          <th>Vị trí</th>
           <th>Ghi chú</th>
           <th>Thứ tự</th>
+          <th>Loại đối tượng áp dụng</th>
+          <th>Phân loại</th>
           <th>Hiển thị ở Form</th>
           <th>Hành động</th>
         </tr>
       </thead>
 
-      <tbody>
+      <tbody class="tbody">
         <tr v-for="grp in groups" :key="grp.id">
           <td>{{ grp.id }}</td>
           <td>
             <input v-if="editingId === grp.id" v-model="grp.name" style="width: 35%">
             <span v-else>{{ grp.name }}</span>
+          </td>
+          <td>
+            <input v-if="editingId === grp.id" v-model="grp.slug" style="width: 90%" placeholder="vd: thong-tin-chung">
+            <span v-else><code>{{ grp.slug || '---' }}</code></span>
+          </td>
+          <td>
+            <select v-if="editingId === grp.id" v-model="grp.layout_position">
+              <option value="LEFT">Cột Trái</option>
+              <option value="RIGHT">Cột Phải</option>
+            </select>
+            <span v-else>
+              <span v-if="grp.layout_position === 'RIGHT'" class="badge badge-warning">Cột Phải</span>
+              <span v-else class="badge badge-info">Cột Trái</span>
+            </span>
           </td>
           <td>
             <input v-if="editingId === grp.id" v-model="grp.note" style="width: 60%">
@@ -34,6 +64,39 @@
           <td>
             <input v-if="editingId === grp.id" v-model.number="grp.order" type="number" style="width:50px">
             <span v-else>{{ grp.order }}</span>
+          </td>
+          <td style="min-width: 150px;">
+            <!-- Object Types Column -->
+            <div v-if="editingId === grp.id">
+              <div v-for="type in objectTypes" :key="type.id">
+                <label>
+                  <input type="checkbox" :value="type.id" v-model="grp.allowed_object_types">
+                  {{ type.name }}
+                </label>
+              </div>
+            </div>
+            <div v-else>
+              <span v-if="!grp.allowed_object_types || grp.allowed_object_types.length === 0" class="badge-all">Tất
+                cả</span>
+              <span v-else v-for="tid in grp.allowed_object_types" :key="tid" class="badge">
+                {{objectTypes.find(t => t.id === tid)?.name || tid}}
+              </span>
+            </div>
+          </td>
+          <td>
+            <!-- NEW: Group Classification (Phân loại) -->
+            <select v-if="editingId === grp.id" v-model="grp.object_type" style="width: 100%">
+              <option :value="null">-- Chung (CORE) --</option>
+              <option v-for="type in objectTypes" :key="type.id" :value="type.id">
+                {{ type.name }}
+              </option>
+            </select>
+            <span v-else>
+              <span v-if="grp.object_type" class="badge badge-success">
+                {{objectTypes.find(t => t.id === grp.object_type)?.name || grp.object_type_code || '---'}}
+              </span>
+              <span v-else class="badge badge-secondary">Chung (CORE)</span>
+            </span>
           </td>
           <td>
             <div v-if="editingId === grp.id" class="form-selector">
@@ -44,9 +107,11 @@
             <span v-else>{{ getFormNames(grp.allowed_forms) }}</span>
           </td>
           <td>
-            <button v-if="editingId === grp.id" @click="updateGroup(grp)">Lưu</button>
-            <button v-else @click="editingId = grp.id">Sửa</button>
-            <button @click="deleteGroup(grp.id)" class="btn-delete">Xóa</button>
+            <div class="action-group">
+              <button v-if="editingId === grp.id" @click="updateGroup(grp)" class="btn-action btn-save">Lưu</button>
+              <button v-else @click="editingId = grp.id" class="btn-action btn-edit">Sửa</button>
+              <button @click="deleteGroup(grp.id)" class="btn-action btn-delete">Xóa</button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -67,23 +132,21 @@ export default {
   data() {
     return {
       groups: [],
+      objectTypes: [],  // NEW
       allForms: [],
-      newGroup: { name: '', order: 0, note: '', allowed_forms: [] },
+      newGroup: { name: '', slug: '', order: 0, note: '', allowed_forms: [], layout_position: 'LEFT', allowed_object_types: [], object_type: null },
       editingId: null,
       showDeleteModal: false,
       deleteTargetId: null,
       deleteTargetName: ''
     }
   },
-  mounted() {
-    this.fetchGroups();
-    this.fetchForms();
+  async mounted() {
+    await this.fetchGroups();
+    await this.fetchForms();
+    await this.fetchObjectTypes();  // NEW
   },
   methods: {
-    async fetchForms() {
-      const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
-      this.allForms = res.data;
-    },
     getFormNames(ids) {
       if (!ids || ids.length === 0) return 'Chưa gán (Ẩn)';
       return this.allForms
@@ -92,13 +155,35 @@ export default {
         .join(', ');
     },
     async fetchGroups() {
-      const res = await axios.get('http://127.0.0.1:8000/api/groups/');
-      this.groups = res.data;
+      try {
+        const groupsRes = await axios.get('http://127.0.0.1:8000/api/groups/');
+        this.groups = groupsRes.data.sort((a, b) => a.order - b.order);
+      } catch (e) { console.error('Lỗi tải nhóm:', e); }
+    },
+    async fetchForms() {
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
+        this.allForms = res.data;
+      } catch (e) { console.error('Lỗi tải form views:', e); }
+    },
+    async fetchObjectTypes() {
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+        this.objectTypes = res.data;
+      } catch (e) {
+        console.error('Lỗi tải object types:', e);
+      }
     },
     async addGroup() {
       if (!this.newGroup.name) return;
       await axios.post('http://127.0.0.1:8000/api/groups/', this.newGroup);
-      this.newGroup.name = ''; this.fetchGroups();
+      this.newGroup.name = '';
+      this.newGroup.slug = '';
+      this.newGroup.order = 0;
+      this.newGroup.allowed_object_types = [];
+      this.newGroup.layout_position = 'LEFT';
+      this.newGroup.object_type = null;
+      this.fetchGroups();
     },
     deleteGroup(id) {
       const grp = this.groups.find(g => g.id === id);
@@ -121,41 +206,18 @@ export default {
   }
 }
 </script>
+
 <style scoped>
-/* CSS dùng chung có thể để ở App.vue, ở đây viết gọn */
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  background: white;
-}
-
-.data-table th,
-.data-table td {
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
 .actions {
   margin-bottom: 20px;
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
-.btn-create {
-  background: #42b983;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.btn-delete {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  margin-left: 5px;
-  cursor: pointer;
+.action-group {
+  display: flex;
+  gap: 5px;
 }
 
 .form-selector {

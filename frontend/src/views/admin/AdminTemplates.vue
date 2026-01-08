@@ -1,11 +1,11 @@
 <template>
-  <div>
+  <div class="admin-page">
     <h2>Quản lý Mẫu Hợp đồng</h2>
     <div class="actions">
       <input type="text" v-model="newName" placeholder="Tên hiển thị mẫu">
       <input type="text" v-model="newDesc" placeholder="Ghi chú mẫu này" style="flex: 2">
       <input type="file" ref="fileInput" @change="handleFileChange">
-      <button @click="uploadTemplate" class="btn-create">Upload Mẫu</button>
+      <button @click="uploadTemplate" class="btn-action btn-create">Upload Mẫu</button>
     </div>
 
     <table class="data-table">
@@ -25,7 +25,9 @@
           <td>{{ tpl.description }}</td>
           <td><a :href="tpl.file" target="_blank">Tải xuống</a></td>
           <td>
-            <button @click="deleteTemplate(tpl.id)" class="btn-delete">Xóa</button>
+            <div class="action-group">
+              <button @click="deleteTemplate(tpl.id)" class="btn-action btn-delete">Xóa</button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -97,21 +99,8 @@ export default {
   }
 }
 </script>
+
 <style scoped>
-/* Reuse styles */
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  background: white;
-}
-
-.data-table th,
-.data-table td {
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
 .actions {
   margin-bottom: 20px;
   display: flex;
@@ -119,19 +108,8 @@ export default {
   align-items: center;
 }
 
-.btn-create {
-  background: #42b983;
-  color: white;
-  border: none;
-  padding: 8px;
-  cursor: pointer;
-}
-
-.btn-delete {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
+.action-group {
+  display: flex;
+  gap: 5px;
 }
 </style>

@@ -1,111 +1,66 @@
 <template>
-    <div class="dashboard-container">
+    <div class="admin-page dashboard-container">
         <div class="header-actions">
             <h2>Quản lý Dữ liệu gốc (Master Data)</h2>
-            <button class="btn-create-master" @click="openCreateModal">+ Thêm mới</button>
+            <button class="btn-action btn-create" @click="openCreateModal">+ Thêm mới</button>
         </div>
 
         <!-- TABS -->
         <div class="tabs-header">
-            <button class="tab-item" :class="{ active: activeTab === 'people' }" @click="activeTab = 'people'">
-                👥 Danh sách Người liên quan
-            </button>
-            <button class="tab-item" :class="{ active: activeTab === 'assets' }" @click="activeTab = 'assets'">
-                🏠 Danh mục Tài sản
-            </button>
-            <button class="tab-item" :class="{ active: activeTab === 'savings' }" @click="activeTab = 'savings'">
-                📒 Sổ tiết kiệm (Mới)
+            <button v-for="type in objectTypes" :key="type.code" class="tab-item"
+                :class="{ active: activeTab === type.code }" @click="activeTab = type.code">
+                {{ type.name }}
             </button>
         </div>
 
         <div class="tab-content">
-            <!-- TAB: PEOPLE -->
-            <div v-if="activeTab === 'people'">
-                <div v-if="loading" class="loading-state">Đang tải dữ liệu người...</div>
-                <table v-else class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Họ tên</th>
-                            <th>CCCD</th>
-                            <th>Ngày tạo</th>
-                            <th>Cập nhật gần nhất</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="person in people" :key="person.id">
-                            <td>
-                                {{ person.id }}
-                                <div v-if="person.profiles_count === 0" class="badge-unlinked">Chưa liên kết</div>
-                            </td>
-                            <td class="font-bold">{{ person.ho_ten || '---' }}</td>
-                            <td>{{ person.cccd_so || '---' }}</td>
-                            <td>{{ formatDate(person.created_at) }}</td>
-                            <td>
-                                <div class="audit-info">
-                                    <div>{{ formatDate(person.updated_at) }}</div>
-                                    <small class="user-badge" v-if="person.last_updated_by_name">
-                                        👤 {{ person.last_updated_by_name }}
-                                    </small>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="action-group">
-                                    <button class="btn-info" @click="viewRelated(person, 'profiles')">Hồ sơ</button>
-                                    <button class="btn-info" @click="viewRelated(person, 'assets')">Tài sản</button>
-                                    <button class="btn-edit" @click="editObject(person, 'person')">Sửa</button>
-                                    <button class="btn-delete" @click="confirmDelete(person, 'person')">Xóa</button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- TAB: ASSETS -->
-            <div v-if="activeTab === 'assets'">
-                <div v-if="loading" class="loading-state">Đang tải dữ liệu tài sản...</div>
-                <table v-else class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Số Giấy chứng nhận</th>
-                            <th>Người sở hữu</th>
-                            <th>Ngày tạo</th>
-                            <th>Cập nhật gần nhất</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="asset in assets" :key="asset.id">
-                            <td>
-                                {{ asset.id }}
-                                <div v-if="asset.profiles_count === 0" class="badge-unlinked">Chưa liên kết</div>
-                            </td>
-                            <td class="font-bold">{{ asset.so_giay_chung_nhan || '---' }}</td>
-                            <td>{{ asset.owner_name || '---' }}</td>
-                            <td>{{ formatDate(asset.created_at) }}</td>
-                            <td>
-                                <div class="audit-info">
-                                    <div>{{ formatDate(asset.updated_at) }}</div>
-                                    <small class="user-badge" v-if="asset.last_updated_by_name">
-                                        👤 {{ asset.last_updated_by_name }}
-                                    </small>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="action-group">
-                                    <button class="btn-info" @click="viewRelated(asset, 'asset_profiles')">Hồ
-                                        sơ</button>
-                                    <button class="btn-edit" @click="editObject(asset, 'asset')">Sửa</button>
-                                    <button class="btn-delete" @click="confirmDelete(asset, 'asset')">Xóa</button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <div v-if="loading" class="loading-state">Đang tải dữ liệu...</div>
+            <table v-else class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <!-- Dynamic Headers based on Type could be improved later, for now Generic -->
+                        <th>Tên / Số hiệu</th>
+                        <th>Thông tin thêm</th>
+                        <th>Ngày tạo</th>
+                        <th>Cập nhật gần nhất</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in items" :key="item.id">
+                        <td>
+                            {{ item.id }}
+                            <div v-if="item.profiles_count === 0" class="badge-unlinked">Chưa liên kết</div>
+                        </td>
+                        <td class="font-bold">
+                            <!-- Hiển thị tên hoặc số GCN tùy loại, hoặc fallback display_name -->
+                            {{ item.ho_ten || item.so_giay_chung_nhan || item.display_name || '---' }}
+                        </td>
+                        <td>
+                            <!-- Hiển thị CCCD hoặc Chủ sở hữu -->
+                            {{ item.cccd_so || item.owner_name || '---' }}
+                        </td>
+                        <td>{{ formatDate(item.created_at) }}</td>
+                        <td>
+                            <div class="audit-info">
+                                <div>{{ formatDate(item.updated_at) }}</div>
+                                <small class="user-badge" v-if="item.last_updated_by_name">
+                                    👤 {{ item.last_updated_by_name }}
+                                </small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-group">
+                                <button class="btn-action btn-secondary" @click="viewRelated(item, 'profiles')">Hồ
+                                    sơ</button>
+                                <button class="btn-action btn-edit" @click="editObject(item)">Sửa</button>
+                                <button class="btn-action btn-delete" @click="confirmDelete(item)">Xóa</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <!-- RELATED INFO MODAL -->
@@ -144,8 +99,8 @@
             confirmText="Xóa" @confirm="executeDelete" @cancel="showDeleteModal = false" />
 
         <!-- CREATE/EDIT MODAL -->
-        <MasterCreateModal :isOpen="showCreateModal" :type="currentEntityType" :editObject="targetEditObject"
-            @close="showCreateModal = false" @success="fetchData" />
+        <MasterCreateModal :isOpen="showCreateModal" :type="activeTab" :typeName="currentTypeName"
+            :editObject="targetEditObject" @close="showCreateModal = false" @success="fetchData" />
     </div>
 </template>
 
@@ -159,10 +114,10 @@ export default {
     components: { ConfirmModal, MasterCreateModal },
     data() {
         return {
-            activeTab: 'people',
+            objectTypes: [], // List of dynamic types
+            activeTab: '', // Code of active type
             loading: false,
-            people: [],
-            assets: [],
+            items: [], // Unified list for the current tab
 
             // Related Modal
             showRelatedModal: false,
@@ -174,7 +129,7 @@ export default {
             // Delete
             showDeleteModal: false,
             deleteTarget: null,
-            deleteTargetType: '',
+            // deleteTargetType: '', // Không cần nữa, dùng activeTab code
 
             // Create/Edit
             showCreateModal: false,
@@ -182,39 +137,46 @@ export default {
         };
     },
     computed: {
-        currentEntityType() {
-            return {
-                'people': 'PERSON',
-                'assets': 'ASSET',
-                'savings': 'SAVINGS'
-            }[this.activeTab];
+        // currentEntityType() { ... } // Không cần nữa vì activeTab chính là code (PERSON, ASSET...)
+        currentTypeName() {
+            const t = this.objectTypes.find(type => type.code === this.activeTab);
+            return t ? t.name : 'Đối tượng';
         }
     },
     watch: {
         activeTab: {
-            immediate: true,
-            handler() {
-                this.fetchData();
+            handler(newVal) {
+                if (newVal) this.fetchData();
             }
         }
     },
+    async mounted() {
+        await this.fetchObjectTypes();
+    },
     methods: {
+        async fetchObjectTypes() {
+            try {
+                const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+                this.objectTypes = res.data;
+                if (this.objectTypes.length > 0) {
+                    this.activeTab = this.objectTypes[0].code;
+                }
+            } catch (e) {
+                console.error("Lỗi tải loại đối tượng:", e);
+            }
+        },
         async fetchData() {
+            if (!this.activeTab) return;
             this.loading = true;
             try {
-                // Sổ tiết kiệm tạm thời chưa có Backend, dùng chung một endpoint mẫu hoặc handle trống
-                if (this.activeTab === 'savings') {
-                    this.assets = []; // Hoặc nạp từ master-savings nếu có
-                    return;
-                }
+                const response = await axios.get(`http://127.0.0.1:8000/api/master-objects/?object_type=${this.activeTab}`);
 
-                const endpoint = this.activeTab === 'people' ? 'master-people' : 'master-assets';
-                const response = await axios.get(`http://127.0.0.1:8000/api/${endpoint}/`);
-                if (this.activeTab === 'people') {
-                    this.people = response.data;
-                } else {
-                    this.assets = response.data;
-                }
+                // Flatten
+                this.items = response.data.map(item => ({
+                    ...item,
+                    ...item.field_values
+                }));
+
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu master:', error);
             } finally {
@@ -226,25 +188,23 @@ export default {
             this.showRelatedModal = true;
             this.relatedLoading = true;
 
-            let masterType = '';
+
             let action = '';
 
             if (type === 'profiles') {
-                this.relatedTitle = `Hồ sơ liên quan: ${obj.ho_ten}`;
-                masterType = 'master-people';
+                this.relatedTitle = `Hồ sơ liên quan: ${obj.ho_ten || obj.display_name}`;
                 action = 'related_profiles';
             } else if (type === 'assets') {
-                this.relatedTitle = `Tài sản sở hữu: ${obj.ho_ten}`;
-                masterType = 'master-people';
-                action = 'related_assets';
+                this.relatedTitle = `Tài sản sở hữu: ${obj.ho_ten || obj.display_name}`;
+                // Link logic for generic not implemented yet, fallback to profiles or specific API
+                action = 'related_profiles'; // Placeholder
             } else if (type === 'asset_profiles') {
-                this.relatedTitle = `Hồ sơ chứa tài sản: ${obj.so_giay_chung_nhan}`;
-                masterType = 'master-assets';
+                this.relatedTitle = `Hồ sơ chứa tài sản: ${obj.so_giay_chung_nhan || obj.display_name}`;
                 action = 'related_profiles';
             }
 
             try {
-                const response = await axios.get(`http://127.0.0.1:8000/api/${masterType}/${obj.id}/${action}/`);
+                const response = await axios.get(`http://127.0.0.1:8000/api/master-objects/${obj.id}/${action}/`);
                 this.relatedData = response.data;
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu liên quan:', error);
@@ -266,8 +226,7 @@ export default {
         },
         async executeDelete() {
             try {
-                const endpoint = this.deleteTargetType === 'person' ? 'master-people' : 'master-assets';
-                await axios.delete(`http://127.0.0.1:8000/api/${endpoint}/${this.deleteTarget.id}/`);
+                await axios.delete(`http://127.0.0.1:8000/api/master-objects/${this.deleteTarget.id}/`);
                 this.showDeleteModal = false;
                 this.fetchData();
                 alert('Đã xóa thành công!');
@@ -291,14 +250,9 @@ export default {
 </script>
 
 <style scoped>
-/* Reuse styles from DashboardView.vue */
 .dashboard-container {
     max-width: 95%;
     margin: 20px auto;
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .header-actions {
@@ -306,21 +260,6 @@ export default {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-}
-
-.btn-create-master {
-    background: #27ae60;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.3s;
-}
-
-.btn-create-master:hover {
-    background: #219150;
 }
 
 .badge-unlinked {
@@ -361,28 +300,6 @@ export default {
     border-color: #3498db;
 }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-table th {
-    background: #f1f3f5;
-    padding: 12px;
-    text-align: left;
-    font-size: 14px;
-}
-
-.data-table td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-}
-
-.font-bold {
-    font-weight: bold;
-    color: #2c3e50;
-}
-
 .audit-info {
     font-size: 0.9em;
 }
@@ -399,33 +316,6 @@ export default {
 .action-group {
     display: flex;
     gap: 5px;
-}
-
-.btn-info {
-    background: #17a2b8;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-edit {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-delete {
-    background: #e74c3c;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
 }
 
 /* Modal styles */

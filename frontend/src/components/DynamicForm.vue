@@ -7,7 +7,8 @@
       <!-- Text Input -->
       <div v-if="field.data_type === 'TEXT'" class="input-with-tools">
         <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
-          @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control" />
+          @input="updateValue(field.placeholder_key, $event.target.value)"
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" />
         <button v-if="hasDynamicTemplate(field)" class="btn-magic" title="Tự động điền theo mẫu"
           @click="applyTemplate(field)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -20,7 +21,8 @@
       <!-- Textarea Input (MỚI) -->
       <div v-else-if="field.data_type === 'TEXTAREA'" class="input-with-tools">
         <textarea :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
-          @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control custom-textarea"
+          @input="updateValue(field.placeholder_key, $event.target.value)"
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control custom-textarea"
           rows="4"></textarea>
         <button v-if="hasDynamicTemplate(field)" class="btn-magic" title="Tự động điền theo mẫu"
           @click="applyTemplate(field)">
@@ -36,11 +38,12 @@
         <!-- Nếu bật phân tách hàng nghìn: Dùng text input để format linh hoạt -->
         <input v-if="field.use_digit_grouping" type="text" :id="field.placeholder_key"
           :value="formatNumber(modelValue[field.placeholder_key])"
-          @input="handleNumberInput(field.placeholder_key, $event.target.value)" class="input-control"
-          placeholder="0" />
+          @input="handleNumberInput(field.placeholder_key, $event.target.value)"
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" placeholder="0" />
         <!-- Nếu không: Dùng number input truyền thống -->
         <input v-else type="number" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
-          @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control" />
+          @input="updateValue(field.placeholder_key, $event.target.value)"
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" />
 
         <!-- Hiển thị số thành chữ (MỚI - Có thể bật/tắt) -->
         <div v-if="field.show_amount_in_words && modelValue[field.placeholder_key]" class="amount-in-words">
@@ -83,7 +86,7 @@ export default {
     fields: { type: Array, required: true },
     modelValue: { type: Object, required: true }
   },
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'field-blur'],
   computed: {
     sortedFields() {
       // Sắp xếp fields theo order tăng dần
@@ -94,6 +97,9 @@ export default {
     updateValue(key, value) {
       const newData = { ...this.modelValue, [key]: value };
       this.$emit('update:modelValue', newData);
+    },
+    handleBlur(key, value) {
+      this.$emit('field-blur', { key, value });
     },
     formatNumber(val) {
       if (val === undefined || val === null || val === '') return '';

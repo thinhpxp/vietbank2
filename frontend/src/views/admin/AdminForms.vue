@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="admin-page">
         <h2>Quản lý Cấu hình Form</h2>
 
         <!-- Form thêm mới -->
@@ -9,7 +9,7 @@
                 <input v-model="newForm.name" placeholder="Tên Form (VD: Tín dụng tiêu dùng)">
                 <input v-model="newForm.slug" placeholder="Mã định danh (VD: loan-consumer)">
                 <input v-model="newForm.note" placeholder="Ghi chú">
-                <button @click="addForm" class="btn-create">Thêm</button>
+                <button @click="addForm" class="btn-action btn-create">Thêm</button>
             </div>
         </div>
 
@@ -40,9 +40,12 @@
                         <span v-else>{{ f.note }}</span>
                     </td>
                     <td>
-                        <button v-if="editingId === f.id" @click="updateForm(f)" class="btn-create">Lưu</button>
-                        <button v-else @click="editingId = f.id">Sửa</button>
-                        <button @click="deleteForm(f.id)" class="btn-delete">Xóa</button>
+                        <div class="action-group">
+                            <button v-if="editingId === f.id" @click="updateForm(f)"
+                                class="btn-action btn-save">Lưu</button>
+                            <button v-else @click="editingId = f.id" class="btn-action btn-edit">Sửa</button>
+                            <button @click="deleteForm(f.id)" class="btn-action btn-delete">Xóa</button>
+                        </div>
                     </td>
                 </tr>
             </tbody>
@@ -109,33 +112,8 @@ export default {
     flex: 1;
 }
 
-.btn-create {
-    background: #42b983;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    cursor: pointer;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-}
-
-.data-table th,
-.data-table td {
-    padding: 10px;
-    border: 1px solid #ddd;
-    text-align: left;
-}
-
-.btn-delete {
-    background: #e74c3c;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    cursor: pointer;
-    margin-left: 5px;
+.action-group {
+    display: flex;
+    gap: 5px;
 }
 </style>

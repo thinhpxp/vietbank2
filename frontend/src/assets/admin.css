@@ -1,0 +1,219 @@
+/* ==========================================================================
+   GLOBAL ADMIN STYLES
+   ========================================================================== */
+
+/* Layout & Containers */
+.admin-page {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Button Base Style */
+.btn-action {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: none;
+    line-height: normal;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action:active {
+    transform: translateY(0);
+}
+
+.btn-action:disabled {
+    background: #ccc !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Specific Button Themes */
+.btn-edit {
+    background-color: #3498db;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.btn-edit:hover {
+    background-color: #2980b9;
+}
+
+.btn-delete {
+    background-color: #e74c3c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.btn-delete:hover {
+    background-color: #c0392b;
+}
+
+.btn-copy {
+    background-color: #f39c12;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.btn-copy:hover {
+    background-color: #d35400;
+}
+
+.btn-primary,
+.btn-create,
+.btn-save {
+    background-color: #42b983;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.btn-primary:hover,
+.btn-create:hover,
+.btn-save:hover {
+    background-color: #3aa876;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+
+.btn-info {
+    background-color: #1abc9c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.btn-info:hover {
+    background-color: #16a085;
+}
+
+/* Filter Bar */
+.filter-bar {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    border: 1px solid #e9ecef;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.filter-control {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9em;
+    min-width: 150px;
+}
+
+.filter-control:focus {
+    border-color: #42b983;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
+}
+
+/* Table Enhancements */
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+tbody {
+    text-align: left;
+}
+
+.data-table th {
+    background: #f1f3f5;
+    color: #495057;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.data-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Badges */
+.badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+    background: #e9ecef;
+    color: #495057;
+    margin-right: 4px;
+}
+
+.badge-all {
+    background: #d1f2eb;
+    color: #16a085;
+}
+
+.badge-system {
+    background: #fee7e2;
+    color: #e74c3c;
+}
+
+.badge-custom {
+    background: #e8f4fd;
+    color: #3498db;
+}

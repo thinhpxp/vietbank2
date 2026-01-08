@@ -13,6 +13,7 @@
         <router-link to="/admin/roles">🎭 Vai trò</router-link>
         <router-link to="/admin/forms">📑 Form</router-link>
         <router-link to="/admin/users">👤 Người dùng</router-link>
+        <router-link to="/admin/object-types">🏷️ Loại Đối tượng</router-link>
         <router-link to="/admin/master-data">🗂️ Dữ liệu gốc</router-link>
         <hr />
         <router-link to="/">🏠 Dashboard</router-link>
@@ -44,7 +45,9 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
+@import "@/assets/admin.css";
+
 /* =========================
    DESIGN TOKENS
 ========================= */

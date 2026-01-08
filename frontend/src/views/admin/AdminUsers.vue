@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="admin-page">
     <h2>Quản lý Người dùng</h2>
 
     <!-- Form tạo User mới -->
@@ -15,7 +15,7 @@
         <label class="checkbox-label">
           <input type="checkbox" v-model="newUser.is_staff"> Là Admin/Staff?
         </label>
-        <button @click="addUser" class="btn-create">Tạo User</button>
+        <button @click="addUser" class="btn-action btn-create">Tạo User</button>
       </div>
     </div>
 
@@ -68,9 +68,11 @@
             </template>
           </td>
           <td>
-            <button v-if="editingId === u.id" @click="updateUser(u)" class="btn-save">Lưu</button>
-            <button v-else @click="editingId = u.id" class="btn-edit">Sửa</button>
-            <button @click="deleteUser(u.id)" class="btn-delete">Xóa</button>
+            <div class="action-group">
+              <button v-if="editingId === u.id" @click="updateUser(u)" class="btn-action btn-save">Lưu</button>
+              <button v-else @click="editingId = u.id" class="btn-action btn-edit">Sửa</button>
+              <button @click="deleteUser(u.id)" class="btn-action btn-delete">Xóa</button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -200,54 +202,9 @@ export default {
   cursor: pointer;
 }
 
-.btn-create {
-  background: #42b983;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.btn-edit {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.btn-save {
-  background: #2ecc71;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-}
-
-.data-table th,
-.data-table td {
-  padding: 10px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-
-.btn-delete {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-left: 5px;
+.action-group {
+  display: flex;
+  gap: 5px;
 }
 
 .inline-edit {
@@ -256,20 +213,14 @@ export default {
   box-sizing: border-box;
 }
 
-/* Badges */
-.badge {
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  color: white;
-}
-
 .badge.admin {
   background-color: #8e44ad;
+  color: white;
 }
 
 .badge.user {
   background-color: #3498db;
+  color: white;
 }
 
 .status {

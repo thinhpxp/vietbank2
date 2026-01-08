@@ -2,9 +2,12 @@
   <div class="page-container">
     <header class="page-header">
       <div class="header-title">
-        <h2>Tạo / Cập nhật Hồ sơ Vay</h2>
+        <label class="profile-name-label">Tên hồ sơ:</label>
+        <div class="profile-name-input-wrapper">
+          <input v-model="profileName" class="profile-name-input" placeholder="Nhập tên hồ sơ..." />
+        </div>
         <div v-if="currentFormName" class="form-type-badge">
-          <span class="badge-label">Mẫu hồ sơ:</span>
+          <span class="badge-label">Mẫu:</span>
           <span class="badge-value">{{ currentFormName }}</span>
         </div>
       </div>
@@ -21,21 +24,15 @@
 
     <div v-else class="form-layout" ref="formLayout" @mousemove="onMouseMove" @mouseup="stopResize"
       @mouseleave="stopResize">
-      <!-- CỘT TRÁI: THÔNG TIN CHUNG + NGƯỜI -->
-      <div class="left-panel" :style="{ width: (assetFields.length > 0 ? leftPanelWidth : 100) + '%' }">
-        <div class="panel-section" v-if="coreFields.length > 0">
-          <h3>Thông tin Hồ sơ</h3>
-          <!-- DynamicForm cho nhóm "Thông tin Hồ sơ" -->
-          <DynamicForm :fields="coreFields" v-model="generalFieldValues" />
+      <!-- CỘT TRÁI: THÔNG TIN CHUNG + NGƯỜI (Default) + Asset (Nếu config Left) -->
+      <div class="left-panel" :style="{ width: (showRightPanel ? leftPanelWidth : 100) + '%' }">
+        <div v-for="(group, slug) in leftPanelGroups" :key="slug" class="panel-section">
+          <h3>{{ group.name }}</h3>
+          <DynamicForm :fields="group.fields" v-model="generalFieldValues" />
         </div>
 
-        <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="panel-section">
-          <h3>{{ groupName }}</h3>
-          <DynamicForm :fields="fields" v-model="generalFieldValues" />
-        </div>
-
-        <!-- DANH SÁCH NGƯỜI (GIỜ Ở CỘT TRÁI) -->
-        <div v-if="personFields.length > 0">
+        <!-- DANH SÁCH NGƯỜI (CỘT TRÁI - Default) -->
+        <div v-if="!isPersonRight && personFields.length > 0">
           <div class="panel-header">
             <h3>Danh sách Người liên quan</h3>
             <button class="btn-secondary" @click="addPerson">+ Thêm Người</button>
@@ -47,30 +44,65 @@
 
           <div v-for="(person, index) in people" :key="'person-' + index">
             <PersonForm :index="index" :person="person" :personFields="personFields" :availableRoles="availableRoles"
-              @update:person="updatePerson(index, $event)" @remove="removePerson(index)" />
+              :availableTypes="objectTypes" @update:person="updatePerson(index, $event)"
+              @remove="removePerson(index)" />
+          </div>
+        </div>
+
+        <!-- Asset List (Nếu config Left) -->
+        <div v-if="!isAssetRight && assetFields.length > 0">
+          <div class="panel-header">
+            <h3>Danh sách Tài sản</h3>
+            <button class="btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
+          </div>
+          <div v-if="assets.length === 0" class="empty-state">Chưa có tài sản nào.</div>
+          <div v-for="(asset, index) in assets" :key="'asset-' + index">
+            <AssetForm :index="index" :asset="asset" :assetFields="assetFields" :availableTypes="objectTypes"
+              @update:asset="updateAsset(index, $event)" @remove="removeAsset(index)" />
           </div>
         </div>
       </div>
 
       <!-- THANH KÉO (DRAG HANDLE) -->
-      <div class="resize-handle" @mousedown="startResize" v-if="assetFields.length > 0">
+      <div class="resize-handle" @mousedown="startResize" v-if="showRightPanel">
         <div class="handle-icon">||</div>
       </div>
 
       <!-- CỘT PHẢI: DANH SÁCH TÀI SẢN -->
-      <div class="right-panel" :style="{ width: (100 - leftPanelWidth) + '%' }" v-if="assetFields.length > 0">
-        <div class="panel-header">
-          <h3>Danh sách Tài sản</h3>
-          <button class="btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
+      <!-- CỘT PHẢI: GROUP PHẢI + NGƯỜI (NẾU CÓ) + TÀI SẢN (NẾU CÓ) -->
+      <div class="right-panel" :style="{ width: (100 - leftPanelWidth) + '%' }" v-if="showRightPanel">
+
+        <!-- Các nhóm Generic bên phải -->
+        <div v-for="(group, slug) in rightPanelGroups" :key="'right-' + slug" class="panel-section">
+          <h3>{{ group.name }}</h3>
+          <DynamicForm :fields="group.fields" v-model="generalFieldValues" />
         </div>
 
-        <div v-if="assets.length === 0" class="empty-state">
-          Chưa có tài sản nào.
+        <!-- Person List (nếu config Right) -->
+        <div v-if="isPersonRight && personFields.length > 0">
+          <div class="panel-header">
+            <h3>Danh sách Người liên quan</h3>
+            <button class="btn-secondary" @click="addPerson">+ Thêm Người</button>
+          </div>
+          <div v-if="people.length === 0" class="empty-state">Chưa có người nào.</div>
+          <div v-for="(person, index) in people" :key="'person-' + index">
+            <PersonForm :index="index" :person="person" :personFields="personFields" :availableRoles="availableRoles"
+              :availableTypes="objectTypes" @update:person="updatePerson(index, $event)"
+              @remove="removePerson(index)" />
+          </div>
         </div>
 
-        <div v-for="(asset, index) in assets" :key="'asset-' + index">
-          <AssetForm :index="index" :asset="asset" :assetFields="assetFields" @update:asset="updateAsset(index, $event)"
-            @remove="removeAsset(index)" />
+        <!-- Asset List (Default Right, unless config Left) -->
+        <div v-if="isAssetRight && assetFields.length > 0">
+          <div class="panel-header">
+            <h3>Danh sách Tài sản</h3>
+            <button class="btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
+          </div>
+          <div v-if="assets.length === 0" class="empty-state">Chưa có tài sản nào.</div>
+          <div v-for="(asset, index) in assets" :key="'asset-' + index">
+            <AssetForm :index="index" :asset="asset" :assetFields="assetFields" :availableTypes="objectTypes"
+              @update:asset="updateAsset(index, $event)" @remove="removeAsset(index)" />
+          </div>
         </div>
       </div>
     </div>
@@ -85,7 +117,7 @@
       @cancel="showDuplicateModal = false" />
 
     <!-- Contract Downloader Modal -->
-    <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="currentId || id" :profileName="profileName"
+    <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="Number(currentId || id)" :profileName="profileName"
       @close="isDownloadModalOpen = false" />
   </div>
 </template>
@@ -116,6 +148,7 @@ export default {
       availableRoles: [],
       currentFormSlug: null, // MỚI: Theo dõi slug form hiện tại
       currentFormName: '', // MỚI: Tên hiển thị của form
+      objectTypes: [], // List of MasterObjectTypes for AssetForm filtering
       // Resize logic
       leftPanelWidth: 50,
       isResizing: false,
@@ -135,47 +168,74 @@ export default {
     };
   },
   computed: {
-    groupedFields() {
-      return this.allFields.reduce((groups, field) => {
-        const gName = field.group_name || 'Khác';
-        const lowerGName = gName.toLowerCase();
-        // Lọc bỏ Person + Asset + Core khỏi phần chung (sẽ hiển thị riêng)
-        if (lowerGName === 'thông tin cá nhân' || lowerGName === 'khach_hang' ||
-          lowerGName.includes('tài sản') || lowerGName.includes('hồ sơ')) {
-          return groups;
-        }
+    getGroupsByPosition() {
+      return (position) => {
+        return this.allFields.reduce((groups, field) => {
+          const gName = field.group_name || 'Khác';
+          const gSlug = field.group_slug || 'other';
+          const gPos = field.group_layout_position || 'LEFT'; // Mặc định Trái
 
-        if (!groups[gName]) {
-          groups[gName] = [];
-        }
-        groups[gName].push(field);
-        return groups;
-      }, {});
+          // Nếu lọc theo vị trí mà không khớp -> bỏ qua
+          if (gPos !== position) return groups;
+
+          // Lọc bỏ các nhóm đặc biệt (CÓ gán object_type) khỏi luồng hiển thị Generic
+          // Nhóm gán object_type sẽ được hiển thị qua PersonForm hoặc AssetForm
+          if (field.group_object_type) {
+            return groups;
+          }
+
+          if (!groups[gSlug]) groups[gSlug] = { name: gName, fields: [] };
+          groups[gSlug].fields.push(field);
+          return groups;
+        }, {});
+      };
+    },
+    leftPanelGroups() {
+      return this.getGroupsByPosition('LEFT');
+    },
+    rightPanelGroups() {
+      return this.getGroupsByPosition('RIGHT');
+    },
+    isPersonRight() {
+      // Check if any Person group is set to Right
+      return this.personFields.some(f => f.group_layout_position === 'RIGHT');
+    },
+    isAssetRight() {
+      // Default Assets to Right unless explicitly set to Left
+      if (this.assetFields.length === 0) return true;
+      // If ANY asset group is LEFT, should we move all to left? Or just stick to default Right?
+      // Let's say if ALL are Left, move to Left. If ANY is Right (or default), keep Right.
+      // Actually user requested Explicit control.
+      // Logic: If the first asset group found is Left, move layout to Left.
+      const first = this.assetFields[0];
+      return first ? (first.group_layout_position === 'RIGHT') : true;
+    },
+    showRightPanel() {
+      return (this.assetFields.length > 0 && this.isAssetRight) ||
+        (this.personFields.length > 0 && this.isPersonRight) ||
+        Object.keys(this.rightPanelGroups).length > 0;
     },
     coreFields() {
-      // Lấy các trường thuộc nhóm "Thông tin Hồ sơ" (chứa ten_ho_so, ma_hd_the_chap, ma_hd_tin_dung)
-      return this.allFields.filter(f => {
-        const gName = (f.group_name || '').toLowerCase();
-        return gName.includes('hồ sơ');
-      }).sort((a, b) => a.order - b.order);
+      // Thông tin CHUNG = Không có object_type (Core)
+      return this.allFields.filter(f => !f.group_object_type)
+        .sort((a, b) => a.order - b.order);
     },
     personFields() {
-      return this.allFields.filter(f => {
-        const gName = (f.group_name || '').toLowerCase();
-        return gName === 'thông tin cá nhân' || gName === 'khach_hang';
-      });
+      // Thông tin NGƯỜI = gán object_type là PERSON
+      return this.allFields.filter(f => f.group_object_type === 'PERSON');
     },
     assetFields() {
-      // Lấy các trường thuộc nhóm tài sản
+      // Thông tin ĐỐI TƯỢNG KHÁC = gán object_type (nhưng không phải PERSON)
       return this.allFields.filter(f => {
-        const gName = (f.group_name || '').toLowerCase();
-        return gName.includes('tài sản');
+        const type = f.group_object_type;
+        return type && type !== 'PERSON';
       });
     }
   },
   async mounted() {
     await this.fetchFields(); // Chờ load xong fields trước khi làm tiếp
     this.fetchRoles();
+    this.fetchObjectTypes(); // New: Fetch object types
     if (this.id) {
       this.currentId = this.id;
       this.fetchProfileData(this.id);
@@ -186,21 +246,7 @@ export default {
     }
   },
   watch: {
-    // Sync profileName với generalFieldValues.ten_ho_so (two-way)
-    'generalFieldValues.ten_ho_so': {
-      handler(newVal) {
-        if (newVal && newVal !== this.profileName) {
-          this.profileName = newVal;
-        }
-      }
-    },
-    profileName: {
-      handler(newVal) {
-        if (newVal !== this.generalFieldValues.ten_ho_so) {
-          this.generalFieldValues = { ...this.generalFieldValues, ten_ho_so: newVal };
-        }
-      }
-    },
+    // Watchers for other logic if needed in future
     '$route.query.form': {
       handler() {
         this.fetchFields();
@@ -227,6 +273,12 @@ export default {
       if (newWidthPercent > 20 && newWidthPercent < 80) {
         this.leftPanelWidth = newWidthPercent;
       }
+    },
+    async fetchObjectTypes() {
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+        this.objectTypes = res.data;
+      } catch (e) { console.error("Lỗi load object types:", e); }
     },
     async fetchRoles() {
       try {
@@ -289,9 +341,8 @@ export default {
       // Áp dụng giá trị mặc định cho tất cả các trường KHÔNG thuộc nhóm Người hoặc Tài sản
       const currentValues = { ...this.generalFieldValues };
       this.allFields.forEach(field => {
-        const gName = (field.group_name || '').toLowerCase();
-        const isPersonGroup = gName === 'thông tin cá nhân' || gName === 'khach_hang';
-        const isAssetGroup = gName.includes('tài sản');
+        const isPersonGroup = (field.group_slug === 'thong-tin-ca-nhan' || field.group_slug === 'khach-hang');
+        const isAssetGroup = (field.group_slug || '').startsWith('tai-san');
 
         if (!isPersonGroup && !isAssetGroup) {
           if (field.default_value && !currentValues[field.placeholder_key]) {
@@ -339,6 +390,7 @@ export default {
       const assetDefaults = this.getDefaultValuesFor(this.assetFields);
       this.assets.push({
         id: null,
+        master_object: { object_type: null },
         asset_field_values: { ...assetDefaults }
       });
     },
@@ -414,6 +466,11 @@ export default {
       }
     },
     async saveProfile() {
+      // 1. Kiểm tra trùng lặp nội bộ (Deduplication Check)
+      if (!this.validateInternalDuplicates()) {
+        return; // Dừng nếu có trùng lặp
+      }
+
       if (!this.profileName) return alert('Vui lòng nhập tên hồ sơ!');
       this.isSaving = true;
       try {
@@ -422,11 +479,17 @@ export default {
           const createRes = await axios.post('http://127.0.0.1:8000/api/loan-profiles/', { name: this.profileName });
           targetId = createRes.data.id;
         }
+
+        // Filter out empty assets (no type selected)
+        const validAssets = this.assets.filter(asset => {
+          return asset.master_object && asset.master_object.object_type;
+        });
+
         const payload = {
           name: this.profileName,
           field_values: this.generalFieldValues,
           people: this.people,
-          assets: this.assets,
+          assets: validAssets, // Use filtered assets
           form_slug: this.$route.query.form || this.currentFormSlug // Gửi kèm slug form để lưu
         };
         await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
@@ -445,6 +508,50 @@ export default {
       } finally {
         this.isSaving = false;
       }
+    },
+    validateInternalDuplicates() {
+      if (!this.objectTypes || this.objectTypes.length === 0) return true; // Tránh lỗi khi chưa load xong
+
+      // A. Kiểm tra trùng lặp Người
+      const personType = this.objectTypes.find(t => t.code === 'PERSON');
+      const peopleIdentities = new Set();
+      if (personType && personType.identity_field_key) {
+        const idKey = personType.identity_field_key;
+        for (const p of this.people) {
+          const idValue = p.individual_field_values?.[idKey];
+          if (idValue) {
+            if (peopleIdentities.has(idValue)) {
+              alert(`LỖI: Hồ sơ đang có 2 Người trùng ${personType.name} (${idValue}). Vui lòng kiểm tra lại.`);
+              return false;
+            }
+            peopleIdentities.add(idValue);
+          }
+        }
+      }
+
+      // B. Kiểm tra trùng lặp Tài sản (theo identity_field_key của từng loại)
+      const assetIdentities = {}; // { object_type: Set(values) }
+      for (const a of this.assets) {
+        const typeCode = a.master_object?.object_type;
+        if (!typeCode) continue;
+
+        const typeConfig = this.objectTypes.find(t => t.code === typeCode);
+        if (!typeConfig || !typeConfig.identity_field_key) continue;
+
+        const idKey = typeConfig.identity_field_key;
+        const idValue = a.asset_field_values?.[idKey];
+
+        if (idValue) {
+          if (!assetIdentities[typeCode]) assetIdentities[typeCode] = new Set();
+          if (assetIdentities[typeCode].has(idValue)) {
+            alert(`LỖI: Hồ sơ đang có 2 tài sản ${typeConfig.name} trùng mã định danh (${idValue}). Vui lòng kiểm tra lại.`);
+            return false;
+          }
+          assetIdentities[typeCode].add(idValue);
+        }
+      }
+
+      return true;
     },
     openDownloadModal() {
       this.isDownloadModalOpen = true;
@@ -475,13 +582,38 @@ export default {
 
 .header-title {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
+  flex-direction: row;
+  /* Change to row to align label and input */
+  align-items: center;
+  gap: 15px;
+  flex: 1;
 }
 
-.header-title h2 {
-  margin: 0;
+.profile-name-label {
+  font-weight: bold;
+  color: #555;
+  white-space: nowrap;
+}
+
+.profile-name-input-wrapper {
+  flex: 1;
+  max-width: 400px;
+}
+
+.profile-name-input {
+  width: 100%;
+  font-size: 1.25rem;
+  /* Large font like distinct title */
+  padding: 8px 0;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  outline: none;
+  font-weight: 500;
+  transition: border-color 0.2s;
+}
+
+.profile-name-input:focus {
+  border-bottom-color: #42b983;
 }
 
 .form-type-badge {

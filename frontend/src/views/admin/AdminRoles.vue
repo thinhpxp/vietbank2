@@ -1,11 +1,11 @@
 <template>
-  <div>
+  <div class="admin-page">
     <h2>Quản lý Vai trò (Roles)</h2>
     <div class="actions">
       <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" style="flex: 1">
       <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" style="flex: 1">
       <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" style="flex: 2">
-      <button @click="addRole" class="btn-create">Thêm Vai trò</button>
+      <button @click="addRole" class="btn-action btn-create">Thêm Vai trò</button>
     </div>
 
     <table class="data-table">
@@ -19,7 +19,7 @@
         </tr>
       </thead>
 
-      <tbody>
+      <tbody class="tbody">
         <tr v-for="role in roles" :key="role.id">
           <td>{{ role.id }}</td>
           <td>
@@ -35,9 +35,11 @@
             <span v-else>{{ role.description }}</span>
           </td>
           <td>
-            <button v-if="editingId === role.id" @click="updateRole(role)">Lưu</button>
-            <button v-else @click="editingId = role.id">Sửa</button>
-            <button @click="deleteRole(role.id)" class="btn-delete">Xóa</button>
+            <div class="action-group">
+              <button v-if="editingId === role.id" @click="updateRole(role)" class="btn-action btn-save">Lưu</button>
+              <button v-else @click="editingId = role.id" class="btn-action btn-edit">Sửa</button>
+              <button @click="deleteRole(role.id)" class="btn-action btn-delete">Xóa</button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -116,39 +118,16 @@ export default {
   }
 }
 </script>
+
 <style scoped>
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  background: white;
-}
-
-.data-table th,
-.data-table td {
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
 .actions {
   margin-bottom: 20px;
   display: flex;
   gap: 10px;
 }
 
-.btn-create {
-  background: #42b983;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.btn-delete {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  margin-left: 5px;
-  cursor: pointer;
+.action-group {
+  display: flex;
+  gap: 5px;
 }
 </style>

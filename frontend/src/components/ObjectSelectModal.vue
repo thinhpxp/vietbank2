@@ -18,29 +18,19 @@
                 <div v-else class="table-container">
                     <table class="data-table">
                         <thead>
-                            <tr v-if="type === 'person'">
-                                <th>Họ tên</th>
-                                <th>CCCD</th>
-                                <th>Cập nhật gần nhất</th>
-                                <th>Thao tác</th>
-                            </tr>
-                            <tr v-else>
-                                <th>Số Giấy chứng nhận</th>
-                                <th>Người sở hữu</th>
+                            <tr>
+                                <th>Thông tin hiển thị</th>
+                                <th>Loại</th>
+                                <th>Định danh</th>
                                 <th>Cập nhật gần nhất</th>
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="item in filteredItems" :key="item.id">
-                                <template v-if="type === 'person'">
-                                    <td>{{ item.ho_ten || 'N/A' }}</td>
-                                    <td>{{ item.cccd_so || 'N/A' }}</td>
-                                </template>
-                                <template v-else>
-                                    <td>{{ item.so_giay_chung_nhan || 'N/A' }}</td>
-                                    <td>{{ item.owner_name || 'N/A' }}</td>
-                                </template>
+                                <td><strong>{{ item.display_name }}</strong></td>
+                                <td><span class="badge-type">{{ item.object_type_display }}</span></td>
+                                <td>{{ getIdentityValue(item) }}</td>
                                 <td>
                                     <div class="update-info">
                                         <span>{{ formatDate(item.updated_at) }}</span>
@@ -53,7 +43,7 @@
                                 </td>
                             </tr>
                             <tr v-if="filteredItems.length === 0">
-                                <td colspan="4" class="text-center">Không tìm thấy kết quả phù hợp.</td>
+                                <td colspan="5" class="text-center">Không tìm thấy kết quả phù hợp.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -78,9 +68,13 @@ export default {
     data() {
         return {
             items: [],
+            objectTypes: [],
             searchQuery: '',
             loading: false
         };
+    },
+    mounted() {
+        this.fetchObjectTypes();
     },
     computed: {
         title() {
@@ -93,12 +87,13 @@ export default {
             if (!this.searchQuery) return this.items;
             const query = this.searchQuery.toLowerCase();
             return this.items.filter(item => {
-                if (this.type === 'person') {
-                    return (item.ho_ten && item.ho_ten.toLowerCase().includes(query)) ||
-                        (item.cccd_so && item.cccd_so.includes(query));
-                } else {
-                    return item.so_giay_chung_nhan && item.so_giay_chung_nhan.toLowerCase().includes(query);
-                }
+                const displayName = (item.display_name || '').toLowerCase();
+                const identityValue = (this.getIdentityValue(item) || '').toLowerCase();
+                const typeName = (item.object_type_display || '').toLowerCase();
+
+                return displayName.includes(query) ||
+                    identityValue.includes(query) ||
+                    typeName.includes(query);
             });
         }
     },
@@ -110,17 +105,50 @@ export default {
         }
     },
     methods: {
+        async fetchObjectTypes() {
+            try {
+                const response = await axios.get('http://127.0.0.1:8000/api/object-types/');
+                this.objectTypes = response.data;
+            } catch (error) {
+                console.error('Lỗi khi tải loại đối tượng:', error);
+            }
+        },
         async fetchItems() {
             this.loading = true;
             try {
-                const endpoint = this.type === 'person' ? 'master-people' : 'master-assets';
-                const response = await axios.get(`http://127.0.0.1:8000/api/${endpoint}/`);
-                this.items = response.data;
+                let types = '';
+                if (this.type === 'person') {
+                    types = 'PERSON';
+                } else {
+                    // Fetch all non-PERSON types
+                    types = this.objectTypes
+                        .filter(t => t.code !== 'PERSON')
+                        .map(t => t.code)
+                        .join(',');
+
+                    // Fallback if objectTypes not yet loaded
+                    if (!types) types = 'ASSET,VEHICLE,REALESTATE,SAVINGS,CONTRACT';
+                }
+
+                const response = await axios.get(`http://127.0.0.1:8000/api/master-objects/?object_type=${types}`);
+
+                // Flatten data for compatibility
+                this.items = response.data.map(item => ({
+                    ...item,
+                    ...item.field_values
+                }));
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu master:', error);
             } finally {
                 this.loading = false;
             }
+        },
+        getIdentityValue(item) {
+            const typeConfig = this.objectTypes.find(t => t.code === item.object_type);
+            if (typeConfig && typeConfig.identity_field_key) {
+                return item[typeConfig.identity_field_key] || '---';
+            }
+            return '---';
         },
         selectItem(item) {
             this.$emit('select', item);
@@ -235,6 +263,16 @@ export default {
     font-size: 24px;
     cursor: pointer;
     color: #999;
+}
+
+.badge-type {
+    background: #e8f4fd;
+    color: #3498db;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
 }
 
 .text-center {

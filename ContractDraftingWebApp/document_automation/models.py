@@ -28,15 +28,36 @@ class FieldGroup(models.Model):
         ('SAVINGS', 'Sổ tiết kiệm'),
     ]
     name = models.CharField(max_length=255, verbose_name="Tên nhóm")
+    slug = models.SlugField(max_length=100, unique=True, null=True, blank=True, verbose_name="Mã định danh (Slug)") # MỚI
     entity_type = models.CharField(
         max_length=20, 
         choices=ENTITY_CHOICES, 
         default='PROFILE',
         verbose_name="Đối tượng áp dụng"
     )
+    layout_position = models.CharField(
+        max_length=10,
+        choices=[('LEFT', 'Cột Trái'), ('RIGHT', 'Cột Phải')],
+        default='LEFT',
+        verbose_name="Vị trí hiển thị"
+    )
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='groups', verbose_name="Hiển thị ở Form")
+    allowed_object_types = models.ManyToManyField('MasterObjectType', blank=True, related_name='groups',
+                                                  verbose_name="Loại Đối tượng áp dụng")  # MỚI
+    
+    # NEW: Link to MasterObjectType for categorization
+    object_type = models.ForeignKey(
+        'MasterObjectType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='categorized_groups',
+        verbose_name="Phân loại nhóm",
+        help_text="Nhóm này dành cho loại đối tượng nào? Để trống = Thông tin chung (CORE)"
+    )
+
 
     def __str__(self):
         return self.name
@@ -74,6 +95,8 @@ class Field(models.Model):
     show_amount_in_words = models.BooleanField(default=False, verbose_name="Hiển thị số thành chữ (Frontend)")
     default_value = models.TextField(blank=True, null=True, verbose_name="Giá trị mặc định")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='fields', verbose_name="Hiển thị ở Form")
+    allowed_object_types = models.ManyToManyField('MasterObjectType', blank=True, related_name='fields',
+                                                  verbose_name="Loại Đối tượng áp dụng")  # MỚI
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
 
     def __str__(self):
@@ -129,78 +152,91 @@ class LoanProfile(models.Model):
         verbose_name_plural = "Hồ sơ Vay"
 
 
-# 4. Bảng Người
-class Person(models.Model):
-    id = models.AutoField(primary_key=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
-    last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_people')
-    
-    def __str__(self):
-        return f"Person ID: {self.id}"
-
-    class Meta:
-        verbose_name = "Người Liên quan"
-        verbose_name_plural = "Người Liên quan"
 
 
-# --- MỚI: Bảng Tài sản ---
-class Asset(models.Model):
-    id = models.AutoField(primary_key=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
-    last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_assets')
+# --- UNIVERSAL ENTITY ARCHITECTURE (New) ---
+
+# 5.b Loại Đối tượng (Dynamic)
+class MasterObjectType(models.Model):
+    code = models.CharField(max_length=50, unique=True, verbose_name="Mã loại (VD: PERSON)")
+    name = models.CharField(max_length=100, verbose_name="Tên hiển thị (VD: Cá nhân)")
+    description = models.TextField(blank=True, null=True, verbose_name="Mô tả")
+    is_system = models.BooleanField(default=False, verbose_name="Là hệ thống (Không xóa)")
+    identity_field_key = models.CharField(max_length=100, blank=True, null=True, verbose_name="Trường định danh (key)", help_text="Placeholder key của trường dùng để làm tên định danh (VD: ho_ten, bien_so_xe)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Asset ID: {self.id}"
+        return self.name
 
     class Meta:
-        verbose_name = "Tài sản"
-        verbose_name_plural = "Tài sản"
+        verbose_name = "Loại Đối tượng"
+        verbose_name_plural = "Các Loại Đối tượng"
 
 
-# 5. Bảng Liên kết Hồ sơ - Người
-class LoanProfilePerson(models.Model):
-    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, related_name='linked_people')
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='linked_profiles')
-    roles = models.JSONField(default=list, verbose_name="Danh sách vai trò")
-
-    class Meta:
-        unique_together = ('loan_profile', 'person')
-        verbose_name = "Liên kết Hồ sơ và Người"
-        verbose_name_plural = "Liên kết Hồ sơ và Người"
+# 6. MasterObject - Universal Entity Container
+class MasterObject(models.Model):
+    object_type = models.CharField(
+        max_length=20,
+        # choices=OBJECT_TYPE_CHOICES, # Removed hardcoded choices to allow dynamic types
+        verbose_name="Loại đối tượng"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Ngày cập nhật")
+    last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người cập nhật")
 
     def __str__(self):
-        return f"Person {self.person.id} -> {self.loan_profile.name}"
-
-
-# --- MỚI: Bảng Liên kết Hồ sơ - Tài sản ---
-class LoanProfileAsset(models.Model):
-    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, related_name='linked_assets')
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='linked_profiles')
+        # Lấy tên hiển thị từ FieldValue nếu có
+        # Ưu tiên ho_ten cho PERSON, so_giay_chung_nhan cho các loại khác
+        key = 'ho_ten' if self.object_type == 'PERSON' else 'so_giay_chung_nhan'
+        fv = self.fieldvalue_set.filter(field__placeholder_key=key).first()
+        if fv:
+            return f"{self.get_object_type_display()}: {fv.value}"
+        return f"{self.get_object_type_display()} #{self.id}"
 
     class Meta:
-        unique_together = ('loan_profile', 'asset')
-        verbose_name = "Liên kết Hồ sơ và Tài sản"
-        verbose_name_plural = "Liên kết Hồ sơ và Tài sản"
+        verbose_name = "Đối tượng"
+        verbose_name_plural = "Các đối tượng"
+        indexes = [
+            models.Index(fields=['object_type']),
+        ]
+
+
+# 7. Liên kết Hồ sơ - Đối tượng (Universal)
+class LoanProfileObjectLink(models.Model):
+    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, related_name='object_links')
+    master_object = models.ForeignKey(MasterObject, on_delete=models.CASCADE, related_name='profile_links')
+    roles = models.JSONField(default=list, blank=True, verbose_name="Vai trò")
+
+    class Meta:
+        unique_together = ('loan_profile', 'master_object')
+        verbose_name = "Liên kết Hồ sơ và Đối tượng"
+        verbose_name_plural = "Liên kết Hồ sơ và Đối tượng"
+        indexes = [
+            models.Index(fields=['loan_profile', 'master_object']),
+        ]
 
     def __str__(self):
-        return f"Asset {self.asset.id} -> {self.loan_profile.name}"
+        roles_str = ', '.join(self.roles) if self.roles else 'Không có vai trò'
+        return f"{self.master_object} -> {self.loan_profile.name} ({roles_str})"
 
 
-# 6. Bảng Giá trị của các Trường trong Hồ sơ Vay
+# 6. Bảng Giá trị của các Trường - Universal
 class FieldValue(models.Model):
-    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, null=True, blank=True)
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, null=True, blank=True)
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True) # Mới: Link tới Asset
-    field = models.ForeignKey(Field, on_delete=models.CASCADE)
+    loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Hồ sơ")
+    master_object = models.ForeignKey(MasterObject, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Đối tượng")
+    field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name="Trường")
     value = models.TextField(verbose_name="Giá trị thực tế")
 
     class Meta:
-        # Cập nhật unique constraint để bao gồm asset
-        unique_together = ('loan_profile', 'person', 'asset', 'field')
+        # Unique constraint: (profile, object, field) - cho phép null ở cả profile và object
+        unique_together = ('loan_profile', 'master_object', 'field')
         verbose_name = "Giá trị"
         verbose_name_plural = "Các giá trị"
+        indexes = [
+            models.Index(fields=['loan_profile']),
+            models.Index(fields=['master_object']),
+        ]
 
     def __str__(self):
         return f"{self.field.placeholder_key}: {self.value}"

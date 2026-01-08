@@ -34,6 +34,7 @@ export default {
     props: {
         isOpen: Boolean,
         type: String, // 'PERSON', 'ASSET', 'SAVINGS'
+        typeName: { type: String, default: 'Đối tượng' },
         editObject: Object // Null if creating
     },
     data() {
@@ -50,12 +51,7 @@ export default {
         },
         title() {
             const action = this.isEdit ? 'Cập nhật' : 'Thêm mới';
-            const entity = {
-                'PERSON': 'Người liên quan',
-                'ASSET': 'Tài sản',
-                'SAVINGS': 'Sổ tiết kiệm'
-            }[this.type] || 'Đối tượng';
-            return `${action} ${entity}`;
+            return `${action} ${this.typeName}`;
         },
         groupedFields() {
             const groups = {};
@@ -114,22 +110,29 @@ export default {
         async handleSave() {
             this.isSaving = true;
             try {
-                const endpoint = this.type === 'PERSON' ? 'master-people' : 'master-assets';
                 const payload = {
+                    object_type: this.type, // PERSON, ASSET, etc.
                     field_values: this.formData
                 };
 
                 if (this.isEdit) {
-                    await axios.patch(`http://127.0.0.1:8000/api/${endpoint}/${this.editObject.id}/`, payload);
+                    await axios.patch(`http://127.0.0.1:8000/api/master-objects/${this.editObject.id}/`, payload);
                 } else {
-                    await axios.post(`http://127.0.0.1:8000/api/${endpoint}/`, payload);
+                    await axios.post(`http://127.0.0.1:8000/api/master-objects/`, payload);
                 }
 
                 this.$emit('success');
                 this.close();
             } catch (error) {
                 console.error('Lỗi khi lưu master data:', error);
-                alert('Lỗi: ' + (error.response?.data?.message || 'Không thể lưu dữ liệu'));
+                const data = error.response?.data;
+                if (data && data.code === 'duplicate') {
+                    alert('LỐI: ' + data.message);
+                } else if (data && data.message) {
+                    alert('Lỗi: ' + data.message);
+                } else {
+                    alert('Không thể lưu dữ liệu. Có thể do trùng lặp hoặc lỗi hệ thống.');
+                }
             } finally {
                 this.isSaving = false;
             }

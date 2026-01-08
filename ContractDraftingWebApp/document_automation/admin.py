@@ -1,6 +1,9 @@
 from django.contrib import admin
-# Import thêm FieldGroup
-from .models import Field, LoanProfile, Person, LoanProfilePerson, FieldValue, DocumentTemplate, FieldGroup, Role
+# Import thêm FieldGroup, MasterObject, LoanProfileObjectLink
+from .models import (
+    Field, LoanProfile, FieldValue, 
+    DocumentTemplate, FieldGroup, Role, MasterObject, LoanProfileObjectLink
+)
 
 # --- 1. ĐĂNG KÝ MODEL MỚI: FIELD GROUP ---
 @admin.register(Role)
@@ -10,8 +13,28 @@ class RoleAdmin(admin.ModelAdmin):
 
 @admin.register(FieldGroup)
 class FieldGroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'order')
+    list_display = ('name', 'entity_type', 'order')
+    list_filter = ('entity_type',)
     ordering = ('order',)
+
+# --- UNIVERSAL ENTITY MODELS ---
+@admin.register(MasterObject)
+class MasterObjectAdmin(admin.ModelAdmin):
+    list_display = ('id', 'object_type', 'get_display_name', 'created_at', 'last_updated_by')
+    list_filter = ('object_type', 'created_at')
+    search_fields = ('id',)
+    
+    def get_display_name(self, obj):
+        key = 'ho_ten' if obj.object_type == 'PERSON' else 'so_giay_chung_nhan'
+        fv = obj.fieldvalue_set.filter(field__placeholder_key=key).first()
+        return fv.value if fv else "-"
+    get_display_name.short_description = "Tên hiển thị"
+
+@admin.register(LoanProfileObjectLink)
+class LoanProfileObjectLinkAdmin(admin.ModelAdmin):
+    list_display = ('loan_profile', 'master_object', 'roles')
+    list_filter = ('master_object__object_type',)
+    raw_id_fields = ('loan_profile', 'master_object')
 
 # --- 2. CẬP NHẬT FIELD ADMIN ---
 @admin.register(Field)
@@ -29,37 +52,20 @@ class LoanProfileAdmin(admin.ModelAdmin):
     list_filter = ('created_by_user',)
     search_fields = ('name',)
 
-@admin.register(Person)
-class PersonAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_name', 'get_cccd')
-    search_fields = ('id',)
-
-    def get_name(self, obj):
-        # Tìm FieldValue có key là 'ho_ten' gắn với Person này
-        # Lưu ý: Có thể có nhiều giá trị nếu người này tham gia nhiều hồ sơ và giá trị khác nhau
-        # Ở đây ta lấy giá trị mới nhất hoặc bất kỳ
-        fv = obj.fieldvalue_set.filter(field__placeholder_key='ho_ten').last()
-        return fv.value if fv else "-"
-    get_name.short_description = "Họ và tên"
-
-    def get_cccd(self, obj):
-        fv = obj.fieldvalue_set.filter(field__placeholder_key='cccd_so').last()
-        return fv.value if fv else "-"
-    get_cccd.short_description = "Số CCCD"
-
-@admin.register(LoanProfilePerson)
-class LoanProfilePersonAdmin(admin.ModelAdmin):
-    list_display = ('loan_profile', 'person', 'roles')
-    list_filter = ('roles',) # Lưu ý: Filter theo JSONField có thể hạn chế tùy DB, nhưng cứ để tạm
-    raw_id_fields = ('loan_profile', 'person')
 
 @admin.register(FieldValue)
 class FieldValueAdmin(admin.ModelAdmin):
-    # Sửa 'field__group_name' thành 'field__group'
-    list_display = ('loan_profile', 'person', 'field', 'value')
+    # Updated to support both old (person/asset) and new (master_object) fields
+    list_display = ('loan_profile', 'get_related_object', 'field', 'value')
     list_filter = ('field__group', 'field__data_type')
     search_fields = ('value', 'loan_profile__name', 'field__label')
-    raw_id_fields = ('loan_profile', 'person', 'field')
+    raw_id_fields = ('loan_profile', 'master_object', 'field')
+    
+    def get_related_object(self, obj):
+        if obj.master_object:
+            return f"MasterObject: {obj.master_object}"
+        return "-"
+    get_related_object.short_description = "Đối tượng liên quan"
 
 @admin.register(DocumentTemplate)
 class DocumentTemplateAdmin(admin.ModelAdmin):

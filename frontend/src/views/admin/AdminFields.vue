@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="admin-page">
     <h2>Quản lý Trường Dữ liệu</h2>
 
     <!-- Form thêm mới -->
@@ -35,8 +35,42 @@
           <option :value="null">-- Chọn nhóm --</option>
           <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
         </select>
-        <button @click="addField" class="btn-create">Thêm</button>
+        <button @click="addField" class="btn-action btn-create">Thêm</button>
       </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Tìm kiếm</label>
+        <input v-model="filters.search" placeholder="Nhãn hoặc Key..." class="filter-control">
+      </div>
+      <div class="filter-group">
+        <label>Nhóm</label>
+        <select v-model="filters.group" class="filter-control">
+          <option :value="null">-- Tất cả nhóm --</option>
+          <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Loại dữ liệu</label>
+        <select v-model="filters.dataType" class="filter-control">
+          <option :value="null">-- Tất cả loại --</option>
+          <option value="TEXT">Văn bản</option>
+          <option value="TEXTAREA">Đoạn văn bản</option>
+          <option value="NUMBER">Số</option>
+          <option value="DATE">Ngày</option>
+          <option value="CHECKBOX">Hộp kiểm</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Loại đối tượng</label>
+        <select v-model="filters.objectType" class="filter-control">
+          <option :value="null">-- Tất cả đối tượng --</option>
+          <option v-for="t in objectTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+        </select>
+      </div>
+      <button class="btn-action btn-secondary" @click="resetFilters">Đặt lại</button>
     </div>
 
     <!-- Danh sách -->
@@ -44,27 +78,28 @@
       <thead>
         <tr>
           <th @click="toggleSort('id')" class="sortable">ID <span v-if="sortBy === 'id'">{{ sortDesc ? '▼' : '▲'
-          }}</span></th>
+              }}</span></th>
           <th @click="toggleSort('order')" class="sortable" width="50">Thứ tự <span v-if="sortBy === 'order'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('placeholder_key')" class="sortable">Key <span v-if="sortBy === 'placeholder_key'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('label')" class="sortable">Nhãn <span v-if="sortBy === 'label'">{{ sortDesc ? '▼' : '▲'
-          }}</span></th>
+              }}</span></th>
           <th @click="toggleSort('data_type')" class="sortable">Loại <span v-if="sortBy === 'data_type'">{{ sortDesc ?
             '▼' : '▲' }}</span></th>
           <th @click="toggleSort('group')" class="sortable">Nhóm <span v-if="sortBy === 'group'">{{ sortDesc ? '▼' : '▲'
-          }}</span></th>
+              }}</span></th>
           <th width="50">Rộng</th>
           <th>CSS</th>
           <th>Mặc định</th>
           <th>Tách nghìn</th>
           <th>Hiện chữ</th>
           <th>Hiển thị ở Form</th>
+          <th>Loại đối tượng áp dụng</th>
           <th>Hành động</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="tbody">
         <tr v-for="f in sortedFields" :key="f.id">
           <td>{{ f.id }}</td>
           <td>
@@ -125,16 +160,35 @@
             <span v-else>{{ getFormNames(f.allowed_forms) }}</span>
           </td>
           <td>
-            <button v-if="editingId === f.id" @click="updateField(f)" class="btn-create">Lưu</button>
-            <button v-else @click="editingId = f.id">Sửa</button>
-            <button v-if="!f.is_protected" @click="deleteField(f.id)" class="btn-delete">Xóa</button>
-            <span v-else class="protected-badge">🔒</span>
+            <div v-if="editingId === f.id" class="form-selector">
+              <div v-for="type in objectTypes" :key="type.id">
+                <label>
+                  <input type="checkbox" :value="type.id" v-model="f.allowed_object_types">
+                  {{ type.name }}
+                </label>
+              </div>
+            </div>
+            <div v-else>
+              <span v-if="!f.allowed_object_types || f.allowed_object_types.length === 0" class="badge-all">Tất
+                cả</span>
+              <span v-else v-for="tid in f.allowed_object_types" :key="tid" class="badge">
+                {{objectTypes.find(t => t.id === tid)?.name || tid}}
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="action-group">
+              <button v-if="editingId === f.id" @click="updateField(f)" class="btn-action btn-save">Lưu</button>
+              <button v-else @click="editingId = f.id" class="btn-action btn-edit">Sửa</button>
+              <button @click="copyField(f)" class="btn-action btn-copy">Copy</button>
+              <button v-if="!f.is_protected" @click="deleteField(f.id)" class="btn-action btn-delete">Xóa</button>
+              <span v-else class="protected-badge">🔒</span>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <!-- Confirm Modal -->
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa trường '${deleteTargetLabel}'?`" confirmText="Xóa" @confirm="confirmDelete"
       @cancel="showDeleteModal = false" />
@@ -152,16 +206,22 @@ export default {
     return {
       fields: [], groups: [],
       allForms: [],
+      objectTypes: [],
       editingId: null,
       showDeleteModal: false,
       deleteTargetId: null,
       deleteTargetLabel: '',
+      filters: {
+        group: null,
+        dataType: null,
+        objectType: null,
+        search: ''
+      },
       newField: {
         label: '', placeholder_key: '', note: '', data_type: 'TEXT', group: null,
-        order: 0, width_cols: 12, css_class: '', default_value: '', allowed_forms: [],
+        order: 0, width_cols: 12, css_class: '', default_value: '', allowed_forms: [], allowed_object_types: [],
         use_digit_grouping: false, show_amount_in_words: false
       },
-      // State cho sorting
       sortBy: 'order',
       sortDesc: false
     }
@@ -169,27 +229,36 @@ export default {
   mounted() {
     this.fetchData();
     this.fetchForms();
-    // Gọi hàm để kích hoạt tính năng co kéo sau khi component được mount
-    // Sử dụng this.$refs để lấy element của table
     makeTableResizable(this.$refs.resizableTable);
   },
   computed: {
     sortedFields() {
-      // Logic sort client-side
-      return [...this.fields].sort((a, b) => {
+      let filtered = this.fields.filter(f => {
+        if (this.filters.search) {
+          const s = this.filters.search.toLowerCase();
+          const matchLabel = f.label && f.label.toLowerCase().includes(s);
+          const matchKey = f.placeholder_key && f.placeholder_key.toLowerCase().includes(s);
+          if (!matchLabel && !matchKey) return false;
+        }
+        if (this.filters.group && f.group !== this.filters.group) return false;
+        if (this.filters.dataType && f.data_type !== this.filters.dataType) return false;
+        if (this.filters.objectType) {
+          if (f.allowed_object_types && f.allowed_object_types.length > 0) {
+            if (!f.allowed_object_types.includes(this.filters.objectType)) return false;
+          }
+        }
+        return true;
+      });
+
+      return filtered.sort((a, b) => {
         let valA = a[this.sortBy];
         let valB = b[this.sortBy];
-
-        // Xử lý trường hợp null/undefined
         if (valA === null || valA === undefined) valA = '';
         if (valB === null || valB === undefined) valB = '';
-
-        // Nếu sort theo group, so sánh group_name
         if (this.sortBy === 'group') {
           valA = a.group_name || '';
           valB = b.group_name || '';
         }
-
         if (valA < valB) return this.sortDesc ? 1 : -1;
         if (valA > valB) return this.sortDesc ? -1 : 1;
         return 0;
@@ -206,12 +275,14 @@ export default {
       }
     },
     async fetchData() {
-      const [resFields, resGroups] = await Promise.all([
+      const [resFields, resGroups, resTypes] = await Promise.all([
         axios.get('http://127.0.0.1:8000/api/fields/'),
-        axios.get('http://127.0.0.1:8000/api/groups/')
+        axios.get('http://127.0.0.1:8000/api/groups/'),
+        axios.get('http://127.0.0.1:8000/api/object-types/')
       ]);
       this.fields = resFields.data;
       this.groups = resGroups.data;
+      this.objectTypes = resTypes.data;
     },
     async fetchForms() {
       const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
@@ -229,10 +300,10 @@ export default {
       try {
         await axios.post('http://127.0.0.1:8000/api/fields/', this.newField);
         this.fetchData();
-        // Reset form
         this.newField = {
-          label: '', placeholder_key: '', note: '', data_type: 'TEXT', group: this.newField.group, // Giữ lại group
-          order: 0, width_cols: 12, css_class: '', use_digit_grouping: false, show_amount_in_words: false
+          label: '', placeholder_key: '', note: '', data_type: 'TEXT', group: this.newField.group,
+          order: 0, width_cols: 12, css_class: '', use_digit_grouping: false, show_amount_in_words: false,
+          allowed_object_types: []
         };
       } catch (e) { alert('Lỗi: ' + JSON.stringify(e.response.data)); }
     },
@@ -258,10 +329,32 @@ export default {
         this.deleteTargetId = null;
         this.fetchData();
       }
+    },
+    copyField(f) {
+      this.newField = {
+        label: f.label + ' (Copy)',
+        placeholder_key: f.placeholder_key + '_copy',
+        note: f.note,
+        data_type: f.data_type,
+        group: f.group,
+        order: f.order,
+        width_cols: f.width_cols,
+        css_class: f.css_class,
+        default_value: f.default_value,
+        allowed_forms: [...f.allowed_forms],
+        allowed_object_types: f.allowed_object_types ? [...f.allowed_object_types] : [],
+        use_digit_grouping: f.use_digit_grouping,
+        show_amount_in_words: f.show_amount_in_words
+      };
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    resetFilters() {
+      this.filters = { group: null, dataType: null, objectType: null, search: '' };
     }
   }
 }
 </script>
+
 <style scoped>
 .add-box {
   background: #eee;
@@ -282,42 +375,9 @@ export default {
   flex: 1;
 }
 
-.btn-create {
-  background: #42b983;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  cursor: pointer;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-}
-
-.data-table th,
-.data-table td {
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
-.btn-delete {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 5px;
-  cursor: pointer;
-  margin-left: 5px;
-}
-
-.sortable {
-  cursor: pointer;
-  user-select: none;
-}
-
-.sortable:hover {
-  background-color: #f1f1f1;
+.action-group {
+  display: flex;
+  gap: 5px;
 }
 
 .form-selector {
@@ -334,8 +394,12 @@ export default {
   text-align: left;
 }
 
-/* Thêm style để thấy resize handle rõ hơn khi hover (tùy chọn) */
-.data-table th:hover div {
-  background-color: #cde;
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  background-color: #f1f1f1;
 }
 </style>
