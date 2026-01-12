@@ -51,27 +51,27 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Mã loại (Code) *</label>
-                        <input v-model="formData.code" :disabled="isEdit" placeholder="VD: PROJECT"
-                            class="filter-control" style="width: 100%" />
+                        <input v-model="formData.code" :disabled="isEdit" placeholder="VD: PROJECT" class="admin-input"
+                            style="width: 100%" />
                         <small class="hint">Viết hoa, không dấu, không khoảng trắng.</small>
                     </div>
 
                     <div class="form-group">
                         <label>Tên hiển thị *</label>
-                        <input v-model="formData.name" placeholder="VD: Dự án" class="filter-control"
+                        <input v-model="formData.name" placeholder="VD: Dự án" class="admin-input"
                             style="width: 100%" />
                     </div>
 
                     <div class="form-group">
                         <label>Trường định danh (key)</label>
                         <input v-model="formData.identity_field_key" placeholder="VD: ho_ten, bien_so_xe"
-                            class="filter-control" style="width: 100%" />
+                            class="admin-input" style="width: 100%" />
                         <small class="hint">Tên trường dùng để định danh cho đối tượng này.</small>
                     </div>
 
                     <div class="form-group">
                         <label>Mô tả</label>
-                        <textarea v-model="formData.description" class="filter-control" rows="3"
+                        <textarea v-model="formData.description" class="admin-input" rows="3"
                             style="width: 100%; min-height: 80px;"></textarea>
                     </div>
 

@@ -109,9 +109,23 @@ class Field(models.Model):
 
 # --- MỚI: Bảng Vai trò (Dynamic Role) ---
 class Role(models.Model):
-    name = models.CharField(max_length=255, unique=True, verbose_name="Tên vai trò")
-    slug = models.SlugField(max_length=100, unique=True, null=True, blank=True, verbose_name="Mã định danh (Slug)")
-    description = models.TextField(blank=True, null=True, verbose_name="Mô tả")
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=100, unique=True, null=True, blank=True) # MỚI: Dùng để định danh trong template
+    description = models.TextField(blank=True, null=True)
+    
+    # --- New Fields for Relations ---
+    relation_type = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name="Loại quan hệ tự động",
+        help_text="Nếu Role này được chọn, hệ thống sẽ tự động gán quan hệ này (VD: OWNER)"
+    )
+    is_system = models.BooleanField(
+        default=False, 
+        verbose_name="Là hệ thống",
+        help_text="Role quan trọng không được phép xóa"
+    )
 
     def __str__(self):
         return self.name
@@ -191,8 +205,12 @@ class MasterObject(models.Model):
         key = 'ho_ten' if self.object_type == 'PERSON' else 'so_giay_chung_nhan'
         fv = self.fieldvalue_set.filter(field__placeholder_key=key).first()
         if fv:
-            return f"{self.get_object_type_display()}: {fv.value}"
-        return f"{self.get_object_type_display()} #{self.id}"
+            return f"{self.object_type}: {fv.value}"
+        return f"{self.object_type} #{self.id}"
+
+    @property
+    def display_name(self):
+        return str(self)
 
     class Meta:
         verbose_name = "Đối tượng"
@@ -248,6 +266,38 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile of {self.user.username}"
+
+
+# 8. Quan hệ Trực tiếp giữa các Đối tượng (Master Relations)
+class MasterObjectRelation(models.Model):
+    source_object = models.ForeignKey(
+        MasterObject, 
+        on_delete=models.CASCADE, 
+        related_name='relations_as_source',
+        verbose_name="Đối tượng nguồn"
+    )
+    target_object = models.ForeignKey(
+        MasterObject, 
+        on_delete=models.CASCADE, 
+        related_name='relations_as_target',
+        verbose_name="Đối tượng đích"
+    )
+    relation_type = models.CharField(max_length=50, verbose_name="Loại quan hệ") # VD: OWNER
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('source_object', 'target_object', 'relation_type')
+        verbose_name = "Quan hệ Đối tượng"
+        verbose_name_plural = "Quan hệ Đối tượng"
+        indexes = [
+            models.Index(fields=['source_object']),
+            models.Index(fields=['target_object']),
+        ]
+
+    def __str__(self):
+        return f"{self.source_object} --{self.relation_type}--> {self.target_object}"
 
 # --- MỚI: Signal để tự động tạo UserProfile khi tạo User ---
 @receiver(post_save, sender=User)

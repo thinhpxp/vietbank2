@@ -8,7 +8,7 @@
       <div v-if="field.data_type === 'TEXT'" class="input-with-tools">
         <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
-          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" />
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass" />
         <button v-if="hasDynamicTemplate(field)" class="btn-magic" title="Tự động điền theo mẫu"
           @click="applyTemplate(field)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -23,7 +23,7 @@
         <textarea :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control custom-textarea"
-          rows="4"></textarea>
+          :class="inputClass" rows="4"></textarea>
         <button v-if="hasDynamicTemplate(field)" class="btn-magic" title="Tự động điền theo mẫu"
           @click="applyTemplate(field)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -39,11 +39,12 @@
         <input v-if="field.use_digit_grouping" type="text" :id="field.placeholder_key"
           :value="formatNumber(modelValue[field.placeholder_key])"
           @input="handleNumberInput(field.placeholder_key, $event.target.value)"
-          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" placeholder="0" />
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
+          placeholder="0" />
         <!-- Nếu không: Dùng number input truyền thống -->
         <input v-else type="number" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
-          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" />
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass" />
 
         <!-- Hiển thị số thành chữ (MỚI - Có thể bật/tắt) -->
         <div v-if="field.show_amount_in_words && modelValue[field.placeholder_key]" class="amount-in-words">
@@ -55,7 +56,7 @@
       <div v-else-if="field.data_type === 'DATE'" class="date-input-wrapper">
         <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control hybrid-text"
-          placeholder="Ngày/Tháng/Năm" />
+          :class="inputClass" placeholder="Ngày/Tháng/Năm" />
         <div class="calendar-trigger" @click="openPicker(field.placeholder_key)">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -84,7 +85,8 @@ export default {
   name: 'DynamicForm',
   props: {
     fields: { type: Array, required: true },
-    modelValue: { type: Object, required: true }
+    modelValue: { type: Object, required: true },
+    inputClass: { type: String, default: '' }
   },
   emits: ['update:modelValue', 'field-blur'],
   computed: {

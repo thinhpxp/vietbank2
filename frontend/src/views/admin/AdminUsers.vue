@@ -6,12 +6,12 @@
     <div class="add-box">
       <h4>Tạo tài khoản mới</h4>
       <div class="row">
-        <input v-model="newUser.username" placeholder="Tên đăng nhập (*)">
-        <input v-model="newUser.email" placeholder="Email" type="email">
+        <input v-model="newUser.username" placeholder="Tên đăng nhập (*)" class="admin-input">
+        <input v-model="newUser.email" placeholder="Email" type="email" class="admin-input">
       </div>
       <div class="row">
-        <input v-model="newUser.note" placeholder="Ghi chú (Chức vụ, Phòng ban...)" style="flex: 2">
-        <input v-model="newUser.password" placeholder="Mật khẩu (*)" type="password">
+        <input v-model="newUser.note" placeholder="Ghi chú (Chức vụ, Phòng ban...)" style="flex: 2" class="admin-input">
+        <input v-model="newUser.password" placeholder="Mật khẩu (*)" type="password" class="admin-input">
         <label class="checkbox-label">
           <input type="checkbox" v-model="newUser.is_staff"> Là Admin/Staff?
         </label>

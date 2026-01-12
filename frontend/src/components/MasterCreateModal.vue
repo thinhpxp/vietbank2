@@ -10,7 +10,7 @@
                 <div v-else>
                     <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="section-container">
                         <h4 class="section-title">{{ groupName }}</h4>
-                        <DynamicForm :fields="fields" v-model="formData" />
+                        <DynamicForm :fields="fields" v-model="formData" inputClass="admin-input" />
                     </div>
                 </div>
             </div>

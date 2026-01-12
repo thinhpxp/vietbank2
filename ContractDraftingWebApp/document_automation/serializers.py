@@ -5,14 +5,15 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
     Field, FieldGroup, LoanProfile, FieldValue, DocumentTemplate, 
-    Role, FormView, UserProfile, MasterObject, LoanProfileObjectLink, MasterObjectType
+    Role, FormView, UserProfile, MasterObject, LoanProfileObjectLink, MasterObjectType,
+    MasterObjectRelation # ADDED
 )
 
 # 0. Serializer cho Role (MỚI)
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = '__all__'
+        fields = ['id', 'name', 'slug', 'description', 'relation_type', 'is_system'] # Updated to explicit fields or __all__
 
 # 0.1 Serializer cho FormView (MỚI)
 class FormViewSerializer(serializers.ModelSerializer):
@@ -214,8 +215,25 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'object_type', 'object_type_display', 'display_name', 
             'created_at', 'updated_at', 'last_updated_by_name', 
-            'profiles_count', 'field_values'
+            'created_at', 'updated_at', 'last_updated_by_name', 
+            'profiles_count', 'field_values', 'related_assets', 'owners'
         ]
+    
+    # New fields for Relations
+    related_assets = serializers.SerializerMethodField()
+    owners = serializers.SerializerMethodField()
+
+    def get_related_assets(self, obj):
+        """Lấy danh sách tài sản mà đối tượng này sở hữu (relation_type=OWNER)"""
+        # relations where source = obj
+        rels = obj.relations_as_source.filter(relation_type='OWNER')
+        return MasterObjectRelationSerializer(rels, many=True).data
+
+    def get_owners(self, obj):
+        """Lấy danh sách chủ sở hữu của tài sản này"""
+        # relations where target = obj
+        rels = obj.relations_as_target.filter(relation_type='OWNER')
+        return MasterObjectRelationSerializer(rels, many=True).data
 
     def get_display_name(self, obj):
         """Ưu tiên lấy giá trị của trường định danh (identity_field_key)"""
@@ -259,6 +277,18 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         """Return all canonical field values for this object"""
         fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True)
         return {fv.field.placeholder_key: fv.value for fv in fvs}
+
+# 8. Serializer cho Relation (MỚI)
+class MasterObjectRelationSerializer(serializers.ModelSerializer):
+    source_name = serializers.CharField(source='source_object.display_name', read_only=True) # Reuse logic from MO
+    target_name = serializers.CharField(source='target_object.display_name', read_only=True)
+    target_type = serializers.CharField(source='target_object.object_type', read_only=True)
+    source_type = serializers.CharField(source='source_object.object_type', read_only=True)
+
+    class Meta:
+        model = MasterObjectRelation
+        fields = ['id', 'source_object', 'target_object', 'relation_type', 'created_at', 
+                  'source_name', 'target_name', 'target_type', 'source_type']
 
 
 class LoanProfileObjectLinkSerializer(serializers.ModelSerializer):

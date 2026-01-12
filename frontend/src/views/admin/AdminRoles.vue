@@ -2,9 +2,12 @@
   <div class="admin-page">
     <h2>Quản lý Vai trò (Roles)</h2>
     <div class="actions">
-      <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" style="flex: 1">
-      <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" style="flex: 1">
-      <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" style="flex: 2">
+      <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" style="flex: 1"
+        class="admin-input">
+      <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" style="flex: 1"
+        class="admin-input">
+      <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" style="flex: 2" class="admin-input">
+      <input v-model="newRole.relation_type" placeholder="Quan hệ (VD: OWNER)" style="flex: 1" class="admin-input">
       <button @click="addRole" class="btn-action btn-create">Thêm Vai trò</button>
     </div>
 
@@ -15,6 +18,8 @@
           <th>Tên Vai trò</th>
           <th>Mã (Slug)</th>
           <th>Mô tả</th>
+          <th>Quan hệ Tự động</th>
+          <th>Hệ thống</th>
           <th>Hành động</th>
         </tr>
       </thead>
@@ -31,14 +36,24 @@
             <span v-else>{{ role.slug || '---' }}</span>
           </td>
           <td>
-            <input v-if="editingId === role.id" v-model="role.description" style="width: 100%">
+            <input v-if="editingId === role.id" v-model="role.description" style="width: 100%" class="admin-input">
             <span v-else>{{ role.description }}</span>
+          </td>
+          <td>
+            <input v-if="editingId === role.id" v-model="role.relation_type" placeholder="OWNER..." class="admin-input">
+            <span v-else>{{ role.relation_type || '---' }}</span>
+          </td>
+          <td style="text-align: center;">
+            <span v-if="role.is_system" class="badge-system">System</span>
+            <span v-else class="badge-user">User</span>
           </td>
           <td>
             <div class="action-group">
               <button v-if="editingId === role.id" @click="updateRole(role)" class="btn-action btn-save">Lưu</button>
               <button v-else @click="editingId = role.id" class="btn-action btn-edit">Sửa</button>
-              <button @click="deleteRole(role.id)" class="btn-action btn-delete">Xóa</button>
+
+              <button v-if="!role.is_system" @click="deleteRole(role.id)" class="btn-action btn-delete">Xóa</button>
+              <span v-else title="Role hệ thống không thể xóa" class="text-disabled">🔒</span>
             </div>
           </td>
         </tr>
@@ -61,7 +76,7 @@ export default {
   data() {
     return {
       roles: [],
-      newRole: { name: '', slug: '', description: '' },
+      newRole: { name: '', slug: '', description: '', relation_type: '' },
       editingId: null,
       showDeleteModal: false,
       deleteTargetId: null,
@@ -140,5 +155,29 @@ export default {
 .action-group {
   display: flex;
   gap: 5px;
+}
+
+.badge-system {
+  background: #eee;
+  color: #666;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+
+.badge-user {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+.text-disabled {
+  color: #999;
+  cursor: not-allowed;
+  padding: 0 5px;
 }
 </style>

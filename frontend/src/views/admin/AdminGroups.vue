@@ -2,21 +2,21 @@
   <div class="admin-page">
     <h2>Quản lý Nhóm Thông tin</h2>
     <div class="actions">
-      <input v-model="newGroup.name" placeholder="Tên nhóm mới">
-      <input v-model="newGroup.slug" placeholder="Mã (Slug - Tùy chọn)" style="width: 15%">
-      <select v-model="newGroup.layout_position" style="width: 120px">
+      <input v-model="newGroup.name" placeholder="Tên nhóm mới" class="admin-input">
+      <input v-model="newGroup.slug" placeholder="Mã (Slug - Tùy chọn)" style="width: 15%" class="admin-input">
+      <select v-model="newGroup.layout_position" style="width: 120px" class="admin-input">
         <option value="LEFT">Cột Trái</option>
         <option value="RIGHT">Cột Phải</option>
       </select>
       <label>Phân loại:</label>
-      <select v-model="newGroup.object_type" style="width: 200px">
+      <select v-model="newGroup.object_type" style="width: 200px" class="admin-input">
         <option :value="null">-- Chung (CORE) --</option>
         <option v-for="type in objectTypes" :key="type.id" :value="type.id">
           {{ type.name }}
         </option>
       </select>
-      <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" style="flex: 2">
-      <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="width: 60px">
+      <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" style="flex: 2" class="admin-input">
+      <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="width: 60px" class="admin-input">
       <button @click="addGroup" class="btn-action btn-create">Thêm Nhóm</button>
     </div>
 

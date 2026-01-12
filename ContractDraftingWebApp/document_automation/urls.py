@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     FieldViewSet, LoanProfileViewSet, DocumentTemplateViewSet, 
     FieldGroupViewSet, UserViewSet, RoleViewSet, FormViewViewSet, 
-    MasterObjectViewSet, MasterObjectTypeViewSet
+    MasterObjectViewSet, MasterObjectTypeViewSet,
+    MasterObjectRelationViewSet # ADDED
 )
 
 router = DefaultRouter()
@@ -16,6 +17,7 @@ router.register(r'roles', RoleViewSet)
 router.register(r'form-views', FormViewViewSet)
 router.register(r'object-types', MasterObjectTypeViewSet)
 router.register(r'master-objects', MasterObjectViewSet, basename='master-objects')
+router.register(r'master-relations', MasterObjectRelationViewSet) # ADDED
 
 urlpatterns = [
     path('', include(router.urls)),

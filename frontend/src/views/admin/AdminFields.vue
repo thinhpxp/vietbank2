@@ -6,16 +6,17 @@
     <div class="add-box">
       <h4>Thêm trường mới</h4>
       <div class="row">
-        <input v-model="newField.label" placeholder="Nhãn hiển thị (VD: Số tiền)">
-        <input v-model="newField.placeholder_key" placeholder="Key (VD: so_tien)">
-        <input v-model="newField.note" placeholder="Ghi chú về trường thông tin này">
+        <input v-model="newField.label" placeholder="Nhãn hiển thị (VD: Số tiền)" class="admin-input">
+        <input v-model="newField.placeholder_key" placeholder="Key (VD: so_tien)" class="admin-input">
+        <input v-model="newField.note" placeholder="Ghi chú về trường thông tin này" class="admin-input">
       </div>
       <div class="row">
-        <input v-model.number="newField.order" type="number" placeholder="Thứ tự (0)" style="max-width: 80px">
+        <input v-model.number="newField.order" type="number" placeholder="Thứ tự (0)" style="max-width: 80px"
+          class="admin-input">
         <input v-model.number="newField.width_cols" type="number" min="1" max="12" placeholder="Độ rộng (1-12)"
-          style="max-width: 100px">
-        <input v-model="newField.css_class" placeholder="CSS Class (VD: text-red)">
-        <input v-model="newField.default_value" placeholder="Giá trị mặc định">
+          style="max-width: 100px" class="admin-input">
+        <input v-model="newField.css_class" placeholder="CSS Class (VD: text-red)" class="admin-input">
+        <input v-model="newField.default_value" placeholder="Giá trị mặc định" class="admin-input">
       </div>
       <div class="row">
         <select v-model="newField.data_type">
@@ -78,17 +79,17 @@
       <thead>
         <tr>
           <th @click="toggleSort('id')" class="sortable">ID <span v-if="sortBy === 'id'">{{ sortDesc ? '▼' : '▲'
-              }}</span></th>
+          }}</span></th>
           <th @click="toggleSort('order')" class="sortable" width="50">Thứ tự <span v-if="sortBy === 'order'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('placeholder_key')" class="sortable">Key <span v-if="sortBy === 'placeholder_key'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('label')" class="sortable">Nhãn <span v-if="sortBy === 'label'">{{ sortDesc ? '▼' : '▲'
-              }}</span></th>
+          }}</span></th>
           <th @click="toggleSort('data_type')" class="sortable">Loại <span v-if="sortBy === 'data_type'">{{ sortDesc ?
             '▼' : '▲' }}</span></th>
           <th @click="toggleSort('group')" class="sortable">Nhóm <span v-if="sortBy === 'group'">{{ sortDesc ? '▼' : '▲'
-              }}</span></th>
+          }}</span></th>
           <th width="50">Rộng</th>
           <th>CSS</th>
           <th>Mặc định</th>

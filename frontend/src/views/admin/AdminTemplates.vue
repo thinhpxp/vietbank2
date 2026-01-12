@@ -2,10 +2,20 @@
   <div class="admin-page">
     <h2>Quản lý Mẫu Hợp đồng</h2>
     <div class="actions">
-      <input type="text" v-model="newName" placeholder="Tên hiển thị mẫu">
-      <input type="text" v-model="newDesc" placeholder="Ghi chú mẫu này" style="flex: 2">
-      <input type="file" ref="fileInput" @change="handleFileChange">
-      <button @click="uploadTemplate" class="btn-action btn-create">Upload Mẫu</button>
+      <input class="admin-input" type="text" v-model="newName" placeholder="Tên hiển thị">
+      <input class="admin-input" type="text" v-model="newDesc" placeholder="Ghi chú mẫu này" style="flex: 2">
+
+      <div class="file-upload-wrapper">
+        <label for="template-file" class="btn-action btn-secondary custom-file-label">
+          📁 {{ selectedFile ? 'Chọn lại' : 'Chọn tệp' }}
+        </label>
+        <input id="template-file" class="hidden-file-input" type="file" ref="fileInput" @change="handleFileChange">
+        <span v-if="selectedFile" class="file-name-display">{{ selectedFile.name }}</span>
+      </div>
+
+      <button @click="uploadTemplate" class="btn-action btn-create">
+        🚀 Upload Mẫu
+      </button>
     </div>
 
     <table class="data-table">
@@ -112,11 +122,41 @@ export default {
 </script>
 
 <style scoped>
-.actions {
-  margin-bottom: 20px;
+.file-upload-wrapper {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.custom-file-label {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.file-name-display {
+  font-size: 0.75rem;
+  color: #666;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.actions {
+  margin-bottom: 25px;
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #eee;
 }
 
 .action-group {

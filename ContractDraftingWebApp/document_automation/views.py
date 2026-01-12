@@ -20,7 +20,7 @@ from .models import (
     Field, LoanProfile, FieldValue, 
     DocumentTemplate, FieldGroup, Role, 
     FormView, MasterObject, LoanProfileObjectLink,
-    MasterObjectType
+    MasterObjectType, MasterObjectRelation # ADDED
 )
 
 # Import Serializers
@@ -29,7 +29,8 @@ from .serializers import (
     FieldValueSerializer, DocumentTemplateSerializer,
     RoleSerializer,
     UserSerializer, FormViewSerializer, MasterObjectSerializer, 
-    LoanProfileObjectLinkSerializer, MasterObjectTypeSerializer
+    LoanProfileObjectLinkSerializer, MasterObjectTypeSerializer,
+    MasterObjectRelationSerializer # ADDED
 )
 # --- CÁC HÀM HỖ TRỢ JINJA2 (FORMAT TIỀN, NGÀY, CHỮ) ---
 def format_currency_filter(value):
@@ -221,15 +222,22 @@ class FieldViewSet(viewsets.ModelViewSet):
         # 1. Lọc nhóm
         groups_qs = FieldGroup.objects.all().order_by('order')
         if entity_type:
-            groups_qs = groups_qs.filter(entity_type=entity_type)
+            # Hỗ trợ cả cơ chế cũ (entity_type) và mới (object_type__code)
+            groups_qs = groups_qs.filter(
+                Q(object_type__code=entity_type) | 
+                Q(entity_type=entity_type)
+            ).distinct()
         elif form_slug:
             groups_qs = groups_qs.filter(allowed_forms__slug=form_slug).distinct()
             
         # 2. Prefetch fields
         fields_filter = Q(is_active=True)
-        # Nếu là Master Data (có entity_type), ta lấy tất cả fields của group đó
-        # Nếu là Hồ sơ (có form_slug), ta lọc fields được phép hiển thị ở form đó
-        if not entity_type and form_slug:
+        
+        # NEW: If entity_type is provided, filter fields by allowed_object_types containing this type
+        if entity_type:
+            fields_filter &= Q(allowed_object_types__code=entity_type)
+        elif form_slug:
+            # Nếu là Hồ sơ (có form_slug), ta lọc fields được phép hiển thị ở form đó
             fields_filter &= Q(allowed_forms__slug=form_slug)
             
         groups = groups_qs.prefetch_related(
@@ -445,6 +453,49 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 LoanProfileObjectLink.objects.filter(loan_profile=loan_profile).exclude(
                     master_object__id__in=processed_master_ids
                 ).delete()
+                
+                # E. AUTOMATIC RELATION INFERENCE (Direct Linking)
+                # Logic: If a Person has a Role with relation_type (e.g., OWNER), link them to all Assets in this profile.
+                # 1. Find potential owners in this profile
+                potential_owners = []
+                # Re-fetch links to get fresh roles
+                profile_links = LoanProfileObjectLink.objects.filter(loan_profile=loan_profile).select_related('master_object')
+                
+                for link in profile_links:
+                    if link.master_object.object_type == 'PERSON':
+                        # Check roles
+                        if not link.roles: continue
+                        
+                        # Find if any role implies a relation
+                        # We need to query Role table or cache it. Since roles are list of strings (slugs), we match with Role.slug
+                        # Optimization: Fetch all system roles with relation_type once
+                        system_roles = Role.objects.exclude(relation_type__isnull=True).exclude(relation_type='')
+                        
+                        for role_str in link.roles:
+                            # Match slug OR name (case insensitive safe if needed, but strict for now)
+                            matching_role = next((r for r in system_roles if r.slug == role_str or r.name == role_str), None)
+                            if matching_role:
+                                potential_owners.append({
+                                    'person': link.master_object,
+                                    'relation': matching_role.relation_type
+                                })
+
+                # 2. Find assets in this profile
+                assets_in_profile = [link.master_object for link in profile_links if link.master_object.object_type != 'PERSON']
+                
+                # 3. Create Relations
+                if potential_owners and assets_in_profile:
+                    for owner_data in potential_owners:
+                        person = owner_data['person']
+                        rtype = owner_data['relation']
+                        
+                        for asset in assets_in_profile:
+                            # Create or Get Relation
+                            MasterObjectRelation.objects.get_or_create(
+                                source_object=person,
+                                target_object=asset,
+                                relation_type=rtype
+                            )
                 
                 FieldValue.objects.filter(loan_profile=loan_profile, master_object__isnull=False).exclude(
                     master_object__id__in=processed_master_ids
@@ -705,6 +756,40 @@ def find_existing_master_object(object_type, field_values):
         print(f"Error in find_existing_master_object: {e}")
         return None
 
+    except Exception as e:
+        print(f"Error in find_existing_master_object: {e}")
+        return None
+
+# --- RELATION VIEWSET ---
+class MasterObjectRelationViewSet(viewsets.ModelViewSet):
+    queryset = MasterObjectRelation.objects.all().order_by('-created_at')
+    serializer_class = MasterObjectRelationSerializer
+    permission_classes = [AllowAny]
+
+    @action(detail=False, methods=['post'])
+    def create_relation(self, request):
+        """API thủ công để tạo quan hệ (dùng cho nút 'Gán quan hệ' ở Frontend)"""
+        source_id = request.data.get('source_id')
+        target_id = request.data.get('target_id')
+        rtype = request.data.get('relation_type', 'OWNER')
+
+        if not source_id or not target_id:
+            return Response({"error": "Thiếu source_id hoặc target_id"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            source = MasterObject.objects.get(id=source_id)
+            target = MasterObject.objects.get(id=target_id)
+            
+            relation, created = MasterObjectRelation.objects.get_or_create(
+                source_object=source,
+                target_object=target,
+                relation_type=rtype
+            )
+            
+            return Response(MasterObjectRelationSerializer(relation).data)
+        except MasterObject.DoesNotExist:
+            return Response({"error": "Không tìm thấy đối tượng"}, status=status.HTTP_404_NOT_FOUND)
+
 # --- UNIVERSAL ENTITY VIEWSETS ---
 
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
@@ -712,6 +797,7 @@ class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     serializer_class = MasterObjectTypeSerializer
     permission_classes = [AllowAny] 
     # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
+
 
 class MasterObjectViewSet(viewsets.ModelViewSet):
     queryset = MasterObject.objects.all().order_by('-id')

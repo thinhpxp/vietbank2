@@ -6,9 +6,9 @@
         <div class="add-box">
             <h4>Thêm Form mới</h4>
             <div class="row">
-                <input v-model="newForm.name" placeholder="Tên Form (VD: Tín dụng tiêu dùng)">
-                <input v-model="newForm.slug" placeholder="Mã định danh (VD: loan-consumer)">
-                <input v-model="newForm.note" placeholder="Ghi chú">
+                <input v-model="newForm.name" placeholder="Tên Form (VD: Tín dụng tiêu dùng)" class="admin-input">
+                <input v-model="newForm.slug" placeholder="Mã định danh (VD: loan-consumer)" class="admin-input">
+                <input v-model="newForm.note" placeholder="Ghi chú" class="admin-input">
                 <button @click="addForm" class="btn-action btn-create">Thêm</button>
             </div>
         </div>
