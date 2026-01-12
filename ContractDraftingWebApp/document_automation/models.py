@@ -152,11 +152,18 @@ class DocumentTemplate(models.Model):
 
 # 3. Bảng Hồ sơ Vay
 class LoanProfile(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Đang xử lý (Nháp)'),
+        ('FINALIZED', 'Đã hoàn tất (Khóa)'),
+    ]
+    
     created_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=255, verbose_name="Tên hồ sơ", default="Hồ sơ mới")
     form_view = models.ForeignKey(FormView, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Cấu hình Form")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name="Trạng thái")
+    lock_password = models.CharField(max_length=100, blank=True, null=True, verbose_name="Mật khẩu khóa (Dev)")
 
     def __str__(self):
         return self.name

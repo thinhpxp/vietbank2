@@ -8,8 +8,9 @@
       <div v-if="field.data_type === 'TEXT'" class="input-with-tools">
         <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
-          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass" />
-        <button v-if="hasDynamicTemplate(field)" class="btn-magic" title="Tự động điền theo mẫu"
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
+          :disabled="disabled" />
+        <button v-if="hasDynamicTemplate(field) && !disabled" class="btn-magic" title="Tự động điền theo mẫu"
           @click="applyTemplate(field)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -23,8 +24,8 @@
         <textarea :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control custom-textarea"
-          :class="inputClass" rows="4"></textarea>
-        <button v-if="hasDynamicTemplate(field)" class="btn-magic" title="Tự động điền theo mẫu"
+          :class="inputClass" rows="4" :disabled="disabled"></textarea>
+        <button v-if="hasDynamicTemplate(field) && !disabled" class="btn-magic" title="Tự động điền theo mẫu"
           @click="applyTemplate(field)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -40,11 +41,12 @@
           :value="formatNumber(modelValue[field.placeholder_key])"
           @input="handleNumberInput(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
-          placeholder="0" />
+          placeholder="0" :disabled="disabled" />
         <!-- Nếu không: Dùng number input truyền thống -->
         <input v-else type="number" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
-          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass" />
+          @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
+          :disabled="disabled" />
 
         <!-- Hiển thị số thành chữ (MỚI - Có thể bật/tắt) -->
         <div v-if="field.show_amount_in_words && modelValue[field.placeholder_key]" class="amount-in-words">
@@ -56,8 +58,8 @@
       <div v-else-if="field.data_type === 'DATE'" class="date-input-wrapper">
         <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control hybrid-text"
-          :class="inputClass" placeholder="Ngày/Tháng/Năm" />
-        <div class="calendar-trigger" @click="openPicker(field.placeholder_key)">
+          :class="inputClass" placeholder="Ngày/Tháng/Năm" :disabled="disabled" />
+        <div class="calendar-trigger" :class="{ 'disabled': disabled }" @click="!disabled && openPicker(field.placeholder_key)">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -74,7 +76,7 @@
       <div v-else-if="field.data_type === 'CHECKBOX'">
         <input type="checkbox" :id="field.placeholder_key"
           :checked="modelValue[field.placeholder_key] === 'true' || modelValue[field.placeholder_key] === true"
-          @change="updateValue(field.placeholder_key, $event.target.checked)" />
+          @change="updateValue(field.placeholder_key, $event.target.checked)" :disabled="disabled" />
       </div>
     </div>
   </div>
@@ -86,7 +88,8 @@ export default {
   props: {
     fields: { type: Array, required: true },
     modelValue: { type: Object, required: true },
-    inputClass: { type: String, default: '' }
+    inputClass: { type: String, default: '' },
+    disabled: { type: Boolean, default: false }
   },
   emits: ['update:modelValue', 'field-blur'],
   computed: {
@@ -336,6 +339,13 @@ export default {
 .calendar-trigger:hover {
   background: #e9ecef;
   color: #000;
+}
+
+.calendar-trigger.disabled {
+  background: #f1f1f1;
+  color: #aaa;
+  cursor: not-allowed;
+  border-left: 1px solid #ddd;
 }
 
 .hidden-picker {

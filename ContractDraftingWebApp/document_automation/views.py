@@ -222,9 +222,10 @@ class FieldViewSet(viewsets.ModelViewSet):
         # 1. Lọc nhóm
         groups_qs = FieldGroup.objects.all().order_by('order')
         if entity_type:
-            # Hỗ trợ cả cơ chế cũ (entity_type) và mới (object_type__code)
+            # Sử dụng allowed_object_types (M2M) thay vì object_type (FK)
+            # Cho phép 1 group liên kết với nhiều object types
             groups_qs = groups_qs.filter(
-                Q(object_type__code=entity_type) | 
+                Q(allowed_object_types__code=entity_type) | 
                 Q(entity_type=entity_type)
             ).distinct()
         elif form_slug:
@@ -347,11 +348,41 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
+    def lock_profile(self, request, pk=None):
+        """Khóa hồ sơ và thiết lập mật khẩu"""
+        profile = self.get_object()
+        password = request.data.get('password')
+        if not password:
+            return Response({"error": "Vui lòng cung cấp mật khẩu để khóa hồ sơ"}, status=400)
+        
+        profile.status = 'FINALIZED'
+        profile.lock_password = password
+        profile.save()
+        return Response({"status": "success", "message": "Hồ sơ đã được khóa thành công."})
+
+    @action(detail=True, methods=['post'])
+    def unlock_profile(self, request, pk=None):
+        """Mở khóa hồ sơ bằng mật khẩu"""
+        profile = self.get_object()
+        password = request.data.get('password')
+        
+        if profile.lock_password and profile.lock_password != password:
+            return Response({"error": "Mật khẩu không chính xác"}, status=403)
+        
+        profile.status = 'DRAFT'
+        profile.save()
+        return Response({"status": "success", "message": "Hồ sơ đã được mở khóa."})
+
+    @action(detail=True, methods=['post'])
     def save_form_data(self, request, pk=None):
         """
         API lưu dữ liệu tổng hợp (Generic for Universal Entity)
         """
         loan_profile = self.get_object()
+        
+        if loan_profile.status == 'FINALIZED':
+            return Response({"error": "Hồ sơ đã bị khóa, không thể chỉnh sửa."}, status=403)
+
         data = request.data
         updating_user = request.user if request.user.is_authenticated else None
 
@@ -710,11 +741,10 @@ def save_master_field_values(instance, field_values):
     if not field_values:
         return
     
+    # 1. Cập nhật bản gốc (Master Data)
     for key, val in field_values.items():
         try:
             field_obj = Field.objects.get(placeholder_key=key)
-            # Không cần check entity type ở đây vì đã check ở frontend
-            
             FieldValue.objects.update_or_create(
                 master_object=instance,
                 loan_profile=None,
@@ -723,6 +753,24 @@ def save_master_field_values(instance, field_values):
             )
         except Field.DoesNotExist:
             continue
+
+    # 2. ĐỒNG BỘ: Cập nhật cho các Hồ sơ vay liên quan (Chỉ những hồ sơ DRAFT)
+    from .models import LoanProfileObjectLink
+    links = LoanProfileObjectLink.objects.filter(master_object=instance, loan_profile__status='DRAFT')
+    
+    for link in links:
+        profile = link.loan_profile
+        for key, val in field_values.items():
+            try:
+                field_obj = Field.objects.get(placeholder_key=key)
+                FieldValue.objects.update_or_create(
+                    master_object=instance,
+                    loan_profile=profile,
+                    field=field_obj,
+                    defaults={'value': str(val)}
+                )
+            except Field.DoesNotExist:
+                continue
 
 def find_existing_master_object(object_type, field_values):
     """

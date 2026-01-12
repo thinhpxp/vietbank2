@@ -8,13 +8,6 @@
         <option value="LEFT">Cột Trái</option>
         <option value="RIGHT">Cột Phải</option>
       </select>
-      <label>Phân loại:</label>
-      <select v-model="newGroup.object_type" style="width: 200px" class="admin-input">
-        <option :value="null">-- Chung (CORE) --</option>
-        <option v-for="type in objectTypes" :key="type.id" :value="type.id">
-          {{ type.name }}
-        </option>
-      </select>
       <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" style="flex: 2" class="admin-input">
       <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="width: 60px" class="admin-input">
       <button @click="addGroup" class="btn-action btn-create">Thêm Nhóm</button>
@@ -30,7 +23,6 @@
           <th>Ghi chú</th>
           <th>Thứ tự</th>
           <th>Loại đối tượng áp dụng</th>
-          <th>Phân loại</th>
           <th>Hiển thị ở Form</th>
           <th>Hành động</th>
         </tr>
@@ -84,21 +76,6 @@
             </div>
           </td>
           <td>
-            <!-- NEW: Group Classification (Phân loại) -->
-            <select v-if="editingId === grp.id" v-model="grp.object_type" style="width: 100%">
-              <option :value="null">-- Chung (CORE) --</option>
-              <option v-for="type in objectTypes" :key="type.id" :value="type.id">
-                {{ type.name }}
-              </option>
-            </select>
-            <span v-else>
-              <span v-if="grp.object_type" class="badge badge-success">
-                {{objectTypes.find(t => t.id === grp.object_type)?.name || grp.object_type_code || '---'}}
-              </span>
-              <span v-else class="badge badge-secondary">Chung (CORE)</span>
-            </span>
-          </td>
-          <td>
             <div v-if="editingId === grp.id" class="form-selector">
               <label v-for="f in allForms" :key="f.id">
                 <input type="checkbox" :value="f.id" v-model="grp.allowed_forms"> {{ f.name }}
@@ -135,7 +112,7 @@ export default {
       groups: [],
       objectTypes: [],  // NEW
       allForms: [],
-      newGroup: { name: '', slug: '', order: 0, note: '', allowed_forms: [], layout_position: 'LEFT', allowed_object_types: [], object_type: null },
+      newGroup: { name: '', slug: '', order: 0, note: '', allowed_forms: [], layout_position: 'LEFT', allowed_object_types: [] },
       editingId: null,
       showDeleteModal: false,
       deleteTargetId: null,

@@ -21,28 +21,32 @@ class FormViewSerializer(serializers.ModelSerializer):
         model = FormView
         fields = '__all__'
 
-# 1.1 Serializer cho FieldGroup (MỚI)
+# 1.1 Serializer cho FieldGroup
 class FieldGroupSerializer(serializers.ModelSerializer):
-    object_type_code = serializers.CharField(source='object_type.code', read_only=True, allow_null=True)
-    
     class Meta:
         model = FieldGroup
-        fields = ['id', 'name', 'slug', 'order', 'note', 'allowed_forms', 'layout_position', 'allowed_object_types', 'object_type', 'object_type_code'] # Added allowed_object_types'] # Added layout_position
+        fields = ['id', 'name', 'slug', 'order', 'note', 'allowed_forms', 'layout_position', 'allowed_object_types']
 
 # 1.2 Serializer cho Field
 class FieldSerializer(serializers.ModelSerializer):
     # Hiển thị tên nhóm thay vì chỉ ID
     group_name = serializers.CharField(source='group.name', read_only=True)
     group_slug = serializers.CharField(source='group.slug', read_only=True)
-    group_layout_position = serializers.CharField(source='group.layout_position', read_only=True) # MỚI: Trả về vị trí hiển thị
-    group_object_type = serializers.CharField(source='group.object_type.code', read_only=True, allow_null=True) # MỚI: Trả về vị trí hiển thị
+    group_layout_position = serializers.CharField(source='group.layout_position', read_only=True)
+    # MỚI: Trả về danh sách object types mà group này áp dụng (thay thế group_object_type cũ)
+    group_allowed_object_types = serializers.SerializerMethodField()
     # Đánh dấu đây có phải là field dựng sẵn từ model (không phải record trong bảng Field)
     is_model_field = serializers.BooleanField(read_only=True, default=False)
+
+    def get_group_allowed_object_types(self, obj):
+        if obj.group and obj.group.allowed_object_types.exists():
+            return list(obj.group.allowed_object_types.values_list('code', flat=True))
+        return []
 
     class Meta:
         model = Field
         fields = [
-            'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'group_slug', 'group_layout_position', 'group_object_type',
+            'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'group_slug', 'group_layout_position', 'group_allowed_object_types',
             'is_active', 'is_protected', 'use_digit_grouping', 'show_amount_in_words', 'default_value', 'note', 'is_model_field', 
             'order', 'width_cols', 'css_class', 'allowed_forms', 'allowed_object_types'
         ]

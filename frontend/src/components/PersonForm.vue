@@ -5,10 +5,10 @@
         <span class="toggle-icon" :class="{ 'collapsed': isCollapsed }">▼</span>
         <h4>{{ personLabel }} #{{ index + 1 }} <span v-if="displayName" class="person-name">- {{ displayName }}</span>
         </h4>
-        <button type="button" class="btn-search-master" @click.stop="isModalOpen = true"
+        <button v-if="!disabled" type="button" class="btn-search-master" @click.stop="isModalOpen = true"
           title="Chọn từ danh sách đã có">🔍</button>
       </div>
-      <button type="button" class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
+      <button v-if="!disabled" type="button" class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
     </div>
 
     <div class="card-body" v-show="!isCollapsed">
@@ -17,7 +17,7 @@
         <label>Vai trò trong hồ sơ:</label>
         <div class="checkbox-group">
           <label v-for="role in availableRoles" :key="role" class="checkbox-inline">
-            <input type="checkbox" :value="role" v-model="localPerson.roles"> {{ role }}
+            <input type="checkbox" :value="role" v-model="localPerson.roles" :disabled="disabled"> {{ role }}
           </label>
         </div>
       </div>
@@ -26,7 +26,7 @@
       <div class="dynamic-section" v-if="personFields.length > 0">
         <hr>
         <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values"
-          @field-blur="handleFieldBlur" />
+          :disabled="disabled" @field-blur="handleFieldBlur" />
         <div v-if="duplicateWarning" class="alert-warning">
           <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
         </div>
@@ -50,7 +50,8 @@ export default {
     person: Object,
     personFields: Array,
     availableRoles: { type: Array, default: () => [] },
-    availableTypes: { type: Array, default: () => [] }
+    availableTypes: { type: Array, default: () => [] },
+    disabled: { type: Boolean, default: false }
   },
   emits: ['update:person', 'remove'],
   data() {

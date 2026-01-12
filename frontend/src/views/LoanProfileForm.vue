@@ -4,7 +4,10 @@
       <div class="header-title">
         <label class="profile-name-label">Tên hồ sơ:</label>
         <div class="profile-name-input-wrapper">
-          <input v-model="profileName" class="profile-name-input" placeholder="Nhập tên hồ sơ..." />
+          <input v-model="profileName" class="profile-name-input" placeholder="Nhập tên hồ sơ..." :disabled="isReadOnly" />
+        </div>
+        <div v-if="profileStatus" class="status-badge" :class="profileStatus.toLowerCase()">
+          {{ profileStatus === 'FINALIZED' ? '🔒 ĐÃ KHÓA' : '✍️ NHÁP' }}
         </div>
         <div v-if="currentFormName" class="form-type-badge">
           <span class="badge-label">Mẫu:</span>
@@ -12,9 +15,11 @@
         </div>
       </div>
       <div class="header-buttons">
+        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-lock" @click="lockProfile">🔒 Khóa hồ sơ</button>
+        <button v-if="profileStatus === 'FINALIZED'" class="btn-unlock" @click="unlockProfile">🔓 Mở khóa</button>
         <button v-if="id || currentId" class="btn-doc" @click="openDownloadModal">Xuất HĐ</button>
         <button v-if="id || currentId" class="btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
-        <button class="btn-primary" @click="saveProfile" :disabled="isSaving">
+        <button class="btn-primary" @click="saveProfile" :disabled="isSaving || isReadOnly">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
         </button>
       </div>
@@ -28,7 +33,7 @@
       <div class="left-panel" :style="{ width: (showRightPanel ? leftPanelWidth : 100) + '%' }">
         <div v-for="(group, slug) in leftPanelGroups" :key="slug" class="panel-section">
           <h3>{{ group.name }}</h3>
-          <DynamicForm :fields="group.fields" v-model="generalFieldValues" />
+          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly" />
         </div>
 
         <!-- DANH SÁCH NGƯỜI (CỘT TRÁI - Default) -->
@@ -75,7 +80,7 @@
         <!-- Các nhóm Generic bên phải -->
         <div v-for="(group, slug) in rightPanelGroups" :key="'right-' + slug" class="panel-section">
           <h3>{{ group.name }}</h3>
-          <DynamicForm :fields="group.fields" v-model="generalFieldValues" />
+          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly" />
         </div>
 
         <!-- Person List (nếu config Right) -->
@@ -164,10 +169,16 @@ export default {
 
       // Duplicate Modal
       showDuplicateModal: false,
-      duplicateDefaultName: ''
+      duplicateDefaultName: '',
+
+      // Profile Status
+      profileStatus: 'DRAFT'
     };
   },
   computed: {
+    isReadOnly() {
+      return this.profileStatus === 'FINALIZED';
+    },
     getGroupsByPosition() {
       return (position) => {
         return this.allFields.reduce((groups, field) => {
@@ -178,9 +189,9 @@ export default {
           // Nếu lọc theo vị trí mà không khớp -> bỏ qua
           if (gPos !== position) return groups;
 
-          // Lọc bỏ các nhóm đặc biệt (CÓ gán object_type) khỏi luồng hiển thị Generic
-          // Nhóm gán object_type sẽ được hiển thị qua PersonForm hoặc AssetForm
-          if (field.group_object_type) {
+          // Lọc bỏ các nhóm đặc biệt (CÓ gán allowed_object_types) khỏi luồng hiển thị Generic
+          // Nhóm gán object types sẽ được hiển thị qua PersonForm hoặc AssetForm
+          if (field.group_allowed_object_types && field.group_allowed_object_types.length > 0) {
             return groups;
           }
 
@@ -216,19 +227,20 @@ export default {
         Object.keys(this.rightPanelGroups).length > 0;
     },
     coreFields() {
-      // Thông tin CHUNG = Không có object_type (Core)
-      return this.allFields.filter(f => !f.group_object_type)
+      // Thông tin CHUNG = Không có object_type hoặc rỗng (Core)
+      return this.allFields.filter(f => !f.group_allowed_object_types || f.group_allowed_object_types.length === 0)
         .sort((a, b) => a.order - b.order);
     },
     personFields() {
-      // Thông tin NGƯỜI = gán object_type là PERSON
-      return this.allFields.filter(f => f.group_object_type === 'PERSON');
+      // Thông tin NGƯỜI = group có PERSON trong allowed_object_types
+      return this.allFields.filter(f => f.group_allowed_object_types?.includes('PERSON'));
     },
     assetFields() {
-      // Thông tin ĐỐI TƯỢNG KHÁC = gán object_type (nhưng không phải PERSON)
+      // Thông tin TÀI SẢN = group có object types nhưng không phải chỉ PERSON
       return this.allFields.filter(f => {
-        const type = f.group_object_type;
-        return type && type !== 'PERSON';
+        const types = f.group_allowed_object_types || [];
+        // Có ít nhất 1 type và không phải là duy nhất PERSON
+        return types.length > 0 && !(types.length === 1 && types[0] === 'PERSON');
       });
     }
   },
@@ -444,6 +456,7 @@ export default {
         const response = await axios.get(`http://127.0.0.1:8000/api/loan-profiles/${id}/`);
         const data = response.data;
         this.profileName = data.name;
+        this.profileStatus = data.status || 'DRAFT';
         this.generalFieldValues = data.field_values || {};
         this.people = data.people || [];
         this.assets = data.assets || [];
@@ -555,6 +568,30 @@ export default {
     },
     openDownloadModal() {
       this.isDownloadModalOpen = true;
+    },
+    async lockProfile() {
+      const password = prompt("Thiết lập mật khẩu để khóa hồ sơ này:");
+      if (!password) return;
+      
+      try {
+        await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${this.id || this.currentId}/lock_profile/`, { password });
+        this.profileStatus = 'FINALIZED';
+        alert("Hồ sơ đã được khóa.");
+      } catch (e) {
+        alert("Lỗi khi khóa hồ sơ: " + (e.response?.data?.error || e.message));
+      }
+    },
+    async unlockProfile() {
+      const password = prompt("Nhập mật khẩu để mở khóa:");
+      if (!password) return;
+
+      try {
+        await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${this.id || this.currentId}/unlock_profile/`, { password });
+        this.profileStatus = 'DRAFT';
+        alert("Hồ sơ đã được mở khóa.");
+      } catch (e) {
+        alert("Lỗi khi mở khóa: " + (e.response?.data?.error || e.message));
+      }
     }
   }
 };
@@ -583,10 +620,9 @@ export default {
 .header-title {
   display: flex;
   flex-direction: row;
-  /* Change to row to align label and input */
   align-items: center;
   gap: 15px;
-  flex: 1;
+  flex: 3; /* Give more space to title and badge */
 }
 
 .profile-name-label {
@@ -635,6 +671,58 @@ export default {
 
 .badge-value {
   font-weight: bold;
+}
+
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.status-badge.draft {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.status-badge.finalized {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.btn-lock, .btn-unlock {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-lock {
+  background: #fdf6e3;
+  color: #e67e22;
+  border: 1px solid #efcebc;
+}
+
+.btn-lock:hover {
+  background: #f39c12;
+  color: white;
+}
+
+.btn-unlock {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.btn-unlock:hover {
+  background: #2e7d32;
+  color: white;
 }
 
 /* Resize Handle Styles */

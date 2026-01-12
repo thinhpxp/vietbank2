@@ -5,17 +5,17 @@
         <span class="toggle-icon" :class="{ 'collapsed': isCollapsed }">▼</span>
         <h4>{{ objectLabel }} #{{ index + 1 }} <span v-if="displayInfo" class="asset-info">- {{ displayInfo }}</span>
         </h4>
-        <button type="button" class="btn-search-master" @click.stop="isModalOpen = true"
+        <button v-if="!disabled" type="button" class="btn-search-master" @click.stop="isModalOpen = true"
           title="Chọn từ danh sách đã có">🔍</button>
       </div>
-      <button class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
+      <button v-if="!disabled" class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
     </div>
 
     <div v-if="!isCollapsed" class="card-body">
       <!-- Type Selector -->
       <div class="type-selector-row">
         <label class="type-label">Phân loại đối tượng:</label>
-        <select v-model="selectedType" class="type-dropdown" @change="onTypeChange">
+        <select v-model="selectedType" class="type-dropdown" @change="onTypeChange" :disabled="disabled">
           <option :value="null">-- Chọn phân loại --</option>
           <option v-for="type in assetTypes" :key="type.code" :value="type.code">
             {{ type.name }}
@@ -24,7 +24,7 @@
       </div>
 
       <DynamicForm :fields="filteredAssetFields" :modelValue="asset.asset_field_values"
-        @update:modelValue="onUpdateValues" @field-blur="handleFieldBlur" />
+        :disabled="disabled" @update:modelValue="onUpdateValues" @field-blur="handleFieldBlur" />
       <div v-if="duplicateWarning" class="alert-warning">
         <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
       </div>
@@ -46,7 +46,8 @@ export default {
     index: { type: Number, required: true },
     asset: { type: Object, required: true },
     assetFields: { type: Array, default: () => [] },
-    availableTypes: { type: Array, default: () => [] } // Needed availableTypes prop
+    availableTypes: { type: Array, default: () => [] },
+    disabled: { type: Boolean, default: false }
   },
   emits: ['update:asset', 'remove'],
   data() {
