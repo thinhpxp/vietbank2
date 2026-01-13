@@ -19,18 +19,22 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Thông tin hiển thị</th>
+                                <th>Tên / Số hiệu</th>
+                                <th>Thông tin thêm</th>
                                 <th>Loại</th>
-                                <th>Định danh</th>
+                                <th>Ngày tạo</th>
                                 <th>Cập nhật gần nhất</th>
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="item in filteredItems" :key="item.id">
-                                <td><strong>{{ item.display_name }}</strong></td>
+                                <td class="font-bold">
+                                    {{ item.ho_ten || item.so_giay_chung_nhan || item.display_name || '---' }}
+                                </td>
+                                <td>{{ getAdditionalInfo(item) }}</td>
                                 <td><span class="badge-type">{{ item.object_type_display }}</span></td>
-                                <td>{{ getIdentityValue(item) }}</td>
+                                <td>{{ formatDate(item.created_at) }}</td>
                                 <td>
                                     <div class="update-info">
                                         <span>{{ formatDate(item.updated_at) }}</span>
@@ -43,7 +47,7 @@
                                 </td>
                             </tr>
                             <tr v-if="filteredItems.length === 0">
-                                <td colspan="5" class="text-center">Không tìm thấy kết quả phù hợp.</td>
+                                <td colspan="6" class="text-center">Không tìm thấy kết quả phù hợp.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -149,6 +153,20 @@ export default {
                 return item[typeConfig.identity_field_key] || '---';
             }
             return '---';
+        },
+        getAdditionalInfo(item) {
+            if (item.object_type === 'PERSON') {
+                return item.cccd ? `CCCD: ${item.cccd}` : '---';
+            } else if (item.object_type === 'VEHICLE') {
+                return item.nhan_hieu_xe ? `Hãng: ${item.nhan_hieu_xe}` : '---';
+            } else if (item.object_type === 'REALESTATE') {
+                return item.so_vao_so ? `Số vào sổ: ${item.so_vao_so}` : '---';
+            } else if (item.object_type === 'BOND') {
+                return item.ky_han_trai_phieu ? `Kỳ hạn: ${item.ky_han_trai_phieu}` : '---';
+            } else if (item.object_type === 'SAVINGS') {
+                return item.so_tien_goi ? `Số tiền: ${item.so_tien_goi}` : '---';
+            }
+            return item.owner_name || '---';
         },
         selectItem(item) {
             this.$emit('select', item);
@@ -282,5 +300,9 @@ export default {
 .text-muted {
     color: #888;
     font-size: 0.8em;
+}
+
+.font-bold {
+    font-weight: bold;
 }
 </style>

@@ -7,7 +7,7 @@
                     <span v-if="loading">⏳...</span>
                     <span v-else>🔄 Làm mới</span>
                 </button>
-                <button class="btn-action btn-create" @click="openCreateModal">+ Thêm mới</button>
+                <button class="btn-action btn-create" @click="openCreateModal()">+ Thêm mới</button>
             </div>
         </div>
 
@@ -48,6 +48,8 @@
                             <span v-if="activeTab === 'PERSON'">CCCD: {{ item.cccd }}</span>
                             <span v-else-if="activeTab === 'VEHICLE'">Hãng: {{ item.nhan_hieu_xe }}</span>
                             <span v-else-if="activeTab === 'REALESTATE'">Số vào sổ: {{ item.so_vao_so }}</span>
+                            <span v-else-if="activeTab === 'BOND'">Kỳ hạn: {{ item.ky_han_trai_phieu }}</span>
+                            <span v-else-if="activeTab === 'SAVINGS'">Số tiền: {{ item.so_tien_goi }}</span>
                             <span v-else>{{ item.owner_name }}</span>
                         </td>
                         <td>{{ formatDate(item.created_at) }}</td>
@@ -116,7 +118,8 @@
                                     <span>Loại: {{ rel.target_type }}</span> |
                                     <span>Quan hệ: {{ rel.relation_type }}</span>
                                 </div>
-                                <button class="btn-link" @click="viewChildDetails(rel.target_object)">Xem chi tiết</button>
+                                <button class="btn-link" @click="viewChildDetails(rel.target_object)">Xem chi
+                                    tiết</button>
                             </li>
                             <li v-if="relatedAssets.length === 0" class="empty-text">Chưa sở hữu tài sản nào.</li>
                         </ul>
@@ -128,7 +131,8 @@
                                 <div class="item-sub">
                                     <span>Quan hệ: {{ rel.relation_type }}</span>
                                 </div>
-                                <button class="btn-link" @click="viewChildDetails(rel.source_object)">Xem chi tiết</button>
+                                <button class="btn-link" @click="viewChildDetails(rel.source_object)">Xem chi
+                                    tiết</button>
                             </li>
                             <li v-if="owners.length === 0" class="empty-text">Chưa xác định chủ sở hữu.</li>
                         </ul>
@@ -144,10 +148,9 @@
             confirmText="Xóa" @confirm="executeDelete" @cancel="showDeleteModal = false" />
 
         <!-- CREATE/EDIT MODAL -->
-        <MasterCreateModal :isOpen="showCreateModal" 
-            :type="tempOverrideType || activeTab" 
-            :typeName="tempOverrideTypeName || currentTypeName"
-            :editObject="targetEditObject" @close="showCreateModal = false" @success="fetchData" />
+        <MasterCreateModal :isOpen="showCreateModal" :type="tempOverrideType || activeTab"
+            :typeName="tempOverrideTypeName || currentTypeName" :editObject="targetEditObject"
+            @close="showCreateModal = false" @success="fetchData" />
     </div>
 </template>
 
@@ -335,7 +338,7 @@ export default {
                     ...res.data,
                     ...res.data.field_values
                 };
-                
+
                 // Determine type title for the modal
                 // We need to guess type name or pass it. 
                 // The MasterCreateModal takes 'typeName'. 
@@ -343,11 +346,11 @@ export default {
                 const typeCode = fullObj.object_type;
                 const typeDef = this.objectTypes.find(t => t.code === typeCode);
                 const typeName = typeDef ? typeDef.name : typeCode;
-                
+
                 // Use a temporary workaround to open modal with this object type
                 // We need to set activeTab temporarily or pass separate props to Modal?
                 // MasterCreateModal uses 'type' prop.
-                
+
                 // Let's reuse specific properties for this case
                 this.targetEditObject = fullObj;
                 // Hack: We might need to handle the 'type' prop of modal if it differs from activeTab
@@ -355,19 +358,19 @@ export default {
                 // We should probably update showCreateModal to handle specific type overriding activeTab
                 // But for now let's assume we can pass it via a separate mechanism or just change activeTab?
                 // Changing activeTab changes the background list... maybe confusing.
-                
+
                 // Better: Update MasterCreateModal usage in template to accept dynamic type
                 // But for now, let's try just setting targetEditObject and hope 
                 // Wait, MasterCreateModal props: :type="activeTab".
                 // If I am viewing a Person (activeTab=PERSON), and viewing related Asset (VEHICLE),
                 // the modal will receive type="PERSON" which is WRONG for VEHICLE fields.
-                
+
                 // FIX: We need a dynamic override.
                 this.tempOverrideType = typeCode;
                 this.tempOverrideTypeName = typeName;
-                
+
                 this.showCreateModal = true;
-                
+
             } catch (e) {
                 console.error(e);
                 alert("Không thể tải thông tin chi tiết");

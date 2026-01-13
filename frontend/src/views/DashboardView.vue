@@ -15,6 +15,7 @@
           <th>Người tạo</th>
           <th>Ngày tạo</th>
           <th>Loại Form</th>
+          <th>Trạng thái</th>
           <th>Hành động</th>
         </tr>
       </thead>
@@ -27,6 +28,12 @@
           <td>
             <span class="badge-form" v-if="profile.form_view_name">{{ profile.form_view_name }}</span>
             <span v-else class="text-muted">Mặc định</span>
+          </td>
+          <td>
+            <div class="status-badge-container">
+              <span v-if="profile.status === 'FINALIZED'" class="status-badge finalized">🔒 ĐÃ KHÓA</span>
+              <span v-else class="status-badge draft">✍️ NHÁP</span>
+            </div>
           </td>
           <td>
             <button class="btn-edit" @click="editProfile(profile.id)">Sửa</button>
@@ -293,6 +300,32 @@ export default {
   color: #999;
   font-style: italic;
   font-size: 0.85em;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.status-badge.draft {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.status-badge.finalized {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.status-badge-container {
+  display: flex;
+  align-items: center;
 }
 
 /* Modal Styles */

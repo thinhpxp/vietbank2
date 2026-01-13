@@ -7,8 +7,9 @@
             </div>
             <div class="modal-body">
                 <div class="sync-note">
-                    <span class="icon">ℹ️</span> 
-                    Thông tin mới chỉ được áp dụng cho các hồ sơ nháp, các hồ sơ đã hoàn tất/khóa không bị ảnh hưởng.
+                    <span class="icon">ℹ️</span>
+                    Khi cập nhật, thông tin mới chỉ được áp dụng cho các hồ sơ nháp. Các hồ sơ đã hoàn tất/khóa không bị
+                    ảnh hưởng.
                 </div>
                 <div v-if="loadingFields" class="loading-state">Đang tải cấu hình trường...</div>
                 <div v-else>
@@ -180,6 +181,7 @@ export default {
         opacity: 0;
         transform: translateY(20px) scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
