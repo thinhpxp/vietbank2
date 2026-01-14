@@ -25,8 +25,8 @@
       <!-- 3. Các trường động của Người (Địa chỉ, SĐT...) -->
       <div class="dynamic-section" v-if="personFields.length > 0">
         <hr>
-        <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values"
-          :disabled="disabled" @field-blur="handleFieldBlur" />
+        <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values" :disabled="disabled"
+          @field-blur="handleFieldBlur" />
         <div v-if="duplicateWarning" class="alert-warning">
           <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
         </div>
@@ -109,7 +109,7 @@ export default {
       }
 
       this.$emit('update:person', this.localPerson);
-      alert(`Đã chọn: ${person.display_name}`);
+      this.$toast.success(`Đã chọn: ${person.display_name}`);
     },
     async handleFieldBlur({ key, value }) {
       if (!value) {

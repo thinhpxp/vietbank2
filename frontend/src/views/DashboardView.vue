@@ -2,7 +2,8 @@
   <div class="dashboard-container">
     <div class="header-actions">
       <h2>Danh sách Hồ sơ Vay</h2>
-      <button class="btn-create" @click="openFormSelectModal">+ Tạo Mới</button>
+      <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-create"
+        @click="openFormSelectModal">+ Tạo Mới</button>
     </div>
 
     <div v-if="loading">Đang tải dữ liệu...</div>
@@ -36,10 +37,12 @@
             </div>
           </td>
           <td>
-            <button class="btn-edit" @click="editProfile(profile.id)">Sửa</button>
+            <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-edit"
+              @click="editProfile(profile.id)">Sửa</button>
             <button class="btn-copy" @click="openDuplicateModal(profile)">Sao chép</button>
             <button class="btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
-            <button class="btn-delete" @click="deleteProfile(profile.id)">Xóa</button>
+            <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-delete"
+              @click="deleteProfile(profile.id)">Xóa</button>
           </td>
         </tr>
       </tbody>
@@ -82,6 +85,7 @@
 
 <script>
 import axios from 'axios';
+import auth from '@/store/auth';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
@@ -91,6 +95,7 @@ export default {
   components: { ContractDownloader, ConfirmModal, InputModal },
   data() {
     return {
+      auth,
       profiles: [],
       loading: true,
 
@@ -121,7 +126,7 @@ export default {
         this.profiles = response.data;
       } catch (error) {
         console.error(error);
-        alert('Lỗi tải danh sách hồ sơ');
+        this.$toast.error('Lỗi tải danh sách hồ sơ');
       } finally {
         this.loading = false;
       }
@@ -164,7 +169,7 @@ export default {
           this.fetchProfiles();
         } catch (error) {
           console.error(error);
-          alert('Lỗi khi xóa hồ sơ!');
+          this.$toast.error('Lỗi khi xóa hồ sơ!');
         }
       }
     },
@@ -188,11 +193,11 @@ export default {
         );
         this.showDuplicateModal = false;
         this.duplicateTargetId = null;
-        alert(`Đã tạo bản sao: ${response.data.name}`);
+        this.$toast.success(`Đã tạo bản sao: ${response.data.name}`);
         this.fetchProfiles();
       } catch (error) {
         console.error(error);
-        alert('Lỗi khi tạo bản sao!');
+        this.$toast.error('Lỗi khi tạo bản sao!');
       }
     },
     formatDate(dateString) {

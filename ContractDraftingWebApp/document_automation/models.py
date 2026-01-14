@@ -266,13 +266,43 @@ class FieldValue(models.Model):
     def __str__(self):
         return f"{self.field.placeholder_key}: {self.value}"
 
-# --- MỚI: Bảng phụ cho User để lưu Ghi chú ---
+# --- MỚI: Bảng phụ cho User để lưu thông tin chi tiết ---
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    note = models.TextField(blank=True, null=True, verbose_name="Ghi chú về nhân sự")
+    full_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Họ và tên")
+    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Số điện thoại")
+    workplace = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nơi làm việc")
+    department = models.CharField(max_length=255, blank=True, null=True, verbose_name="Phòng ban")
+    note = models.TextField(blank=True, null=True, verbose_name="Ghi chú thêm")
 
     def __str__(self):
         return f"Profile of {self.user.username}"
+
+
+# --- MỚI: Bảng Nhật ký tác động (Audit Log) ---
+class AuditLog(models.Model):
+    ACTION_CHOICES = [
+        ('LOGIN', 'Đăng nhập'),
+        ('LOGOUT', 'Đăng xuất'),
+        ('CREATE', 'Tạo mới'),
+        ('UPDATE', 'Cập nhật'),
+        ('DELETE', 'Xóa'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người thực hiện")
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="Hành động")
+    target_model = models.CharField(max_length=100, verbose_name="Đối tượng tác động")
+    target_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="ID đối tượng")
+    details = models.TextField(blank=True, null=True, verbose_name="Chi tiết thay đổi")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian")
+
+    class Meta:
+        verbose_name = "Nhật ký tác động"
+        verbose_name_plural = "Nhật ký tác động"
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        user_str = self.user.username if self.user else "System/Unknown"
+        return f"{user_str} - {self.action} on {self.target_model}"
 
 
 # 8. Quan hệ Trực tiếp giữa các Đối tượng (Master Relations)

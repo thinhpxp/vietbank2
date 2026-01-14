@@ -2,18 +2,59 @@
 # Chức năng: Chuyển đổi dữ liệu mô hình thành định dạng JSON và ngược lại
 # Có vai trò giống như một cầu nối giữa các mô hình dữ liệu và các API endpoints
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group, Permission
 from .models import (
     Field, FieldGroup, LoanProfile, FieldValue, DocumentTemplate, 
     Role, FormView, UserProfile, MasterObject, LoanProfileObjectLink, MasterObjectType,
-    MasterObjectRelation # ADDED
+    MasterObjectRelation, AuditLog # ADDED
 )
 
 # 0. Serializer cho Role (MỚI)
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = ['id', 'name', 'slug', 'description', 'relation_type', 'is_system'] # Updated to explicit fields or __all__
+        fields = ['id', 'name', 'slug', 'description', 'relation_type', 'is_system']
+
+# 0.0a Serializer cho Group và Permission (MỚI)
+class PermissionSerializer(serializers.ModelSerializer):
+    content_type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Permission
+        fields = ['id', 'name', 'codename', 'content_type']
+
+    def get_content_type(self, obj):
+        if not obj.content_type:
+            return "Khác"
+        
+        # Mapping tên Model sang Tiếng Việt thân thiện
+        mapping = {
+            'loanprofile': 'Hồ sơ vay',
+            'loanprofileasset': 'Tài sản hồ sơ',
+            'loanprofileperson': 'Người liên quan hồ sơ',
+            'documenttemplate': 'Mẫu tài liệu',
+            'field': 'Trường dữ liệu',
+            'fieldgroup': 'Nhóm trường',
+            'fieldvalue': 'Giá trị nhập liệu',
+            'formview': 'Cấu hình giao diện',
+            'masterobject': 'Đối tượng (Người/Tài sản)',
+            'masterobjecttype': 'Loại đối tượng',
+            'masterobjectrelation': 'Quan hệ đối tượng',
+            'role': 'Vai trò',
+            'user': 'Tài khoản người dùng',
+            'group': 'Nhóm quyền',
+            'userprofile': 'Thông tin mở rộng',
+            'auditlog': 'Nhật ký hệ thống',
+        }
+        
+        model_name = obj.content_type.model
+        return mapping.get(model_name, f"Hệ thống: {model_name.capitalize()}")
+
+class GroupSerializer(serializers.ModelSerializer):
+    permissions_details = PermissionSerializer(source='permissions', many=True, read_only=True)
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'permissions', 'permissions_details']
 
 # 0.1 Serializer cho FormView (MỚI)
 class FormViewSerializer(serializers.ModelSerializer):
@@ -52,42 +93,100 @@ class FieldSerializer(serializers.ModelSerializer):
         ]
 
 
-# 2.1 Serializer cho User (MỚI - Để quản lý End-user)
+# 2.1 Serializer cho User (Nâng cấp)
 class UserSerializer(serializers.ModelSerializer):
-    # Lấy note từ bảng UserProfile liên kết
-    note = serializers.CharField(source='profile.note', required=False, allow_blank=True)
+    full_name = serializers.CharField(source='profile.full_name', required=False, allow_blank=True, allow_null=True)
+    phone = serializers.CharField(source='profile.phone', required=False, allow_blank=True, allow_null=True)
+    workplace = serializers.CharField(source='profile.workplace', required=False, allow_blank=True, allow_null=True)
+    department = serializers.CharField(source='profile.department', required=False, allow_blank=True, allow_null=True)
+    note = serializers.CharField(source='profile.note', required=False, allow_blank=True, allow_null=True)
+    groups_details = GroupSerializer(source='groups', many=True, read_only=True)
+    permissions = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'is_staff', 'is_active', 'password', 'note']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['id', 'username', 'email', 'is_staff', 'is_active', 'password', 'full_name', 'phone', 'workplace', 'department', 'note', 'groups', 'groups_details', 'permissions']
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},
+            'username': {'read_only': True}
+        }
 
-    def create(self, validated_data):
-        # Tách note ra khỏi dữ liệu user
-        note_data = validated_data.pop('profile', {}).get('note', '')
-        user = User.objects.create_user(**validated_data)
-        # Cập nhật note vào profile (đã được tạo tự động bởi Signal)
-        user.profile.note = note_data
-        user.profile.save()
-        return user
+    def get_permissions(self, obj):
+        # Trả về danh sách codename của tất cả các quyền mà user có (bao gồm quyền từ Group)
+        return list(obj.get_all_permissions())
 
     def update(self, instance, validated_data):
-        # Tách note ra khỏi dữ liệu user
-        note_data = validated_data.pop('profile', {}).get('note', None)
-
-        # Cập nhật mật khẩu nếu có
-        if 'password' in validated_data:
-            password = validated_data.pop('password')
+        # Tách dữ liệu profile (được source nén vào)
+        profile_data = validated_data.pop('profile', {})
+        
+        # Cập nhật mật khẩu nếu có (thường Admin ít dùng qua update chung này)
+        password = validated_data.pop('password', None)
+        if password:
             instance.set_password(password)
 
-        # Cập nhật các trường khác của User
-        instance = super().update(instance, validated_data)
+        # Cập nhật Group nếu có
+        groups = validated_data.pop('groups', None)
+        if groups is not None:
+            instance.groups.set(groups)
 
-        # Cập nhật note nếu có
-        if note_data is not None:
-            instance.profile.note = note_data
-            instance.profile.save()
+        # Cập nhật các trường User chính
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
 
+        # Cập nhật Profile gắn kèm
+        profile, created = UserProfile.objects.get_or_create(user=instance)
+        for attr, value in profile_data.items():
+            setattr(profile, attr, value)
+        profile.save()
+
+        # Làm mới instance để serializer lấy được dữ liệu profile vừa lưu
+        instance.refresh_from_db()
         return instance
+
+# 2.2 Serializer cho Đăng ký (MỚI)
+class RegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    full_name = serializers.CharField(required=True)
+    phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    workplace = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    department = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'email', 'full_name', 'phone', 'workplace', 'department']
+
+    def create(self, validated_data):
+        full_name = validated_data.pop('full_name')
+        phone = validated_data.pop('phone', '')
+        workplace = validated_data.pop('workplace', '')
+        department = validated_data.pop('department', '')
+        
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            password=validated_data['password'],
+            email=validated_data.get('email', '')
+        )
+        
+        # Profile sẽ được tạo tự động qua Signal, ta chỉ cần cập nhật
+        user.profile.full_name = full_name
+        user.profile.phone = phone
+        user.profile.workplace = workplace
+        user.profile.department = department
+        user.profile.save()
+        
+        return user
+
+# 2.3 Serializer cho Đổi mật khẩu (MỚI)
+class PasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Mật khẩu cũ không chính xác.")
+        return value
 
 # Person and Asset serializers removed
 
@@ -303,3 +402,12 @@ class LoanProfileObjectLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanProfileObjectLink
         fields = ['id', 'loan_profile', 'master_object_id', 'object', 'roles']
+
+# 9. Serializer cho Audit Log (MỚI)
+class AuditLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    user_full_name = serializers.CharField(source='user.profile.full_name', read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = '__all__'

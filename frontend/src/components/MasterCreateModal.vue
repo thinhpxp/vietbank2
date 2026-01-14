@@ -1,41 +1,35 @@
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click.self="close">
-        <div class="modal-content popup-modal">
-            <div class="modal-header">
-                <h3>{{ title }}</h3>
-                <button class="btn-close" @click="close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="sync-note">
-                    <span class="icon">ℹ️</span>
-                    Khi cập nhật, thông tin mới chỉ được áp dụng cho các hồ sơ nháp. Các hồ sơ đã hoàn tất/khóa không bị
-                    ảnh hưởng.
-                </div>
-                <div v-if="loadingFields" class="loading-state">Đang tải cấu hình trường...</div>
-                <div v-else>
-                    <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="section-container">
-                        <h4 class="section-title">{{ groupName }}</h4>
-                        <DynamicForm :fields="fields" v-model="formData" inputClass="admin-input" />
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-cancel" @click="close">Hủy</button>
-                <button class="btn-save" @click="handleSave" :disabled="isSaving">
-                    {{ isSaving ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Tạo mới') }}
-                </button>
+    <BaseModal :isOpen="isOpen" :title="title" @close="close">
+        <div class="sync-note">
+            <span class="icon">ℹ️</span>
+            Khi cập nhật, thông tin mới chỉ được áp dụng cho các hồ sơ nháp. Các hồ sơ đã khóa không bị
+            ảnh hưởng.
+        </div>
+        <div v-if="loadingFields" class="loading-state">Đang tải cấu hình trường...</div>
+        <div v-else>
+            <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="section-container">
+                <h4 class="section-title">{{ groupName }}</h4>
+                <DynamicForm :fields="fields" v-model="formData" inputClass="admin-input" />
             </div>
         </div>
-    </div>
+
+        <template #footer>
+            <button class="btn-cancel" @click="close">Hủy</button>
+            <button class="btn-save" @click="handleSave" :disabled="isSaving">
+                {{ isSaving ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Tạo mới') }}
+            </button>
+        </template>
+    </BaseModal>
 </template>
 
 <script>
 import axios from 'axios';
 import DynamicForm from './DynamicForm.vue';
+import BaseModal from './BaseModal.vue';
 
 export default {
     name: 'MasterCreateModal',
-    components: { DynamicForm },
+    components: { DynamicForm, BaseModal },
     props: {
         isOpen: Boolean,
         type: String, // 'PERSON', 'ASSET', 'SAVINGS'
@@ -126,17 +120,18 @@ export default {
                     await axios.post(`http://127.0.0.1:8000/api/master-objects/`, payload);
                 }
 
+                this.$toast.success(`${this.isEdit ? 'Cập nhật' : 'Tạo mới'} thành công!`);
                 this.$emit('success');
                 this.close();
             } catch (error) {
                 console.error('Lỗi khi lưu master data:', error);
                 const data = error.response?.data;
                 if (data && data.code === 'duplicate') {
-                    alert('LỐI: ' + data.message);
+                    this.$toast.warning('LỖI: ' + data.message);
                 } else if (data && data.message) {
-                    alert('Lỗi: ' + data.message);
+                    this.$toast.error('Lỗi: ' + data.message);
                 } else {
-                    alert('Không thể lưu dữ liệu. Có thể do trùng lặp hoặc lỗi hệ thống.');
+                    this.$toast.error('Không thể lưu dữ liệu. Có thể do trùng lặp hoặc lỗi hệ thống.');
                 }
             } finally {
                 this.isSaving = false;
@@ -150,65 +145,6 @@ export default {
 </script>
 
 <style scoped>
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2500;
-}
-
-.modal-content.popup-modal {
-    background: white;
-    width: 650px;
-    max-width: 95%;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
-    overflow: hidden;
-    animation: modalAppear 0.3s ease-out;
-}
-
-@keyframes modalAppear {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-.modal-header {
-    padding: 20px 25px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #fcfcfc;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #2c3e50;
-    font-size: 1.25rem;
-}
-
-.modal-body {
-    flex: 1;
-    padding: 25px;
-    overflow-y: auto;
-}
-
 .sync-note {
     background: #e8f4fd;
     border-left: 4px solid #3498db;
@@ -227,15 +163,6 @@ export default {
     font-size: 1.2rem;
 }
 
-.modal-footer {
-    padding: 15px 25px;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    background: #f8f9fa;
-}
-
 .section-container {
     margin-bottom: 30px;
 }
@@ -249,20 +176,6 @@ export default {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-}
-
-.btn-close {
-    background: none;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    color: #bdc3c7;
-    transition: color 0.2s;
-    line-height: 1;
-}
-
-.btn-close:hover {
-    color: #e74c3c;
 }
 
 .btn-cancel {

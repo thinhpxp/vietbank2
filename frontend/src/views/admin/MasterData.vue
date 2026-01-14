@@ -373,7 +373,7 @@ export default {
 
             } catch (e) {
                 console.error(e);
-                alert("Không thể tải thông tin chi tiết");
+                this.$toast.error("Không thể tải thông tin chi tiết");
             } finally {
                 this.relatedLoading = false;
             }

@@ -12,7 +12,7 @@
         <router-link to="/admin/templates">📄 Mẫu</router-link>
         <router-link to="/admin/roles">🎭 Vai trò</router-link>
         <router-link to="/admin/forms">📑 Form</router-link>
-        <router-link to="/admin/users">👤 Người dùng</router-link>
+        <router-link to="/admin/users">🛡️ Quản lý Truy cập</router-link>
         <router-link to="/admin/object-types">🏷️ Loại Đối tượng</router-link>
         <router-link to="/admin/master-data">🗂️ Dữ liệu gốc</router-link>
         <hr />

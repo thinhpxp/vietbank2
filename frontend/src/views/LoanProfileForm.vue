@@ -4,7 +4,8 @@
       <div class="header-title">
         <label class="profile-name-label">Tên hồ sơ:</label>
         <div class="profile-name-input-wrapper">
-          <input v-model="profileName" class="profile-name-input" placeholder="Nhập tên hồ sơ..." :disabled="isReadOnly" />
+          <input v-model="profileName" class="profile-name-input" placeholder="Nhập tên hồ sơ..."
+            :disabled="isReadOnly" />
         </div>
         <div v-if="profileStatus" class="status-badge" :class="profileStatus.toLowerCase()">
           {{ profileStatus === 'FINALIZED' ? '🔒 ĐÃ KHÓA' : '✍️ NHÁP' }}
@@ -15,11 +16,12 @@
         </div>
       </div>
       <div class="header-buttons">
-        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-lock" @click="lockProfile">🔒 Khóa hồ sơ</button>
+        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-lock" @click="lockProfile">🔒 Khóa hồ
+          sơ</button>
         <button v-if="profileStatus === 'FINALIZED'" class="btn-unlock" @click="unlockProfile">🔓 Mở khóa</button>
         <button v-if="id || currentId" class="btn-doc" @click="openDownloadModal">Xuất HĐ</button>
         <button v-if="id || currentId" class="btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
-        <button class="btn-primary" @click="saveProfile" :disabled="isSaving || isReadOnly">
+        <button class="btn-primary" @click="saveProfile" :disabled="isSaving">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
         </button>
       </div>
@@ -439,7 +441,7 @@ export default {
           { new_name: newName }
         );
         this.showDuplicateModal = false;
-        alert(`Đã tạo bản sao: ${response.data.name}`);
+        this.$toast.success(`Đã tạo bản sao: ${response.data.name}`);
         // Chuyển hướng sang hồ sơ mới
         this.$router.push(`/edit/${response.data.id}`);
         // Vì Vue reuse component khi route thay đổi id, ta cần load lại data
@@ -479,6 +481,12 @@ export default {
       }
     },
     async saveProfile() {
+      // 0. Kiểm tra hồ sơ khóa
+      if (this.profileStatus === 'FINALIZED') {
+        this.$toast.warning("Hồ sơ đang khóa, không thể update");
+        return;
+      }
+
       // 1. Kiểm tra trùng lặp nội bộ (Deduplication Check)
       if (!this.validateInternalDuplicates()) {
         return; // Dừng nếu có trùng lặp
@@ -512,12 +520,12 @@ export default {
           this.currentId = targetId;
         }
 
-        alert('Lưu thành công!');
+        this.$toast.success('Lưu thành công!');
         // KHÔNG chuyển trang nữa theo yêu cầu của User
         // this.$router.push('/');
       } catch (error) {
         console.error(error);
-        alert('Lỗi khi lưu: ' + (error.response?.data?.message || error.message));
+        this.$toast.error('Lỗi khi lưu: ' + (error.response?.data?.message || error.message));
       } finally {
         this.isSaving = false;
       }
@@ -534,7 +542,7 @@ export default {
           const idValue = p.individual_field_values?.[idKey];
           if (idValue) {
             if (peopleIdentities.has(idValue)) {
-              alert(`LỖI: Hồ sơ đang có 2 Người trùng ${personType.name} (${idValue}). Vui lòng kiểm tra lại.`);
+              this.$toast.warning(`LỖI: Hồ sơ đang có 2 Người trùng ${personType.name} (${idValue}). Vui lòng kiểm tra lại.`);
               return false;
             }
             peopleIdentities.add(idValue);
@@ -557,7 +565,7 @@ export default {
         if (idValue) {
           if (!assetIdentities[typeCode]) assetIdentities[typeCode] = new Set();
           if (assetIdentities[typeCode].has(idValue)) {
-            alert(`LỖI: Hồ sơ đang có 2 tài sản ${typeConfig.name} trùng mã định danh (${idValue}). Vui lòng kiểm tra lại.`);
+            this.$toast.warning(`LỖI: Hồ sơ đang có 2 tài sản ${typeConfig.name} trùng mã định danh (${idValue}). Vui lòng kiểm tra lại.`);
             return false;
           }
           assetIdentities[typeCode].add(idValue);
@@ -572,11 +580,11 @@ export default {
     async lockProfile() {
       const password = prompt("Thiết lập mật khẩu để khóa hồ sơ này:");
       if (!password) return;
-      
+
       try {
         await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${this.id || this.currentId}/lock_profile/`, { password });
         this.profileStatus = 'FINALIZED';
-        alert("Hồ sơ đã được khóa.");
+        this.$toast.success("Hồ sơ đã được khóa.");
       } catch (e) {
         alert("Lỗi khi khóa hồ sơ: " + (e.response?.data?.error || e.message));
       }
@@ -588,7 +596,7 @@ export default {
       try {
         await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${this.id || this.currentId}/unlock_profile/`, { password });
         this.profileStatus = 'DRAFT';
-        alert("Hồ sơ đã được mở khóa.");
+        this.$toast.success("Hồ sơ đã được mở khóa.");
       } catch (e) {
         alert("Lỗi khi mở khóa: " + (e.response?.data?.error || e.message));
       }
@@ -622,7 +630,8 @@ export default {
   flex-direction: row;
   align-items: center;
   gap: 15px;
-  flex: 3; /* Give more space to title and badge */
+  flex: 3;
+  /* Give more space to title and badge */
 }
 
 .profile-name-label {
@@ -679,7 +688,7 @@ export default {
   font-weight: bold;
   font-size: 0.85rem;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .status-badge.draft {
@@ -694,7 +703,8 @@ export default {
   border: 1px solid #ffcdd2;
 }
 
-.btn-lock, .btn-unlock {
+.btn-lock,
+.btn-unlock {
   padding: 8px 16px;
   border-radius: 6px;
   border: none;

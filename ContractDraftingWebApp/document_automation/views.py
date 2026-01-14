@@ -1,10 +1,11 @@
-from rest_framework import viewsets, status
-from django.contrib.auth.models import User
+from rest_framework import viewsets, status, permissions
+from django.contrib.auth.models import User, Group, Permission
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.db import transaction
 from django.db.models import Prefetch
+from rest_framework.views import APIView
 # --- CÁC IMPORT MỚI CHO CHỨC NĂNG XUẤT WORD ---
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
@@ -12,6 +13,8 @@ from docxtpl import DocxTemplate
 from datetime import datetime
 import os
 import io
+from django.contrib.auth.signals import user_logged_in, user_logged_out
+from django.dispatch import receiver
 from num2words import num2words # Cần pip install num2words
 import decimal
 from jinja2 import Environment
@@ -20,17 +23,18 @@ from .models import (
     Field, LoanProfile, FieldValue, 
     DocumentTemplate, FieldGroup, Role, 
     FormView, MasterObject, LoanProfileObjectLink,
-    MasterObjectType, MasterObjectRelation # ADDED
+    MasterObjectType, MasterObjectRelation, AuditLog # ADDED
 )
 
 # Import Serializers
 from .serializers import (
     FieldSerializer, FieldGroupSerializer, LoanProfileSerializer, 
     FieldValueSerializer, DocumentTemplateSerializer,
-    RoleSerializer,
-    UserSerializer, FormViewSerializer, MasterObjectSerializer, 
+    RoleSerializer, GroupSerializer, PermissionSerializer,
+    UserSerializer, RegistrationSerializer, PasswordChangeSerializer, 
+    FormViewSerializer, MasterObjectSerializer, 
     LoanProfileObjectLinkSerializer, MasterObjectTypeSerializer,
-    MasterObjectRelationSerializer # ADDED
+    MasterObjectRelationSerializer, AuditLogSerializer # ADDED
 )
 # --- CÁC HÀM HỖ TRỢ JINJA2 (FORMAT TIỀN, NGÀY, CHỮ) ---
 def format_currency_filter(value):
@@ -154,12 +158,34 @@ def dateformat_filter(value, fmt="%d/%m/%Y"):
         return res
         
     return str(value) if value else " . . . . . . . . "
-# -----------------------------------------------------
-# 1.1 ViewSet cho FieldGroup (MỚI)
+# --- HELPER GHI LOG ---
+def log_action(user, action, target_model, target_id=None, details=None):
+    """Ghi nhật ký thao tác người dùng"""
+    try:
+        if user and user.is_authenticated:
+            AuditLog.objects.create(
+                user=user,
+                action=action,
+                target_model=target_model,
+                target_id=str(target_id) if target_id else None,
+                details=details
+            )
+    except Exception as e:
+        print(f"Lỗi ghi AuditLog: {e}")
+
+# --- SIGNALS CHO LOGIN/LOGOUT ---
+@receiver(user_logged_in)
+def log_user_login(sender, request, user, **kwargs):
+    log_action(user, 'LOGIN', 'User', user.id, f"Người dùng {user.username} đăng nhập")
+
+@receiver(user_logged_out)
+def log_user_logout(sender, request, user, **kwargs):
+    log_action(user, 'LOGOUT', 'User', user.id, f"Người dùng {user.username} đăng xuất")
+# 1.1 ViewSet cho FieldGroup
 class FieldGroupViewSet(viewsets.ModelViewSet):
     queryset = FieldGroup.objects.all().order_by('order')
     serializer_class = FieldGroupSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -169,23 +195,23 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(allowed_forms__slug=form_slug).distinct()
         return queryset
 
-# 1.1b ViewSet cho FormView (MỚI)
+# 1.1b ViewSet cho FormView
 class FormViewViewSet(viewsets.ModelViewSet):
     queryset = FormView.objects.all()
     serializer_class = FormViewSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 # 1.3 ViewSet cho Role
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 # 1.2 ViewSet cho Field
 class FieldViewSet(viewsets.ModelViewSet):
     queryset = Field.objects.all()
     serializer_class = FieldSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related('group')
@@ -262,29 +288,128 @@ class FieldViewSet(viewsets.ModelViewSet):
 
 # 3.1 ViewSet cho DocumentTemplate
 class DocumentTemplateViewSet(viewsets.ModelViewSet):
-    # Upload dành cho Admin trang quản trị
     queryset = DocumentTemplate.objects.all()
     serializer_class = DocumentTemplateSerializer
-    permission_classes = [AllowAny] # Hoặc IsAuthenticated
+    permission_classes = [IsAuthenticated]
 
-# 3.2 ViewSet cho User (MỚI)
+# 3.2 ViewSet cho User (Nâng cấp)
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.all().select_related('profile').prefetch_related('groups').order_by('username')
     serializer_class = UserSerializer
-    permission_classes = [AllowAny] # Nên là IsAdminUser
+    permission_classes = [IsAdminUser]
+
+    @action(detail=True, methods=['post'], url_path='reset-password')
+    def reset_password(self, request, pk=None):
+        """Action dành riêng cho Admin để đặt lại mật khẩu cho User"""
+        user = self.get_object()
+        new_password = request.data.get('password')
+        
+        if not new_password:
+            return Response({"error": "Vui lòng cung cấp mật khẩu mới."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        user.set_password(new_password)
+        user.save()
+        
+        log_action(request.user, 'UPDATE', 'User', user.id, f"Admin đã đặt lại mật khẩu cho {user.username}")
+        return Response({"status": "success", "message": f"Đã đặt lại mật khẩu cho user {user.username}"})
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all().prefetch_related('permissions').order_by('name')
+    serializer_class = GroupSerializer
+    permission_classes = [IsAdminUser]
+
+class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    # Lọc bỏ các quyền kỹ thuật/hệ thống không cần thiết cho Admin nghiệp vụ
+    queryset = Permission.objects.exclude(
+        content_type__app_label__in=['sessions', 'contenttypes', 'admin']
+    ).select_related('content_type').order_by('content_type__model', 'codename')
+    serializer_class = PermissionSerializer
+    permission_classes = [IsAdminUser]
+    pagination_class = None # Đảm bảo không bị phân trang làm mất quyền
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(name__icontains=search) | 
+                Q(codename__icontains=search) | 
+                Q(content_type__app_label__icontains=search) |
+                Q(content_type__model__icontains=search)
+            )
+        return queryset
+
+# --- NEW AUTH VIEWS ---
+class RegistrationView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = RegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            log_action(user, 'CREATE', 'User', user.id, f"Đăng ký tài khoản mới: {user.username}")
+            return Response({"status": "success", "message": "Đăng ký thành công!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            return Response({"status": "success", "message": "Đổi mật khẩu thành công!"})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = AuditLog.objects.all()
+    serializer_class = AuditLogSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        return queryset
 
 # 4. ViewSet cho LoanProfile (Logic chính)
 class LoanProfileViewSet(viewsets.ModelViewSet):
     queryset = LoanProfile.objects.all()
     serializer_class = LoanProfileSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     def perform_create(self, serializer):
-        # Tự động gán user tạo nếu đã đăng nhập
-        if self.request.user.is_authenticated:
-            serializer.save(created_by_user=self.request.user)
-        else:
-            serializer.save()
+        user = self.request.user if self.request.user.is_authenticated else None
+        instance = serializer.save(created_by_user=user)
+        log_action(user, 'CREATE', 'LoanProfile', instance.id, f"Tạo hồ sơ: {instance.name}")
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        log_action(self.request.user, 'UPDATE', 'LoanProfile', instance.id, f"Cập nhật hồ sơ: {instance.name}")
+
+    def perform_destroy(self, instance):
+        p_id = instance.id
+        p_name = instance.name
+        instance.delete()
+        log_action(self.request.user, 'DELETE', 'LoanProfile', p_id, f"Xóa hồ sơ: {p_name}")
 
     @action(detail=True, methods=['post'])
     def duplicate(self, request, pk=None):
@@ -358,6 +483,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         profile.status = 'FINALIZED'
         profile.lock_password = password
         profile.save()
+        log_action(request.user, 'UPDATE', 'LoanProfile', profile.id, f"Khóa hồ sơ (Finalized)")
         return Response({"status": "success", "message": "Hồ sơ đã được khóa thành công."})
 
     @action(detail=True, methods=['post'])
@@ -371,6 +497,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         
         profile.status = 'DRAFT'
         profile.save()
+        log_action(request.user, 'UPDATE', 'LoanProfile', profile.id, f"Mở khóa hồ sơ (Draft)")
         return Response({"status": "success", "message": "Hồ sơ đã được mở khóa."})
 
     @action(detail=True, methods=['post'])
@@ -812,7 +939,7 @@ def find_existing_master_object(object_type, field_values):
 class MasterObjectRelationViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectRelation.objects.all().order_by('-created_at')
     serializer_class = MasterObjectRelationSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=['post'])
     def create_relation(self, request):
@@ -843,14 +970,14 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('code')
     serializer_class = MasterObjectTypeSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [IsAuthenticated] 
     # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
 
 
 class MasterObjectViewSet(viewsets.ModelViewSet):
     queryset = MasterObject.objects.all().order_by('-id')
     serializer_class = MasterObjectSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Filter by object_type (can be comma-separated) if provided in query params"""
@@ -872,15 +999,23 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import ValidationError
             raise ValidationError({"message": f"Dữ liệu này đã tồn tại trong hệ thống (ID: {existing.id})", "code": "duplicate"})
 
-        user = self.request.user if not self.request.user.is_anonymous else None
+        user = self.request.user if self.request.user.is_authenticated else None
         instance = serializer.save(last_updated_by=user)
         save_master_field_values(instance, field_values)
+        log_action(user, 'CREATE', f'MasterObject:{object_type}', instance.id, f"Tạo mới dữ liệu gốc")
 
     def perform_update(self, serializer):
-        user = self.request.user if not self.request.user.is_anonymous else None
+        user = self.request.user if self.request.user.is_authenticated else None
         instance = serializer.save(last_updated_by=user)
         field_values = self.request.data.get('field_values', {})
         save_master_field_values(instance, field_values)
+        log_action(user, 'UPDATE', f'MasterObject:{instance.object_type}', instance.id, f"Cập nhật dữ liệu gốc")
+
+    def perform_destroy(self, instance):
+        o_id = instance.id
+        o_type = instance.object_type
+        instance.delete()
+        log_action(self.request.user, 'DELETE', f'MasterObject:{o_type}', o_id, f"Xóa dữ liệu gốc")
 
     @action(detail=False, methods=['get'])
     def check_identity(self, request):

@@ -74,7 +74,7 @@ REST_FRAMEWORK = {
 
 #Cấu hình thời gian sống của JWT tokens
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60), # Access token hết hạn sau 60 phút
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=4), # Access token hết hạn sau 4 giờ
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),   # Refresh token hết hạn sau 1 ngày
 
     "ROTATE_REFRESH_TOKENS": True, # Tự động tạo refresh token mới mỗi khi refresh

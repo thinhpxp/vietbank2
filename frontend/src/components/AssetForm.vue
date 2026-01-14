@@ -23,8 +23,8 @@
         </select>
       </div>
 
-      <DynamicForm :fields="filteredAssetFields" :modelValue="asset.asset_field_values"
-        :disabled="disabled" @update:modelValue="onUpdateValues" @field-blur="handleFieldBlur" />
+      <DynamicForm :fields="filteredAssetFields" :modelValue="asset.asset_field_values" :disabled="disabled"
+        @update:modelValue="onUpdateValues" @field-blur="handleFieldBlur" />
       <div v-if="duplicateWarning" class="alert-warning">
         <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
       </div>
@@ -166,7 +166,7 @@ export default {
       }
 
       this.$emit('update:asset', this.localAssetData);
-      alert(`Đã chọn tài sản: ${asset.display_name}`);
+      this.$toast.success(`Đã chọn tài sản: ${asset.display_name}`);
     },
     async handleFieldBlur({ key, value }) {
       if (!value || !this.selectedType) {
