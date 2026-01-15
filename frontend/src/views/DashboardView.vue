@@ -39,7 +39,8 @@
           <td>
             <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-edit"
               @click="editProfile(profile.id)">Sửa</button>
-            <button class="btn-copy" @click="openDuplicateModal(profile)">Sao chép</button>
+            <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-copy"
+              @click="openDuplicateModal(profile)">Sao chép</button>
             <button class="btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
             <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-delete"
               @click="deleteProfile(profile.id)">Xóa</button>

@@ -34,7 +34,8 @@ const store = {
     state,
 
     // Getters
-    isAdmin: computed(() => state.user?.is_staff || false),
+    isAdmin: computed(() => state.user?.is_staff || state.user?.is_superuser || false),
+    isSuperuser: computed(() => state.user?.is_superuser || false),
     hasPermission: (perm) => {
         if (state.user?.is_superuser) return true;
         return state.permissions.includes(perm);

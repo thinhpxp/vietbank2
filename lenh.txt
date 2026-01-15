@@ -21,8 +21,6 @@ Bước 1: di chuyển đến thư mục frontend
 
 cd frontend
 
-Bước 2: Khởi động frontend
-
 npm run serve
 
 Truy cập giao diện frontend tại: http://localhost:8080/

@@ -12,6 +12,14 @@
                 <button :class="{ active: activeMainTab === 'audit' }" @click="activeMainTab = 'audit'">📜 Nhật
                     ký</button>
             </div>
+            <div class="role-legend">
+                <span class="legend-item" title="Toàn quyền hệ thống, bỏ qua RBAC"><span
+                        class="badge badge-superuser">ROOT</span> Siêu Quản Trị</span>
+                <span class="legend-item" title="Có quyền truy cập Dashboard Admin, quyền hạn theo Nhóm"><span
+                        class="badge badge-admin">Admin</span> Quản trị</span>
+                <span class="legend-item" title="Người dùng nghiệp vụ, chỉ có quyền theo Nhóm"><span
+                        class="badge badge-user">User</span> Nghiệp vụ</span>
+            </div>
         </div>
 
         <!-- TAB 1: NGƯỜI DÙNG -->
@@ -43,7 +51,10 @@
                                     <span :class="['badge', u.is_active ? 'badge-active' : 'badge-inactive']">
                                         {{ u.is_active ? 'Active' : 'Locked' }}
                                     </span>
-                                    <span v-if="u.is_staff" class="badge badge-admin">Admin</span>
+                                    <span v-if="u.is_staff && !u.is_superuser" class="badge badge-admin">Admin</span>
+                                    <span v-if="u.is_superuser" class="badge badge-superuser"
+                                        title="Tài khoản Hệ thống">ROOT</span>
+                                    <span v-if="!u.is_staff && !u.is_superuser" class="badge badge-user">User</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -59,79 +70,113 @@
                     <div class="pane-header">
                         <h3>Chi tiết: {{ selectedUser.username }}</h3>
                         <div class="actions">
-                            <button @click="saveUser" class="btn-success" :disabled="isSaving">Lưu thay đổi</button>
+                            <span v-if="selectedUser.is_superuser" class="superuser-warning">
+                                🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
+                            </span>
+                            <button @click="saveUser" class="btn-success"
+                                :disabled="isSaving || (selectedUser.is_superuser && !auth.isSuperuser)">
+                                Lưu thay đổi
+                            </button>
                         </div>
                     </div>
 
-                    <div class="form-grid">
+                    <div class="editor-content scrollable">
+                        <div class="form-grid">
+                            <section class="form-section">
+                                <h4>Thông tin Tài khoản</h4>
+                                <div class="field">
+                                    <label>Username</label>
+                                    <input type="text" v-model="selectedUser.username" class="form-control" disabled
+                                        title="Username là định danh duy nhất và không thể thay đổi." />
+                                </div>
+                                <div class="field">
+                                    <label>Email</label>
+                                    <input type="email" v-model="selectedUser.email" class="form-control" />
+                                </div>
+                                <div class="field-row">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" v-model="selectedUser.is_active" /> Hoạt động
+                                    </label>
+                                    <label class="checkbox-label"
+                                        :class="{ disabled: selectedUser.is_superuser && !auth.isSuperuser }">
+                                        <input type="checkbox" v-model="selectedUser.is_staff"
+                                            :disabled="selectedUser.is_superuser && !auth.isSuperuser" /> Quyền Admin
+                                    </label>
+                                    <label v-if="auth.isSuperuser" class="checkbox-label">
+                                        <input type="checkbox" v-model="selectedUser.is_superuser" /> Quyền Root
+                                    </label>
+                                </div>
+                            </section>
+
+                            <section class="form-section">
+                                <h4>Thông tin Cá nhân</h4>
+                                <div class="field">
+                                    <label>Họ và tên</label>
+                                    <input type="text" v-model="selectedUser.full_name" class="form-control" />
+                                </div>
+                                <div class="field">
+                                    <label>Số điện thoại</label>
+                                    <input type="text" v-model="selectedUser.phone" class="form-control" />
+                                </div>
+                                <div class="field">
+                                    <label>Nơi làm việc</label>
+                                    <input type="text" v-model="selectedUser.workplace" class="form-control" />
+                                </div>
+                                <div class="field">
+                                    <label>Phòng ban</label>
+                                    <input type="text" v-model="selectedUser.department" class="form-control" />
+                                </div>
+                            </section>
+                        </div>
+
                         <section class="form-section">
-                            <h4>Thông tin Tài khoản</h4>
+                            <h4>Ghi chú quản trị</h4>
                             <div class="field">
-                                <label>Username</label>
-                                <input type="text" v-model="selectedUser.username" class="form-control" disabled
-                                    title="Username là định danh duy nhất và không thể thay đổi." />
+                                <textarea v-model="selectedUser.note" class="form-control" rows="3"
+                                    placeholder="Nhập ghi chú chi tiết về người dùng này..."></textarea>
                             </div>
-                            <div class="field">
-                                <label>Email</label>
-                                <input type="email" v-model="selectedUser.email" class="form-control" />
-                            </div>
-                            <div class="field-row">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" v-model="selectedUser.is_active" /> Hoạt động
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" v-model="selectedUser.is_staff" /> Quyền Admin
+                        </section>
+
+                        <section class="form-section">
+                            <h4>Nhóm quyền</h4>
+                            <div class="group-picker">
+                                <label v-for="g in groups" :key="g.id" class="group-chip"
+                                    :class="{ selected: selectedUser.groups.includes(g.id) }">
+                                    <input type="checkbox" :value="g.id" v-model="selectedUser.groups" />
+                                    {{ g.name }}
                                 </label>
                             </div>
                         </section>
 
                         <section class="form-section">
-                            <h4>Thông tin Cá nhân</h4>
-                            <div class="field">
-                                <label>Họ và tên</label>
-                                <input type="text" v-model="selectedUser.full_name" class="form-control" />
+                            <h4>Quyền hạn thực tế</h4>
+                            <div class="effective-permissions">
+                                <div v-if="selectedUser.is_superuser" class="all-permissions-banner">
+                                    🔥 <strong>TOÀN QUYỀN HỆ THỐNG</strong> - Người dùng này có quyền thực hiện mọi hành
+                                    động mà không cần gán nhóm.
+                                </div>
+                                <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
+                                    class="perm-tags">
+                                    <span v-for="p in selectedUser.permissions" :key="p" class="perm-tag">{{ p }}</span>
+                                </div>
+                                <div v-else class="empty-permissions">
+                                    ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
+                                </div>
                             </div>
-                            <div class="field">
-                                <label>Số điện thoại</label>
-                                <input type="text" v-model="selectedUser.phone" class="form-control" />
-                            </div>
-                            <div class="field">
-                                <label>Nơi làm việc</label>
-                                <input type="text" v-model="selectedUser.workplace" class="form-control" />
-                            </div>
-                            <div class="field">
-                                <label>Phòng ban</label>
-                                <input type="text" v-model="selectedUser.department" class="form-control" />
+                        </section>
+
+                        <section class="form-section danger-zone">
+                            <h4>Vùng nguy hiểm</h4>
+                            <div class="action-row">
+                                <button @click="confirmResetPassword" class="btn-warning"
+                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">🔄 Reset mật
+                                    khẩu</button>
+                                <button @click="confirmDeleteUser" class="btn-danger"
+                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">🗑️ Xóa tài
+                                    khoản</button>
                             </div>
                         </section>
                     </div>
-
-                    <section class="form-section">
-                        <h4>Ghi chú quản trị</h4>
-                        <div class="field">
-                            <textarea v-model="selectedUser.note" class="form-control" rows="3"
-                                placeholder="Nhập ghi chú chi tiết về người dùng này..."></textarea>
-                        </div>
-                    </section>
-
-                    <section class="form-section">
-                        <h4>Nhóm quyền</h4>
-                        <div class="group-picker">
-                            <label v-for="g in groups" :key="g.id" class="group-chip"
-                                :class="{ selected: selectedUser.groups.includes(g.id) }">
-                                <input type="checkbox" :value="g.id" v-model="selectedUser.groups" />
-                                {{ g.name }}
-                            </label>
-                        </div>
-                    </section>
-
-                    <section class="form-section danger-zone">
-                        <h4>Vùng nguy hiểm</h4>
-                        <div class="action-row">
-                            <button @click="confirmResetPassword" class="btn-warning">🔄 Reset mật khẩu</button>
-                            <button @click="confirmDeleteUser" class="btn-danger">🗑️ Xóa tài khoản</button>
-                        </div>
-                    </section>
                 </div>
                 <div v-else class="empty-state">
                     <i class="icon">👤</i>
@@ -267,6 +312,7 @@
 
 <script>
 import axios from 'axios';
+import auth from '@/store/auth';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -298,7 +344,8 @@ export default {
             isResizing: false,
             resizeMode: '',
             showResetModal: false,
-            newPassword: ''
+            newPassword: '',
+            auth // Add to data for template use
         };
     },
     computed: {
@@ -480,6 +527,10 @@ export default {
 </script>
 
 <style scoped>
+* {
+    box-sizing: border-box;
+}
+
 .access-mgmt {
     display: flex;
     flex-direction: column;
@@ -543,7 +594,7 @@ export default {
     background: #fff;
     overflow: hidden;
     /* Quan trọng để con không làm giãn cha */
-    height: 100%;
+    min-height: 0;
 }
 
 .editor-container {
@@ -551,9 +602,16 @@ export default {
     flex-direction: column;
     flex: 1;
     overflow: hidden;
-    /* Quan trọng để permission-manager không giãn nở */
+    /* Quan trọng để editor-content và permission-manager không giãn nở */
     min-height: 0;
     /* Fix flexbox growth in some browsers */
+}
+
+.editor-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    max-width: 100%;
 }
 
 .pane-left {
@@ -578,7 +636,7 @@ export default {
 
 .pane-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     margin-bottom: 1rem;
     position: sticky;
@@ -586,9 +644,11 @@ export default {
     background: #fff;
     z-index: 10;
     padding-bottom: 10px;
-    border-bottom: 1px solid #f1f5f9;
+    /*border-bottom: 1px solid #f1f5f9;*/
     flex-wrap: wrap;
     gap: 10px;
+    flex-shrink: 0;
+    /* Đảm bảo header không bị co lại */
 }
 
 .pane-header h3 {
@@ -607,6 +667,11 @@ export default {
     background: transparent;
     width: 100%;
     min-width: 150px;
+}
+
+.pane-header input.form-control {
+    width: 100%;
+    min-width: 300px;
 }
 
 .pane-header input.h3-input:hover,
@@ -679,15 +744,86 @@ export default {
     color: #1e40af;
 }
 
+.badge-superuser {
+    background: #1e293b;
+    color: #fff;
+    border: 1px solid #000;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.badge-user {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+/* Legend */
+.role-legend {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Effective Permissions */
+.effective-permissions {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.all-permissions-banner {
+    color: #b91c1c;
+    background: #fef2f2;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #fee2e2;
+    font-size: 0.9rem;
+}
+
+.perm-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.perm-tag {
+    font-size: 0.75rem;
+    font-family: monospace;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #334155;
+}
+
+.empty-permissions {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
 /* Forms */
 .form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 1.5rem;
+    width: 100%;
 }
 
 .form-section {
     margin-bottom: 1.5rem;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .form-section h4 {
@@ -711,6 +847,7 @@ export default {
 
 .form-control {
     width: 100%;
+    max-width: 100%;
     padding: 8px 12px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
@@ -953,6 +1090,10 @@ export default {
 }
 
 /* Audit Log */
+.audit-view {
+    flex: 1;
+}
+
 .audit-table .time {
     color: #64748b;
     font-size: 0.8rem;
