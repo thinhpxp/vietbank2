@@ -4,7 +4,7 @@
 
 /* Layout & Containers */
 .admin-page {
-    background: white;
+    background: var(--color-bg);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
@@ -60,51 +60,53 @@
 
 /* Specific Button Themes */
 .btn-edit {
-    background-color: #3498db;
+    background-color: var(--color-primary);
     color: white;
     padding: 5px 10px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .btn-edit:hover {
-    background-color: #2980b9;
+    background-color: var(--color-primary-dark);
 }
 
 .btn-delete {
-    background-color: #e74c3c;
+    background-color: var(--color-danger);
     color: white;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .btn-delete:hover {
     background-color: #c0392b;
+    /* could map to a darker danger if needed */
 }
 
 .btn-copy {
-    background-color: #f39c12;
+    background-color: var(--color-warning);
     color: white;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .btn-copy:hover {
     background-color: #d35400;
+    /* darker warning */
 }
 
 .btn-primary,
 .btn-create,
 .btn-save {
-    background-color: #42b983;
+    background-color: var(--color-primary);
     color: white;
     padding: 6px 12px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .btn-primary:hover,
 .btn-create:hover,
 .btn-save:hover {
-    background-color: #3aa876;
+    background-color: var(--color-primary-dark);
 }
 
 .btn-secondary {
@@ -144,7 +146,13 @@
 
 /* Standard Admin Input */
 .admin-input {
-    min-width: 40px;
+    min-width: 15ch;
+    /* Đảm bảo hiển thị được ít nhất ~15 ký tự */
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Hiện ... nếu vẫn không đủ chỗ */
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -157,6 +165,13 @@
     border-color: #42b983;
     outline: none;
     box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
+}
+
+.admin-input:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 1;
 }
 
 .filter-group {
@@ -203,7 +218,7 @@
 }
 
 .data-table th {
-    background: #f8f9fa;
+    background: var(--color-light);
     color: #333;
     font-weight: 700;
     font-size: small;
@@ -272,4 +287,378 @@
 .badge-custom {
     background: #e8f4fd;
     color: #3498db;
+}
+
+.badge-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-inactive {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-admin {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-superuser {
+    background: #1e293b;
+    color: #fff;
+    border: 1px solid #000;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.badge-user {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+/* ==========================================================================
+   NEW DESIGN SYSTEM COMPONENTS
+   ========================================================================== */
+
+/* Admin Forms */
+.admin-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.admin-form-section {
+    margin-bottom: 1.5rem;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.admin-form-section h4 {
+    border-bottom: 1px solid var(--color-light);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: #64748b;
+    /* Todo: Add muted text token */
+}
+
+.admin-field {
+    margin-bottom: 12px;
+}
+
+.admin-field label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.admin-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+/* Enhanced Input Controls */
+.admin-form-control {
+    width: 100%;
+    max-width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-light);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: border-color 0.2s;
+}
+
+.admin-form-selector {
+    max-height: 80px;
+    overflow-y: auto;
+    font-size: 0.8em;
+    border: 1px solid var(--color-light);
+    padding: 5px;
+    background: var(--color-bg);
+}
+
+.admin-form-selector label {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.admin-form-control:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.1);
+}
+
+.admin-form-control:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+/* Chips & Group Pickers */
+.admin-group-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.admin-group-chip {
+    padding: 6px 12px;
+    border: 1px solid var(--color-light);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: all 0.2s;
+}
+
+.admin-group-chip:hover {
+    background: var(--color-light);
+}
+
+.admin-group-chip.selected {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* Permission Tags & Legend */
+.admin-role-legend {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.admin-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.admin-effective-permissions {
+    background: var(--color-light);
+    border: 1px solid var(--color-light);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.admin-perm-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.admin-perm-tag {
+    font-size: 0.75rem;
+    font-family: monospace;
+    background: var(--color-bg);
+    border: 1px solid #cbd5e1;
+    /* Add border color token later */
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+}
+
+.admin-all-permissions-banner {
+    color: #b91c1c;
+    background: #fef2f2;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #fee2e2;
+    font-size: 0.9rem;
+}
+
+.admin-empty-permissions {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.admin-empty-permissions {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+/* Panels & Containers */
+.admin-panel {
+    background: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-light);
+}
+
+/* Table Utilities */
+.admin-sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.admin-sortable:hover {
+    background-color: var(--color-light);
+}
+
+/* Modals */
+.admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.admin-modal-content {
+    background: var(--color-bg);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    width: 500px;
+    max-width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    color: var(--color-text);
+}
+
+.admin-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.admin-modal-footer {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.admin-side-modal {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    background: var(--color-bg);
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    max-width: 90%;
+    transition: width 0.1s;
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 2px solid var(--color-light);
+    margin-bottom: 1rem;
+}
+
+.admin-tab-item {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border: 1px solid transparent;
+    border-bottom: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 6px 6px 0 0;
+    transition: all 0.2s;
+}
+
+.admin-tab-item:hover {
+    background: #e2e8f0;
+}
+
+.admin-tab-item.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* File Upload */
+.admin-file-upload {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.admin-file-name {
+    font-size: 0.75rem;
+    color: #666;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-hidden-input {
+    display: none;
+}
+
+/* Utilities */
+.w-full {
+    width: 100%;
+}
+
+.flex {
+    display: flex;
+    flex-wrap: wrap;
+    /* Cho phép rớt dòng nếu không đủ chỗ */
+}
+
+/* Form Row tự cân bằng */
+.admin-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Input trong admin-row sẽ tự giãn và có kích thước tối thiểu an toàn */
+.admin-row .admin-input,
+.admin-row .admin-form-control {
+    flex: 1 1 20ch;
+    /* Grow: 1, Shrink: 1, Basis: 20ch (độ rộng tối thiểu gợi ý) */
+    min-width: 20ch;
+    /* Đảm bảo KHÔNG bao giờ nhỏ hơn khoảng chứa placeholder ~20 ký tự */
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.font-bold {
+    font-weight: bold;
 }

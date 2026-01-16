@@ -3,14 +3,14 @@
     <h2>Quản lý Trường Dữ liệu</h2>
 
     <!-- Form thêm mới -->
-    <div class="add-box">
+    <div class="admin-panel">
       <h4>Thêm trường mới</h4>
-      <div class="row">
+      <div class="admin-row mb-2">
         <input v-model="newField.label" placeholder="Nhãn hiển thị (VD: Số tiền)" class="admin-input">
         <input v-model="newField.placeholder_key" placeholder="Key (VD: so_tien)" class="admin-input">
         <input v-model="newField.note" placeholder="Ghi chú về trường thông tin này" class="admin-input">
       </div>
-      <div class="row">
+      <div class="admin-row mb-2">
         <input v-model.number="newField.order" type="number" placeholder="Thứ tự (0)" style="max-width: 80px"
           class="admin-input">
         <input v-model.number="newField.width_cols" type="number" min="1" max="12" placeholder="Độ rộng (1-12)"
@@ -18,21 +18,21 @@
         <input v-model="newField.css_class" placeholder="CSS Class (VD: text-red)" class="admin-input">
         <input v-model="newField.default_value" placeholder="Giá trị mặc định" class="admin-input">
       </div>
-      <div class="row">
-        <select v-model="newField.data_type">
+      <div class="admin-row">
+        <select v-model="newField.data_type" class="admin-input">
           <option value="TEXT">Văn bản</option>
           <option value="TEXTAREA">Đoạn văn bản</option>
           <option value="NUMBER">Số</option>
           <option value="DATE">Ngày</option>
           <option value="CHECKBOX">Hộp kiểm</option>
         </select>
-        <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em; cursor: pointer;">
+        <label class="admin-checkbox-label">
           <input type="checkbox" v-model="newField.use_digit_grouping"> Tách nghìn
         </label>
-        <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em; cursor: pointer;">
+        <label class="admin-checkbox-label">
           <input type="checkbox" v-model="newField.show_amount_in_words"> Hiện chữ
         </label>
-        <select v-model="newField.group">
+        <select v-model="newField.group" class="admin-input">
           <option :value="null">-- Chọn nhóm --</option>
           <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
         </select>
@@ -78,18 +78,22 @@
     <table class="data-table" ref="resizableTable">
       <thead>
         <tr>
-          <th @click="toggleSort('id')" class="sortable">ID <span v-if="sortBy === 'id'">{{ sortDesc ? '▼' : '▲'
-          }}</span></th>
-          <th @click="toggleSort('order')" class="sortable" width="50">Thứ tự <span v-if="sortBy === 'order'">{{
+          <th @click="toggleSort('id')" class="admin-sortable">ID <span v-if="sortBy === 'id'">{{ sortDesc ? '▼' : '▲'
+              }}</span></th>
+          <th @click="toggleSort('order')" class="admin-sortable" width="50">Thứ tự <span v-if="sortBy === 'order'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
-          <th @click="toggleSort('placeholder_key')" class="sortable">Key <span v-if="sortBy === 'placeholder_key'">{{
-            sortDesc ? '▼' : '▲' }}</span></th>
-          <th @click="toggleSort('label')" class="sortable">Nhãn <span v-if="sortBy === 'label'">{{ sortDesc ? '▼' : '▲'
-          }}</span></th>
-          <th @click="toggleSort('data_type')" class="sortable">Loại <span v-if="sortBy === 'data_type'">{{ sortDesc ?
-            '▼' : '▲' }}</span></th>
-          <th @click="toggleSort('group')" class="sortable">Nhóm <span v-if="sortBy === 'group'">{{ sortDesc ? '▼' : '▲'
-          }}</span></th>
+          <th @click="toggleSort('placeholder_key')" class="admin-sortable">Key <span
+              v-if="sortBy === 'placeholder_key'">{{
+                sortDesc ? '▼' : '▲' }}</span></th>
+          <th @click="toggleSort('label')" class="admin-sortable">Nhãn <span v-if="sortBy === 'label'">{{ sortDesc ? '▼'
+            : '▲'
+              }}</span></th>
+          <th @click="toggleSort('data_type')" class="admin-sortable">Loại <span v-if="sortBy === 'data_type'">{{
+            sortDesc ?
+              '▼' : '▲' }}</span></th>
+          <th @click="toggleSort('group')" class="admin-sortable">Nhóm <span v-if="sortBy === 'group'">{{ sortDesc ? '▼'
+            : '▲'
+              }}</span></th>
           <th width="50">Rộng</th>
           <th>CSS</th>
           <th>Mặc định</th>
@@ -153,7 +157,7 @@
             <span v-else>{{ f.show_amount_in_words ? '✅' : '❌' }}</span>
           </td>
           <td>
-            <div v-if="editingId === f.id" class="form-selector">
+            <div v-if="editingId === f.id" class="admin-form-selector">
               <label v-for="form in allForms" :key="form.id">
                 <input type="checkbox" :value="form.id" v-model="f.allowed_forms"> {{ form.name }}
               </label>
@@ -178,7 +182,7 @@
             </div>
           </td>
           <td>
-            <div class="action-group">
+            <div class="flex gap-2">
               <button v-if="editingId === f.id" @click="updateField(f)" class="btn-action btn-save">Lưu</button>
               <button v-else @click="editingId = f.id" class="btn-action btn-edit">Sửa</button>
               <button @click="copyField(f)" class="btn-action btn-copy">Copy</button>
@@ -371,17 +375,6 @@ export default {
   border-radius: 5px;
 }
 
-.row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.row input,
-.row select {
-  padding: 8px;
-  flex: 1;
-}
 
 .action-group {
   display: flex;

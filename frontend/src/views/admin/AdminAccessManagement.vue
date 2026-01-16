@@ -12,12 +12,12 @@
                 <button :class="{ active: activeMainTab === 'audit' }" @click="activeMainTab = 'audit'">📜 Nhật
                     ký</button>
             </div>
-            <div class="role-legend">
-                <span class="legend-item" title="Toàn quyền hệ thống, bỏ qua RBAC"><span
+            <div class="admin-role-legend">
+                <span class="admin-legend-item" title="Toàn quyền hệ thống, bỏ qua RBAC"><span
                         class="badge badge-superuser">ROOT</span> Siêu Quản Trị</span>
-                <span class="legend-item" title="Có quyền truy cập Dashboard Admin, quyền hạn theo Nhóm"><span
+                <span class="admin-legend-item" title="Có quyền truy cập Dashboard Admin, quyền hạn theo Nhóm"><span
                         class="badge badge-admin">Admin</span> Quản trị</span>
-                <span class="legend-item" title="Người dùng nghiệp vụ, chỉ có quyền theo Nhóm"><span
+                <span class="admin-legend-item" title="Người dùng nghiệp vụ, chỉ có quyền theo Nhóm"><span
                         class="badge badge-user">User</span> Nghiệp vụ</span>
             </div>
         </div>
@@ -28,7 +28,7 @@
             <div class="pane pane-left" :style="{ width: userPaneWidth + '%' }">
                 <div class="pane-header">
                     <div class="search-box">
-                        <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..." class="form-control" />
+                        <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..." class="admin-form-control" />
                     </div>
                     <button @click="createNewUser" class="btn-primary">➕ Thêm</button>
                 </div>
@@ -81,66 +81,66 @@
                     </div>
 
                     <div class="editor-content scrollable">
-                        <div class="form-grid">
-                            <section class="form-section">
+                        <div class="admin-form-grid">
+                            <section class="admin-form-section">
                                 <h4>Thông tin Tài khoản</h4>
-                                <div class="field">
+                                <div class="admin-field">
                                     <label>Username</label>
-                                    <input type="text" v-model="selectedUser.username" class="form-control" disabled
+                                    <input type="text" v-model="selectedUser.username" class="admin-form-control" disabled
                                         title="Username là định danh duy nhất và không thể thay đổi." />
                                 </div>
-                                <div class="field">
+                                <div class="admin-field">
                                     <label>Email</label>
-                                    <input type="email" v-model="selectedUser.email" class="form-control" />
+                                    <input type="email" v-model="selectedUser.email" class="admin-form-control" />
                                 </div>
                                 <div class="field-row">
-                                    <label class="checkbox-label">
+                                    <label class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_active" /> Hoạt động
                                     </label>
-                                    <label class="checkbox-label"
+                                    <label class="admin-checkbox-label"
                                         :class="{ disabled: selectedUser.is_superuser && !auth.isSuperuser }">
                                         <input type="checkbox" v-model="selectedUser.is_staff"
                                             :disabled="selectedUser.is_superuser && !auth.isSuperuser" /> Quyền Admin
                                     </label>
-                                    <label v-if="auth.isSuperuser" class="checkbox-label">
+                                    <label v-if="auth.isSuperuser" class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_superuser" /> Quyền Root
                                     </label>
                                 </div>
                             </section>
 
-                            <section class="form-section">
+                            <section class="admin-form-section">
                                 <h4>Thông tin Cá nhân</h4>
-                                <div class="field">
+                                <div class="admin-field">
                                     <label>Họ và tên</label>
-                                    <input type="text" v-model="selectedUser.full_name" class="form-control" />
+                                    <input type="text" v-model="selectedUser.full_name" class="admin-form-control" />
                                 </div>
-                                <div class="field">
+                                <div class="admin-field">
                                     <label>Số điện thoại</label>
-                                    <input type="text" v-model="selectedUser.phone" class="form-control" />
+                                    <input type="text" v-model="selectedUser.phone" class="admin-form-control" />
                                 </div>
-                                <div class="field">
+                                <div class="admin-field">
                                     <label>Nơi làm việc</label>
-                                    <input type="text" v-model="selectedUser.workplace" class="form-control" />
+                                    <input type="text" v-model="selectedUser.workplace" class="admin-form-control" />
                                 </div>
-                                <div class="field">
+                                <div class="admin-field">
                                     <label>Phòng ban</label>
-                                    <input type="text" v-model="selectedUser.department" class="form-control" />
+                                    <input type="text" v-model="selectedUser.department" class="admin-form-control" />
                                 </div>
                             </section>
                         </div>
 
-                        <section class="form-section">
+                        <section class="admin-form-section">
                             <h4>Ghi chú quản trị</h4>
-                            <div class="field">
-                                <textarea v-model="selectedUser.note" class="form-control" rows="3"
+                            <div class="admin-field">
+                                <textarea v-model="selectedUser.note" class="admin-form-control" rows="3"
                                     placeholder="Nhập ghi chú chi tiết về người dùng này..."></textarea>
                             </div>
                         </section>
 
-                        <section class="form-section">
+                        <section class="admin-form-section">
                             <h4>Nhóm quyền</h4>
-                            <div class="group-picker">
-                                <label v-for="g in groups" :key="g.id" class="group-chip"
+                            <div class="admin-group-picker">
+                                <label v-for="g in groups" :key="g.id" class="admin-group-chip"
                                     :class="{ selected: selectedUser.groups.includes(g.id) }">
                                     <input type="checkbox" :value="g.id" v-model="selectedUser.groups" />
                                     {{ g.name }}
@@ -148,16 +148,16 @@
                             </div>
                         </section>
 
-                        <section class="form-section">
+                        <section class="admin-form-section">
                             <h4>Quyền hạn thực tế</h4>
-                            <div class="effective-permissions">
+                            <div class="admin-effective-permissions">
                                 <div v-if="selectedUser.is_superuser" class="all-permissions-banner">
                                     🔥 <strong>TOÀN QUYỀN HỆ THỐNG</strong> - Người dùng này có quyền thực hiện mọi hành
                                     động mà không cần gán nhóm.
                                 </div>
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
-                                    class="perm-tags">
-                                    <span v-for="p in selectedUser.permissions" :key="p" class="perm-tag">{{ p }}</span>
+                                    class="admin-perm-tags">
+                                    <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -165,7 +165,7 @@
                             </div>
                         </section>
 
-                        <section class="form-section danger-zone">
+                        <section class="admin-form-section danger-zone">
                             <h4>Vùng nguy hiểm</h4>
                             <div class="action-row">
                                 <button @click="confirmResetPassword" class="btn-warning"
@@ -218,7 +218,7 @@
             <div class="pane pane-right" :style="{ width: (100 - groupPaneWidth) + '%' }">
                 <div v-if="selectedGroup" class="editor-container">
                     <div class="pane-header">
-                        <input type="text" v-model="selectedGroup.name" class="form-control h3-input"
+                        <input type="text" v-model="selectedGroup.name" class="admin-form-control h3-input"
                             placeholder="Tên nhóm..." />
                         <div class="actions">
                             <button @click="saveGroup" class="btn-success" :disabled="isSaving">Lưu Nhóm</button>
@@ -231,7 +231,7 @@
                             <h4>Phân quyền chi tiết</h4>
                             <div class="perm-search">
                                 <input type="text" v-model="permSearch" placeholder="Tìm nhanh quyền..."
-                                    class="form-control" />
+                                    class="admin-form-control" />
                             </div>
                         </div>
 
@@ -265,7 +265,7 @@
                 <h3>Nhật ký hệ thống</h3>
                 <div class="audit-filters">
                     <input type="text" v-model="auditSearch" placeholder="Tìm theo username, hành động..."
-                        class="form-control" />
+                        class="admin-form-control" />
                 </div>
             </div>
             <div class="table-container scrollable">
@@ -296,9 +296,9 @@
         <div v-if="showResetModal" class="modal-overlay">
             <div class="modal-content">
                 <h3>Reset Mật khẩu cho {{ selectedUser.username }}</h3>
-                <div class="field">
+                <div class="admin-field">
                     <label>Mật khẩu mới</label>
-                    <input type="text" v-model="newPassword" class="form-control" />
+                    <input type="text" v-model="newPassword" class="admin-form-control" />
                     <p class="hint">Vui lòng cung cấp mật khẩu này cho nhân viên.</p>
                 </div>
                 <div class="modal-actions">
@@ -720,185 +720,15 @@ export default {
     border-left: 3px solid #2563eb;
 }
 
-/* Badges */
-.badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-right: 4px;
-}
+/* Badges - Migrated to admin.css */
 
-.badge-active {
-    background: #dcfce7;
-    color: #166534;
-}
+/* Legend - Migrated to admin.css */
 
-.badge-inactive {
-    background: #fee2e2;
-    color: #991b1b;
-}
+/* Effective Permissions - Migrated to admin.css */
 
-.badge-admin {
-    background: #dbeafe;
-    color: #1e40af;
-}
+/* Forms - Migrated to admin.css */
 
-.badge-superuser {
-    background: #1e293b;
-    color: #fff;
-    border: 1px solid #000;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-}
-
-.badge-user {
-    background: #f1f5f9;
-    color: #64748b;
-    border: 1px solid #e2e8f0;
-}
-
-/* Legend */
-.role-legend {
-    display: flex;
-    gap: 15px;
-    font-size: 0.8rem;
-    color: #64748b;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-/* Effective Permissions */
-.effective-permissions {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 12px;
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-.all-permissions-banner {
-    color: #b91c1c;
-    background: #fef2f2;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #fee2e2;
-    font-size: 0.9rem;
-}
-
-.perm-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.perm-tag {
-    font-size: 0.75rem;
-    font-family: monospace;
-    background: #fff;
-    border: 1px solid #cbd5e1;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: #334155;
-}
-
-.empty-permissions {
-    color: #94a3b8;
-    font-style: italic;
-    font-size: 0.85rem;
-}
-
-/* Forms */
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-    gap: 1.5rem;
-    width: 100%;
-}
-
-.form-section {
-    margin-bottom: 1.5rem;
-    max-width: 100%;
-    overflow: hidden;
-}
-
-.form-section h4 {
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-    font-size: 0.9rem;
-    color: #64748b;
-}
-
-.field {
-    margin-bottom: 12px;
-}
-
-.field label {
-    display: block;
-    font-size: 0.85rem;
-    margin-bottom: 4px;
-    font-weight: 500;
-}
-
-.form-control {
-    width: 100%;
-    max-width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 0.9rem;
-}
-
-.h3-input {
-    font-size: 1.25rem;
-    font-weight: bold;
-    border-color: transparent;
-}
-
-.h3-input:focus {
-    border-color: #3b82f6;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-
-/* Groups & Permissions */
-.group-picker {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.group-chip {
-    padding: 6px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.group-chip.selected {
-    background: #2563eb;
-    color: #fff;
-    border-color: #2563eb;
-}
-
-.group-chip input {
-    display: none;
-}
+/* Groups & Permissions - Migrated to admin.css */
 
 .permission-manager {
     display: flex;

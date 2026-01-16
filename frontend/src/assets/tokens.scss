@@ -1,0 +1,44 @@
+// src/assets/tokens.scss
+/* Design Tokens */
+
+/* Colors */
+:root {
+    --color-primary: #42b983;
+    /* Vue green */
+    --color-primary-dark: #3aa876;
+    --color-success: #28a745;
+    --color-danger: #dc3545;
+    --color-warning: #ffc107;
+    --color-info: #17a2b8;
+    --color-light: #f8f9fa;
+    --color-dark: #212529;
+    --color-bg: #ffffff;
+    --color-bg-dark: #1e1e1e;
+    --color-text: #212529;
+    --color-text-light: #f8f9fa;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 24px;
+
+    /* Border radius */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+
+    /* Font sizes */
+    --font-xs: 0.75rem;
+    --font-sm: 0.85rem;
+    --font-base: 0.9rem;
+    --font-lg: 1rem;
+    --font-xl: 1.25rem;
+}
+
+/* Dark mode overrides */
+.dark-mode {
+    --color-bg: var(--color-bg-dark);
+    --color-text: var(--color-text-light);
+}

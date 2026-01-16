@@ -1,14 +1,12 @@
 <template>
   <div class="admin-page">
     <h2>Quản lý Vai trò (Roles)</h2>
-    <div class="actions">
-      <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" style="flex: 1"
-        class="admin-input">
-      <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" style="flex: 1"
-        class="admin-input">
-      <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" style="flex: 2" class="admin-input">
-      <input v-model="newRole.relation_type" placeholder="Quan hệ (VD: OWNER)" style="flex: 1" class="admin-input">
-      <button @click="addRole" class="btn-action btn-create">Thêm Vai trò</button>
+    <div class="admin-row mb-4">
+      <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" class="admin-input">
+      <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" class="admin-input">
+      <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" class="admin-input">
+      <input v-model="newRole.relation_type" placeholder="Quan hệ (VD: OWNER)" class="admin-input">
+      <button @click="addRole" class="btn-action btn-create mt-2 sm:mt-0">Thêm Vai trò</button>
     </div>
 
     <table class="data-table">
@@ -44,16 +42,16 @@
             <span v-else>{{ role.relation_type || '---' }}</span>
           </td>
           <td style="text-align: center;">
-            <span v-if="role.is_system" class="badge-system">System</span>
-            <span v-else class="badge-user">User</span>
+            <span v-if="role.is_system" class="badge badge-system">System</span>
+            <span v-else class="badge badge-user">User</span>
           </td>
           <td>
-            <div class="action-group">
+            <div class="flex gap-2">
               <button v-if="editingId === role.id" @click="updateRole(role)" class="btn-action btn-save">Lưu</button>
               <button v-else @click="editingId = role.id" class="btn-action btn-edit">Sửa</button>
 
               <button v-if="!role.is_system" @click="deleteRole(role.id)" class="btn-action btn-delete">Xóa</button>
-              <span v-else title="Role hệ thống không thể xóa" class="text-disabled">🔒</span>
+              <span v-else title="Role hệ thống không thể xóa" class="text-gray-400 px-2 cursor-not-allowed">🔒</span>
             </div>
           </td>
         </tr>
@@ -144,40 +142,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.actions {
-  margin-bottom: 20px;
-  display: flex;
-  gap: 10px;
-}
-
-.action-group {
-  display: flex;
-  gap: 5px;
-}
-
-.badge-system {
-  background: #eee;
-  color: #666;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8em;
-  font-weight: bold;
-}
-
-
-.badge-user {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8em;
-}
-
-.text-disabled {
-  color: #999;
-  cursor: not-allowed;
-  padding: 0 5px;
-}
-</style>

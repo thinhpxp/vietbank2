@@ -3,9 +3,10 @@
         <h2>Quản lý Cấu hình Form</h2>
 
         <!-- Form thêm mới -->
-        <div class="add-box">
+        <!-- Form thêm mới -->
+        <div class="admin-panel">
             <h4>Thêm Form mới</h4>
-            <div class="row">
+            <div class="admin-row mb-2">
                 <input v-model="newForm.name" placeholder="Tên Form (VD: Tín dụng tiêu dùng)" class="admin-input">
                 <input v-model="newForm.slug" placeholder="Mã định danh (VD: loan-consumer)" class="admin-input">
                 <input v-model="newForm.note" placeholder="Ghi chú" class="admin-input">
@@ -40,7 +41,7 @@
                         <span v-else>{{ f.note }}</span>
                     </td>
                     <td>
-                        <div class="action-group">
+                        <div class="flex gap-2">
                             <button v-if="editingId === f.id" @click="updateForm(f)"
                                 class="btn-action btn-save">Lưu</button>
                             <button v-else @click="editingId = f.id" class="btn-action btn-edit">Sửa</button>
@@ -104,27 +105,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.add-box {
-    background: #eee;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-}
-
-.row {
-    display: flex;
-    gap: 10px;
-}
-
-.row input {
-    padding: 8px;
-    flex: 1;
-}
-
-.action-group {
-    display: flex;
-    gap: 5px;
-}
-</style>

@@ -1,15 +1,16 @@
 <template>
   <div class="admin-page">
     <h2>Quản lý Nhóm Thông tin</h2>
-    <div class="actions">
+    <div class="admin-row mb-4">
       <input v-model="newGroup.name" placeholder="Tên nhóm mới" class="admin-input">
-      <input v-model="newGroup.slug" placeholder="Mã (Slug - Tùy chọn)" style="width: 15%" class="admin-input">
-      <select v-model="newGroup.layout_position" style="width: 120px" class="admin-input">
+      <input v-model="newGroup.slug" placeholder="Mã (Slug - Tùy chọn)" class="admin-input">
+      <select v-model="newGroup.layout_position" class="admin-input">
         <option value="LEFT">Cột Trái</option>
         <option value="RIGHT">Cột Phải</option>
       </select>
-      <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" style="flex: 2" class="admin-input">
-      <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="width: 60px" class="admin-input">
+      <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" class="admin-input">
+      <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="max-width: 100px"
+        class="admin-input">
       <button @click="addGroup" class="btn-action btn-create">Thêm Nhóm</button>
     </div>
 
@@ -76,7 +77,7 @@
             </div>
           </td>
           <td>
-            <div v-if="editingId === grp.id" class="form-selector">
+            <div v-if="editingId === grp.id" class="admin-form-selector">
               <label v-for="f in allForms" :key="f.id">
                 <input type="checkbox" :value="f.id" v-model="grp.allowed_forms"> {{ f.name }}
               </label>
@@ -84,7 +85,7 @@
             <span v-else>{{ getFormNames(grp.allowed_forms) }}</span>
           </td>
           <td>
-            <div class="action-group">
+            <div class="flex gap-2">
               <button v-if="editingId === grp.id" @click="updateGroup(grp)" class="btn-action btn-save">Lưu</button>
               <button v-else @click="editingId = grp.id" class="btn-action btn-edit">Sửa</button>
               <button @click="deleteGroup(grp.id)" class="btn-action btn-delete">Xóa</button>

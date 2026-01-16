@@ -1,6 +1,6 @@
 <template>
     <div class="admin-page dashboard-container">
-        <div class="header-actions">
+        <div class="header-actions flex justify-between items-center mb-4">
             <h2>Quản lý Loại Đối tượng (Object Types)</h2>
             <button class="btn-action btn-create" @click="openCreateModal">+ Thêm Loại mới</button>
         </div>
@@ -27,7 +27,7 @@
                         <span v-else class="badge badge-custom">Custom</span>
                     </td>
                     <td>
-                        <div class="action-group">
+                        <div class="flex gap-2">
                             <button class="btn-action btn-edit" @click="editType(type)">Sửa</button>
                             <button class="btn-action btn-delete" :disabled="type.is_system"
                                 @click="confirmDelete(type)"
@@ -41,42 +41,41 @@
         </table>
 
         <!-- Modal Create/Edit -->
-        <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-            <div class="modal-content side-modal">
-                <div class="modal-header">
+        <div v-if="showModal" class="admin-modal-overlay" @click.self="closeModal">
+            <div class="admin-side-modal p-4">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
                     <h3>{{ isEdit ? 'Cập nhật Loại' : 'Thêm Loại mới' }}</h3>
-                    <button class="btn-close" @click="closeModal">&times;</button>
+                    <button class="text-2xl" @click="closeModal">&times;</button>
                 </div>
 
-                <div class="modal-body">
-                    <div class="form-group">
+                <div class="flex-1 overflow-y-auto">
+                    <div class="admin-field">
                         <label>Mã loại (Code) *</label>
-                        <input v-model="formData.code" :disabled="isEdit" placeholder="VD: PROJECT" class="admin-input"
+                        <input v-model="formData.code" :disabled="isEdit" placeholder="VD: PROJECT" class="admin-form-control"
                             style="width: 100%" />
-                        <small class="hint">Viết hoa, không dấu, không khoảng trắng.</small>
+                        <small class="text-gray-500 text-xs mt-1 block">Viết hoa, không dấu, không khoảng trắng.</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="admin-field">
                         <label>Tên hiển thị *</label>
-                        <input v-model="formData.name" placeholder="VD: Dự án" class="admin-input"
+                        <input v-model="formData.name" placeholder="VD: Dự án" class="admin-form-control"
                             style="width: 100%" />
                     </div>
 
-                    <div class="form-group">
+                    <div class="admin-field">
                         <label>Trường định danh (key)</label>
                         <input v-model="formData.identity_field_key" placeholder="VD: ho_ten, bien_so_xe"
-                            class="admin-input" style="width: 100%" />
-                        <small class="hint">Tên trường dùng để định danh cho đối tượng này.</small>
+                            class="admin-form-control" style="width: 100%" />
+                        <small class="text-gray-500 text-xs mt-1 block">Tên trường dùng để định danh cho đối tượng này.</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="admin-field">
                         <label>Mô tả</label>
-                        <textarea v-model="formData.description" class="admin-input" rows="3"
+                        <textarea v-model="formData.description" class="admin-form-control" rows="3"
                             style="width: 100%; min-height: 80px;"></textarea>
                     </div>
 
-                    <div class="modal-footer"
-                        style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <div class="mt-4 flex gap-2 justify-end">
                         <button class="btn-action btn-secondary" @click="closeModal">Hủy</button>
                         <button class="btn-action btn-save" @click="saveType">Lưu</button>
                     </div>
@@ -175,27 +174,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    font-size: 0.9em;
-}
-
-.hint {
-    color: #7f8c8d;
-    font-size: 0.8em;
-    display: block;
-    margin-top: 4px;
-}
-
-.action-group {
-    display: flex;
-    gap: 5px;
-}
-</style>
