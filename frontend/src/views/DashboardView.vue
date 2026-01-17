@@ -1,8 +1,8 @@
 <template>
-  <div class="dashboard-container">
+  <div class="dashboard-container page-container">
     <div class="header-actions">
       <h2>Danh sách Hồ sơ Vay</h2>
-      <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-create"
+      <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-create"
         @click="openFormSelectModal">+ Tạo Mới</button>
     </div>
 
@@ -37,12 +37,12 @@
             </div>
           </td>
           <td>
-            <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-edit"
+            <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-action btn-edit"
               @click="editProfile(profile.id)">Sửa</button>
-            <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-copy"
+            <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-copy"
               @click="openDuplicateModal(profile)">Sao chép</button>
-            <button class="btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
-            <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-delete"
+            <button class="btn-action btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
+            <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-action btn-delete"
               @click="deleteProfile(profile.id)">Xóa</button>
           </td>
         </tr>
@@ -77,7 +77,7 @@
           </button>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="showFormSelectModal = false">Đóng</button>
+          <button class="btn-action btn-secondary" @click="showFormSelectModal = false">Đóng</button>
         </div>
       </div>
     </div>
@@ -210,160 +210,11 @@ export default {
 </script>
 
 <style scoped>
-.dashboard-container {
-  max-width: 80%;
-  margin: 20px auto;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.btn-create {
-  background: #42b983;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th,
-.data-table td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
-}
-
-.data-table th {
-  background: #f8f9fa;
-  color: #333;
-}
-
-.btn-edit {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.btn-copy {
-  background: #9b59b6;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.btn-doc {
-  background: #e67e22;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.btn-delete {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.badge-form {
-  display: inline-block;
-  background: #e1f5fe;
-  color: #0288d1;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.85em;
-  font-weight: 500;
-}
-
-.text-muted {
-  color: #999;
-  font-style: italic;
-  font-size: 0.85em;
-}
-
-/* Status Badges */
-.status-badge {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
-.status-badge.draft {
-  background: #e3f2fd;
-  color: #1976d2;
-  border: 1px solid #bbdefb;
-}
-
-.status-badge.finalized {
-  background: #ffebee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
-}
-
-.status-badge-container {
-  display: flex;
-  align-items: center;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
+/* Scoped overrides if any */
+.form-select-modal {
   width: 500px;
   max-width: 90%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
-
-.form-select-modal h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  text-align: center;
-  color: #2c3e50;
-}
-
 .form-options {
   display: grid;
   grid-template-columns: 1fr;
@@ -372,7 +223,6 @@ export default {
   overflow-y: auto;
   padding: 5px;
 }
-
 .form-option-item {
   display: flex;
   align-items: center;
@@ -386,45 +236,12 @@ export default {
   transition: all 0.2s;
   width: 100%;
 }
-
 .form-option-item:hover {
   background: #e1f5fe;
   border-color: #0288d1;
   transform: translateY(-2px);
 }
-
-.option-icon {
-  font-size: 24px;
-}
-
-.option-name {
-  font-weight: bold;
-  font-size: 1.1em;
-  color: #2c3e50;
-}
-
-.option-note {
-  font-size: 0.9em;
-  color: #7f8c8d;
-  margin-top: 4px;
-}
-
-.modal-footer {
-  margin-top: 25px;
-  display: flex;
-  justify-content: center;
-}
-
-.btn-cancel {
-  background: #95a5a6;
-  color: white;
-  border: none;
-  padding: 8px 25px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-cancel:hover {
-  background: #7f8c8d;
-}
+.option-icon { font-size: 24px; }
+.option-name { font-weight: bold; font-size: 1.1em; color: #2c3e50; }
+.option-note { font-size: 0.9em; color: #7f8c8d; margin-top: 4px; }
 </style>

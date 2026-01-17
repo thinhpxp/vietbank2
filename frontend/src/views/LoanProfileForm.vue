@@ -16,12 +16,12 @@
         </div>
       </div>
       <div class="header-buttons">
-        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-lock" @click="lockProfile">🔒 Khóa hồ
+        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-action btn-lock" @click="lockProfile">🔒 Khóa hồ
           sơ</button>
-        <button v-if="profileStatus === 'FINALIZED'" class="btn-unlock" @click="unlockProfile">🔓 Mở khóa</button>
-        <button v-if="id || currentId" class="btn-doc" @click="openDownloadModal">Xuất HĐ</button>
-        <button v-if="id || currentId" class="btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
-        <button class="btn-primary" @click="saveProfile" :disabled="isSaving">
+        <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock" @click="unlockProfile">🔓 Mở khóa</button>
+        <button v-if="id || currentId" class="btn-action btn-doc" @click="openDownloadModal">Xuất HĐ</button>
+        <button v-if="id || currentId" class="btn-action btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
+        <button class="btn-action btn-primary" @click="saveProfile" :disabled="isSaving">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
         </button>
       </div>
@@ -42,7 +42,7 @@
         <div v-if="!isPersonRight && personFields.length > 0">
           <div class="panel-header">
             <h3>Danh sách Người liên quan</h3>
-            <button class="btn-secondary" @click="addPerson">+ Thêm Người</button>
+            <button class="btn-action btn-secondary" @click="addPerson">+ Thêm Người</button>
           </div>
 
           <div v-if="people.length === 0" class="empty-state">
@@ -60,7 +60,7 @@
         <div v-if="!isAssetRight && assetFields.length > 0">
           <div class="panel-header">
             <h3>Danh sách Tài sản</h3>
-            <button class="btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
+            <button class="btn-action btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
           </div>
           <div v-if="assets.length === 0" class="empty-state">Chưa có tài sản nào.</div>
           <div v-for="(asset, index) in assets" :key="'asset-' + index">
@@ -89,7 +89,7 @@
         <div v-if="isPersonRight && personFields.length > 0">
           <div class="panel-header">
             <h3>Danh sách Người liên quan</h3>
-            <button class="btn-secondary" @click="addPerson">+ Thêm Người</button>
+            <button class="btn-action btn-secondary" @click="addPerson">+ Thêm Người</button>
           </div>
           <div v-if="people.length === 0" class="empty-state">Chưa có người nào.</div>
           <div v-for="(person, index) in people" :key="'person-' + index">
@@ -103,7 +103,7 @@
         <div v-if="isAssetRight && assetFields.length > 0">
           <div class="panel-header">
             <h3>Danh sách Tài sản</h3>
-            <button class="btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
+            <button class="btn-action btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
           </div>
           <div v-if="assets.length === 0" class="empty-state">Chưa có tài sản nào.</div>
           <div v-for="(asset, index) in assets" :key="'asset-' + index">
@@ -606,23 +606,9 @@ export default {
 </script>
 
 <style scoped>
-.page-container {
-  margin: 0 auto;
-  padding: 20px;
-  font-family: sans-serif;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
 .form-layout {
   display: flex;
   user-select: none;
-  /* Tránh bôi đen text khi kéo chuột */
 }
 
 .header-title {
@@ -631,7 +617,6 @@ export default {
   align-items: center;
   gap: 15px;
   flex: 3;
-  /* Give more space to title and badge */
 }
 
 .profile-name-label {
@@ -648,7 +633,6 @@ export default {
 .profile-name-input {
   width: 100%;
   font-size: 1.25rem;
-  /* Large font like distinct title */
   padding: 8px 0;
   border: none;
   border-bottom: 2px solid #ccc;
@@ -673,69 +657,16 @@ export default {
   border: 1px solid #f40606;
 }
 
-.badge-label {
-  font-weight: 600;
-  opacity: 0.8;
-}
+.badge-label { font-weight: 600; opacity: 0.8; }
+.badge-value { font-weight: bold; }
 
-.badge-value {
-  font-weight: bold;
-}
+/* Custom Profile Status Styles */
+.btn-lock { background: #fdf6e3; color: #e67e22; border: 1px solid #efcebc; }
+.btn-lock:hover { background: #f39c12; color: white; }
+.btn-unlock { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.btn-unlock:hover { background: #2e7d32; color: white; }
 
-.status-badge {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 0.85rem;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.status-badge.draft {
-  background: #e3f2fd;
-  color: #1976d2;
-  border: 1px solid #bbdefb;
-}
-
-.status-badge.finalized {
-  background: #ffebee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
-}
-
-.btn-lock,
-.btn-unlock {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.btn-lock {
-  background: #fdf6e3;
-  color: #e67e22;
-  border: 1px solid #efcebc;
-}
-
-.btn-lock:hover {
-  background: #f39c12;
-  color: white;
-}
-
-.btn-unlock {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
-}
-
-.btn-unlock:hover {
-  background: #2e7d32;
-  color: white;
-}
-
-/* Resize Handle Styles */
+/* Panels resizing */
 .resize-handle {
   width: 5px;
   background-color: #ddd;
@@ -745,30 +676,10 @@ export default {
   justify-content: center;
   transition: background-color 0.2s;
 }
+.resize-handle:hover, .resize-handle:active { background-color: #42b983; }
 
-.resize-handle:hover,
-.resize-handle:active {
-  background-color: #42b983;
-}
-
-.handle-icon {
-  font-size: 10px;
-  color: #888;
-  writing-mode: vertical-lr;
-  /* Xoay chữ dọc */
-}
-
-/* Panels */
-/* Lưu ý: width được set inline bởi Vue */
-.left-panel {
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-.right-panel {
-  overflow-y: auto;
-  padding-left: 5px;
-}
+.left-panel { overflow-y: auto; padding-right: 5px; }
+.right-panel { overflow-y: auto; padding-left: 5px; }
 
 .panel-section {
   background: #f9f9f9;
@@ -785,110 +696,12 @@ export default {
   margin-bottom: 15px;
 }
 
-/* Collapsible Header Styles */
-.section-header-row,
-.header-left {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-}
-
-.header-left h3 {
-  margin-right: 10px;
-}
-
-.section-header-row h3 {
-  flex-grow: 1;
+.panel-section h3, .panel-header h3 {
   margin: 0;
-}
-
-.toggle-icon {
-  font-size: 12px;
-  margin-left: 10px;
-  transition: transform 0.2s;
-  color: #666;
-}
-
-.toggle-icon.collapsed {
-  transform: rotate(-90deg);
-}
-
-.panel-section h3,
-.panel-header h3 {
-  margin-top: 0;
   color: #2c3e50;
-  border-bottom: 2px solid transparent;
+  border-bottom: 2px solid #42b983;
   padding-bottom: 5px;
   display: inline-block;
-}
-
-/* Add border only when not collapsed if needed, or keep simpler */
-.panel-section h3 {
-  border-bottom: 2px solid #42b983;
-}
-
-.panel-header h3 {
-  border-bottom: 2px solid #42b983;
-}
-
-.input-control {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-
-.btn-primary {
-  background: #42b983;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background: #369870;
-}
-
-.header-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-copy {
-  background: #9b59b6;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-copy:hover {
-  background: #8e44ad;
-}
-
-.btn-doc {
-  background: #f39c12;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  background: #2c3e50;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
 }
 
 .empty-state {
@@ -898,16 +711,5 @@ export default {
   color: #777;
   border-radius: 8px;
   border: 2px dashed #ccc;
-}
-
-.field-group {
-  margin-bottom: 15px;
-  text-align: left;
-}
-
-.field-group label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
 }
 </style>

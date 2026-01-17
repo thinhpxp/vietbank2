@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import '@/assets/tokens.scss';
 import '@/assets/admin.css';
+import '@/assets/common-ui.css';
 import App from './App.vue'
 import router from './router' // <-- Import router
 import toastPlugin from './utils/toast'

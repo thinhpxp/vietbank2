@@ -7,14 +7,14 @@
       </header>
 
       <nav class="sidebar-nav">
-        <router-link to="/admin/groups">📂 Quản lý Nhóm</router-link>
-        <router-link to="/admin/fields">📝 Trường</router-link>
-        <router-link to="/admin/templates">📄 Mẫu</router-link>
+        <router-link to="/admin/groups">📂 Nhóm Thông tin</router-link>
+        <router-link to="/admin/fields">📝 Trường Thông tin</router-link>
+        <router-link to="/admin/templates">📄 Mẫu hợp đồng</router-link>
         <router-link to="/admin/roles">🎭 Vai trò</router-link>
-        <router-link to="/admin/forms">📑 Form</router-link>
-        <router-link to="/admin/users">🛡️ Quản lý Truy cập</router-link>
+        <router-link to="/admin/forms">📑 Khung nhập liệu</router-link>
         <router-link to="/admin/object-types">🏷️ Loại Đối tượng</router-link>
         <router-link to="/admin/master-data">🗂️ Dữ liệu gốc</router-link>
+        <router-link to="/admin/users">🛡️ Quản lý Truy cập</router-link>
         <hr />
         <router-link to="/">🏠 Dashboard</router-link>
       </nav>

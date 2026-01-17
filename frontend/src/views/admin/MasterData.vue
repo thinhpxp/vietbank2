@@ -1,6 +1,6 @@
 <template>
-    <div class="admin-page">
-        <div class="flex justify-between items-center mb-6">
+    <div class="admin-page page-container">
+        <div class="page-header">
             <h2>Quản lý Dữ liệu gốc (Master Data)</h2>
             <div class="flex gap-2">
                 <button class="btn-action btn-secondary" @click="fetchData" :disabled="loading">

@@ -939,7 +939,7 @@ def find_existing_master_object(object_type, field_values):
 class MasterObjectRelationViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectRelation.objects.all().order_by('-created_at')
     serializer_class = MasterObjectRelationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     @action(detail=False, methods=['post'])
     def create_relation(self, request):
@@ -970,14 +970,14 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('code')
     serializer_class = MasterObjectTypeSerializer
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [permissions.DjangoModelPermissions] 
     # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
 
 
 class MasterObjectViewSet(viewsets.ModelViewSet):
     queryset = MasterObject.objects.all().order_by('-id')
     serializer_class = MasterObjectSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     def get_queryset(self):
         """Filter by object_type (can be comma-separated) if provided in query params"""

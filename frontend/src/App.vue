@@ -5,7 +5,8 @@
       <div class="brand">Vietbank Contract App</div>
       <div class="links">
         <router-link to="/">Danh sách Hồ sơ</router-link>
-        <router-link v-if="isAdmin" to="/admin" style="color: #f1c40f">Admin Panel</router-link>
+        <router-link v-if="isAuthenticated" to="/master-data">🗂️ Dữ liệu gốc</router-link>
+        <router-link v-if="isAdmin" to="/admin/groups">⚙️ Admin Panel</router-link>
       </div>
 
       <div v-if="isAuthenticated" class="user-info">

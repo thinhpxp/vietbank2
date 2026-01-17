@@ -48,6 +48,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/master-data',
+    name: 'MasterData',
+    component: () => import('@/views/admin/MasterData.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin',
     component: AdminLayout,
     meta: { requiresAuth: true, requiresAdmin: true },

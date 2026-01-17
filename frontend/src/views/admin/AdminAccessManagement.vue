@@ -28,7 +28,8 @@
             <div class="pane pane-left" :style="{ width: userPaneWidth + '%' }">
                 <div class="pane-header">
                     <div class="search-box">
-                        <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..." class="admin-form-control" />
+                        <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..."
+                            class="admin-form-control" />
                     </div>
                     <button @click="createNewUser" class="btn-primary">➕ Thêm</button>
                 </div>
@@ -86,8 +87,8 @@
                                 <h4>Thông tin Tài khoản</h4>
                                 <div class="admin-field">
                                     <label>Username</label>
-                                    <input type="text" v-model="selectedUser.username" class="admin-form-control" disabled
-                                        title="Username là định danh duy nhất và không thể thay đổi." />
+                                    <input type="text" v-model="selectedUser.username" class="admin-form-control"
+                                        disabled title="Username là định danh duy nhất và không thể thay đổi." />
                                 </div>
                                 <div class="admin-field">
                                     <label>Email</label>
@@ -157,7 +158,8 @@
                                 </div>
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
                                     class="admin-perm-tags">
-                                    <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p }}</span>
+                                    <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p
+                                        }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -954,5 +956,9 @@ export default {
 .tag-DELETE {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.admin-form-control {
+    min-width: 30ch;
 }
 </style>

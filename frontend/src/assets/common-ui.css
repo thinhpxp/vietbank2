@@ -1,0 +1,231 @@
+/* ==========================================================================
+   Common UI Styles for End-User Components (Dashboard, Profile, Master Data)
+   ========================================================================== */
+
+/* 1. Page & Layout Helpers */
+.page-container {
+    max-width: 95%;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* 2. Unified Buttons */
+.btn-action {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action:active {
+    transform: translateY(0);
+}
+
+.btn-action:disabled {
+    background: #ccc !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Color Variants */
+.btn-primary,
+.btn-create {
+    background: #42b983;
+    color: white;
+}
+
+.btn-primary:hover,
+.btn-create:hover {
+    background: #3aa876;
+}
+
+.btn-secondary {
+    background: #ecf0f1;
+    color: #2c3e50;
+    border: 1px solid #dcdfe6;
+}
+
+.btn-secondary:hover {
+    background: #e0e6e8;
+}
+
+.btn-edit {
+    background: #3498db;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #2980b9;
+}
+
+.btn-delete {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #c0392b;
+}
+
+.btn-copy {
+    background: #9b59b6;
+    color: white;
+}
+
+.btn-copy:hover {
+    background: #8e44ad;
+}
+
+.btn-doc {
+    background: #e67e22;
+    color: white;
+}
+
+.btn-doc:hover {
+    background: #d35400;
+}
+
+/* 3. Data Table */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    color: #333;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-table tr:hover {
+    background-color: #fcfcfc;
+}
+
+/* 4. Form Controls (Mirroring Admin System) */
+.admin-input,
+.admin-form-control {
+    padding: 8px 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.admin-input:focus,
+.admin-form-control:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+/* 5. Badges */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.status-badge.draft {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+}
+
+.status-badge.finalized {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+.badge-form {
+    display: inline-block;
+    background: #e1f5fe;
+    color: #0288d1;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+/* 6. Utility Classes */
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-2 {
+    gap: 8px;
+}
+
+.mb-2 {
+    margin-bottom: 8px;
+}
+
+.mb-4 {
+    margin-bottom: 16px;
+}
+
+.mb-6 {
+    margin-bottom: 24px;
+}
+
+.text-muted {
+    color: #999;
+    font-style: italic;
+    font-size: 0.85em;
+}
+
+.font-bold {
+    font-weight: bold;
+}
