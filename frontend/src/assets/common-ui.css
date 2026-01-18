@@ -27,16 +27,21 @@
 
 /* 2. Unified Buttons */
 .btn-action {
-    padding: 8px 16px;
+    height: 32px;
+    padding: 0 12px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-weight: 600;
     font-size: 0.9rem;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 5px;
     transition: all 0.2s ease;
+    line-height: 1;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 .btn-action:hover {
@@ -55,21 +60,23 @@
     box-shadow: none;
 }
 
-/* Color Variants */
+/* Color Variants using Design Tokens */
 .btn-primary,
-.btn-create {
-    background: #42b983;
+.btn-create,
+.btn-save {
+    background: var(--color-primary);
     color: white;
 }
 
 .btn-primary:hover,
-.btn-create:hover {
-    background: #3aa876;
+.btn-create:hover,
+.btn-save:hover {
+    background: var(--color-primary-dark);
 }
 
 .btn-secondary {
-    background: #ecf0f1;
-    color: #2c3e50;
+    background: var(--color-light);
+    color: var(--color-text);
     border: 1px solid #dcdfe6;
 }
 
@@ -78,39 +85,42 @@
 }
 
 .btn-edit {
-    background: #3498db;
+    background: var(--color-primary);
+    /* Mapping edit to primary for consistency */
     color: white;
 }
 
 .btn-edit:hover {
-    background: #2980b9;
+    background: var(--color-primary-dark);
 }
 
 .btn-delete {
-    background: #e74c3c;
+    background: var(--color-danger);
     color: white;
 }
 
 .btn-delete:hover {
     background: #c0392b;
+    /* Keep hardcoded darker danger if no token yet */
 }
 
 .btn-copy {
-    background: #9b59b6;
+    background: var(--color-warning);
     color: white;
 }
 
 .btn-copy:hover {
-    background: #8e44ad;
+    background: #d35400;
 }
 
 .btn-doc {
-    background: #e67e22;
+    background: var(--color-info);
+    /* Using info for document actions */
     color: white;
 }
 
 .btn-doc:hover {
-    background: #d35400;
+    background: #138496;
 }
 
 /* 3. Data Table */
@@ -228,4 +238,108 @@
 
 .font-bold {
     font-weight: bold;
+}
+
+/* 7. Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    width: 500px;
+    max-width: 90%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-footer {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* 8. Additional Button Variants */
+.btn-lock {
+    background: #fdf6e3;
+    color: #e67e22;
+}
+
+.btn-lock:hover {
+    background: #f39c12;
+    color: white;
+}
+
+.btn-unlock {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.btn-unlock:hover {
+    background: #2e7d32;
+    color: white;
+}
+
+.btn-cancel {
+    background: #95a5a5;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: #7f8c8d;
+}
+
+/* 9. Specialized Component Buttons */
+.btn-remove {
+    background: var(--color-danger);
+    color: white;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.9rem;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn-remove:hover {
+    background: #c0392b;
+}
+
+.btn-search-master {
+    background: var(--color-info);
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s;
+    margin-left: 5px;
+}
+
+.btn-search-master:hover {
+    background: #138496;
 }

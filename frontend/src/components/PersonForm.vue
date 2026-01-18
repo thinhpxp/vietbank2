@@ -191,14 +191,6 @@ export default {
   padding: 15px;
 }
 
-.btn-remove {
-  background: #ff4d4f;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-}
 
 .form-row {
   display: flex;
@@ -235,25 +227,6 @@ export default {
   cursor: pointer;
 }
 
-.btn-search-master {
-  background: #3498db;
-  color: white;
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-left: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.btn-search-master:hover {
-  background: #2980b9;
-}
 
 /* Toggle Icon */
 .toggle-icon {

@@ -30,7 +30,7 @@
 .btn-action {
     padding: 6px 12px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-weight: 500;
     font-size: 0.9em;
@@ -62,8 +62,6 @@
 .btn-edit {
     background-color: var(--color-primary);
     color: white;
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
 }
 
 .btn-edit:hover {
@@ -73,25 +71,19 @@
 .btn-delete {
     background-color: var(--color-danger);
     color: white;
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
 }
 
 .btn-delete:hover {
     background-color: #c0392b;
-    /* could map to a darker danger if needed */
 }
 
 .btn-copy {
     background-color: var(--color-warning);
     color: white;
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
 }
 
 .btn-copy:hover {
     background-color: #d35400;
-    /* darker warning */
 }
 
 .btn-primary,
@@ -99,8 +91,6 @@
 .btn-save {
     background-color: var(--color-primary);
     color: white;
-    padding: 6px 12px;
-    border-radius: var(--radius-sm);
 }
 
 .btn-primary:hover,
@@ -112,8 +102,6 @@
 .btn-secondary {
     background-color: #95a5a6;
     color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
 }
 
 .btn-secondary:hover {
@@ -121,14 +109,12 @@
 }
 
 .btn-info {
-    background-color: #1abc9c;
+    background-color: var(--color-info);
     color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
 }
 
 .btn-info:hover {
-    background-color: #16a085;
+    background-color: #138496;
 }
 
 /* Filter Bar */
@@ -155,7 +141,7 @@
     /* Hiện ... nếu vẫn không đủ chỗ */
     padding: 8px 12px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 0.9em;
     transition: border-color 0.2s;
     background-color: white;
@@ -189,7 +175,7 @@
 .filter-control {
     padding: 8px 12px;
     border: 1px solid #ced4da;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 0.9em;
     min-width: 150px;
 }

@@ -10,40 +10,45 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Tên đăng nhập</label>
-                        <input v-model="form.username" type="text" placeholder="Nhập username" required />
+                        <input v-model="form.username" type="text" class="admin-input" placeholder="Nhập username"
+                            required />
                     </div>
                     <div class="form-group">
                         <label>Email</label>
-                        <input v-model="form.email" type="email" placeholder="Nhập email" required />
+                        <input v-model="form.email" type="email" class="admin-input" placeholder="Nhập email"
+                            required />
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Mật khẩu</label>
-                    <input v-model="form.password" type="password" placeholder="Nhập mật khẩu" required />
+                    <input v-model="form.password" type="password" class="admin-input" placeholder="Nhập mật khẩu"
+                        required />
                 </div>
-
-                <hr class="divider" />
 
                 <div class="form-group">
                     <label>Họ và tên</label>
-                    <input v-model="form.full_name" type="text" placeholder="Nguyễn Văn A" required />
+                    <input v-model="form.full_name" type="text" class="admin-input" placeholder="Nguyễn Văn A"
+                        required />
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Số điện thoại</label>
-                        <input v-model="form.phone" type="tel" placeholder="090..." />
+                        <input v-model="form.phone" type="tel" class="admin-input" placeholder="090..." />
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Nơi làm việc</label>
-                            <input v-model="form.workplace" type="text" placeholder="Vietbank Chi nhánh..." />
-                        </div>
-                        <div class="form-group">
-                            <label>Phòng ban</label>
-                            <input v-model="form.department" type="text" placeholder="Phòng tín dụng..." />
-                        </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nơi làm việc</label>
+                        <input v-model="form.workplace" type="text" class="admin-input"
+                            placeholder="Vietbank Chi nhánh..." />
+                    </div>
+                    <div class="form-group">
+                        <label>Phòng ban/Chức danh</label>
+                        <input v-model="form.department" type="text" class="admin-input"
+                            placeholder="Phòng tín dụng..." />
                     </div>
                 </div>
 
@@ -51,7 +56,7 @@
                     ⚠️ {{ error }}
                 </div>
 
-                <button type="submit" class="btn-register" :disabled="isLoading">
+                <button type="submit" class="btn-action btn-primary btn-register-custom" :disabled="isLoading">
                     <span v-if="isLoading" class="loader"></span>
                     <span v-else>Đăng ký ngay</span>
                 </button>
@@ -135,32 +140,33 @@ export default {
 .register-header h1 {
     font-size: 1.8rem;
     color: #1a2a6c;
+    margin-bottom: 0.5rem;
 }
 
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    margin-bottom: 1.2rem;
 }
 
 .form-group {
-    margin-bottom: 1.2rem;
+    margin-bottom: 1em;
+    /* Handled by row gap or manual margins */
+}
+
+/* Fix for single-item rows */
+.form-row:has(.form-group:only-child) {
+    grid-template-columns: 1fr;
 }
 
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #555;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 0.95rem;
+    text-align: left;
 }
 
 .divider {
@@ -169,17 +175,12 @@ export default {
     margin: 1.5rem 0;
 }
 
-.btn-register {
+.btn-register-custom {
     width: 100%;
-    padding: 12px;
-    background: #1a2a6c;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
     margin-top: 1rem;
+    font-size: 1rem;
+    height: 42px !important;
+    /* Slightly taller for primary action */
 }
 
 .error-message {
@@ -188,13 +189,21 @@ export default {
     padding: 10px;
     border-radius: 6px;
     font-size: 0.9rem;
-    margin-bottom: 1rem;
+    margin-top: 1rem;
+    text-align: left;
 }
 
 .register-footer {
     text-align: center;
     margin-top: 1.5rem;
     color: #666;
+    font-size: 0.9rem;
+}
+
+.register-footer a {
+    color: #42b983;
+    font-weight: 600;
+    text-decoration: none;
 }
 
 .loader {

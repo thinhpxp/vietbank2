@@ -10,8 +10,11 @@
       </div>
 
       <div v-if="isAuthenticated" class="user-info">
-        <span class="user-name">👤 {{ userDisplayName }}</span>
-        <button @click="logout" class="btn-logout">Đăng xuất</button>
+        <router-link to="/profile" class="user-profile-link">
+          <span class="user-avatar">👤</span>
+          <span class="user-name">{{ userDisplayName }}</span>
+        </router-link>
+        <button @click="logout" class="btn-action btn-logout">Đăng xuất</button>
       </div>
     </nav>
 
@@ -93,17 +96,39 @@ body {
   gap: 15px;
 }
 
+.user-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 5px 15px;
+  border-radius: 20px;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.user-profile-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  border-color: #42b983;
+}
+
 .user-name {
-  font-size: 0.9rem;
-  opacity: 0.9;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.user-avatar {
+  font-size: 1.1rem;
 }
 
 .btn-logout {
-  background: #e74c3c;
+  background: var(--color-danger);
   color: white;
-  border: none;
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 0.85rem;
   transition: background 0.2s;

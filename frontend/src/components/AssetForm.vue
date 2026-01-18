@@ -274,39 +274,11 @@ export default {
   font-size: 0.9em;
 }
 
-.btn-search-master {
-  background: #e67e22;
-  color: white;
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-left: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.btn-search-master:hover {
-  background: #d35400;
-}
 
 .card-body {
   padding: 15px;
 }
 
-.btn-remove {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
 
 /* Toggle Icon */
 .toggle-icon {

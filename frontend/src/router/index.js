@@ -48,6 +48,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/master-data',
     name: 'MasterData',
     component: () => import('@/views/admin/MasterData.vue'),

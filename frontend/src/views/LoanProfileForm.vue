@@ -16,11 +16,13 @@
         </div>
       </div>
       <div class="header-buttons">
-        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-action btn-lock" @click="lockProfile">🔒 Khóa hồ
+        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-action btn-lock"
+          @click="lockProfile">🔒 Khóa hồ
           sơ</button>
-        <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock" @click="unlockProfile">🔓 Mở khóa</button>
+        <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock" @click="unlockProfile">🔓 Mở
+          khóa</button>
         <button v-if="id || currentId" class="btn-action btn-doc" @click="openDownloadModal">Xuất HĐ</button>
-        <button v-if="id || currentId" class="btn-action btn-copy" @click="openDuplicateModal">Sao chép hồ sơ</button>
+        <button v-if="id || currentId" class="btn-action btn-copy" @click="openDuplicateModal">Nhân bản</button>
         <button class="btn-action btn-primary" @click="saveProfile" :disabled="isSaving">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
         </button>
@@ -657,14 +659,14 @@ export default {
   border: 1px solid #f40606;
 }
 
-.badge-label { font-weight: 600; opacity: 0.8; }
-.badge-value { font-weight: bold; }
+.badge-label {
+  font-weight: 600;
+  opacity: 0.8;
+}
 
-/* Custom Profile Status Styles */
-.btn-lock { background: #fdf6e3; color: #e67e22; border: 1px solid #efcebc; }
-.btn-lock:hover { background: #f39c12; color: white; }
-.btn-unlock { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-.btn-unlock:hover { background: #2e7d32; color: white; }
+.badge-value {
+  font-weight: bold;
+}
 
 /* Panels resizing */
 .resize-handle {
@@ -676,10 +678,21 @@ export default {
   justify-content: center;
   transition: background-color 0.2s;
 }
-.resize-handle:hover, .resize-handle:active { background-color: #42b983; }
 
-.left-panel { overflow-y: auto; padding-right: 5px; }
-.right-panel { overflow-y: auto; padding-left: 5px; }
+.resize-handle:hover,
+.resize-handle:active {
+  background-color: #42b983;
+}
+
+.left-panel {
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.right-panel {
+  overflow-y: auto;
+  padding-left: 5px;
+}
 
 .panel-section {
   background: #f9f9f9;
@@ -696,7 +709,8 @@ export default {
   margin-bottom: 15px;
 }
 
-.panel-section h3, .panel-header h3 {
+.panel-section h3,
+.panel-header h3 {
   margin: 0;
   color: #2c3e50;
   border-bottom: 2px solid #42b983;
