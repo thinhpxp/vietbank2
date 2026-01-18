@@ -1,0 +1,80 @@
+/* ==========================================================================
+   SVG Icon System
+   ========================================================================== */
+
+/* Base SVG Icon Styles */
+.svg-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    flex-shrink: 0;
+    color: inherit;
+}
+
+/* Size Variants */
+.icon-xs {
+    width: 14px;
+    height: 14px;
+}
+
+.icon-sm {
+    width: 16px;
+    height: 16px;
+}
+
+.icon-md {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-lg {
+    width: 24px;
+    height: 24px;
+}
+
+.icon-xl {
+    width: 32px;
+    height: 32px;
+}
+
+/* Icon in Button Context */
+.btn-action .svg-icon {
+    margin-right: 4px;
+}
+
+.btn-action .svg-icon:only-child {
+    margin-right: 0;
+}
+
+/* Hover Effects for Interactive Icons */
+.svg-icon.interactive {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.svg-icon.interactive:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
+}
+
+/* Color Variants */
+.icon-primary {
+    color: var(--color-primary);
+}
+
+.icon-success {
+    color: var(--color-success);
+}
+
+.icon-danger {
+    color: var(--color-danger);
+}
+
+.icon-warning {
+    color: var(--color-warning);
+}
+
+.icon-muted {
+    color: var(--color-text-muted);
+}

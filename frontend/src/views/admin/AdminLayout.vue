@@ -8,7 +8,9 @@
 
       <nav class="sidebar-nav">
         <router-link to="/admin/groups">📂 Nhóm Thông tin</router-link>
-        <router-link to="/admin/fields">📝 Trường Thông tin</router-link>
+        <router-link to="/admin/fields">
+          <SvgIcon name="edit" size="sm" /> Trường Thông tin
+        </router-link>
         <router-link to="/admin/templates">📄 Mẫu hợp đồng</router-link>
         <router-link to="/admin/roles">🎭 Vai trò</router-link>
         <router-link to="/admin/forms">📑 Khung nhập liệu</router-link>

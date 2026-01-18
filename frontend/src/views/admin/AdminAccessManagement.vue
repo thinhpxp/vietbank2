@@ -26,12 +26,14 @@
         <div v-if="activeMainTab === 'users'" class="split-view" ref="userSplitView">
             <!-- LEFT: USER LIST -->
             <div class="pane pane-left" :style="{ width: userPaneWidth + '%' }">
-                <div class="pane-header">
-                    <div class="search-box">
+                <div class="pane-header admin-row">
+                    <div class="search-box flex-1">
                         <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..."
                             class="admin-form-control" />
                     </div>
-                    <button @click="createNewUser" class="btn-primary">➕ Thêm</button>
+                    <button @click="createNewUser" class="btn-action btn-primary">
+                        <SvgIcon name="plus" size="sm" /> Thêm
+                    </button>
                 </div>
 
                 <div class="table-container scrollable">
@@ -68,8 +70,8 @@
             <!-- RIGHT: USER EDITOR -->
             <div class="pane pane-right" :style="{ width: (100 - userPaneWidth) + '%' }">
                 <div v-if="selectedUser" class="editor-container">
-                    <div class="pane-header">
-                        <h3>Chi tiết: {{ selectedUser.username }}</h3>
+                    <div class="pane-header admin-row">
+                        <h3 class="flex-1">Chi tiết: {{ selectedUser.username }}</h3>
                         <div class="actions">
                             <span v-if="selectedUser.is_superuser" class="superuser-warning">
                                 🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
@@ -159,7 +161,7 @@
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
                                     class="admin-perm-tags">
                                     <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -174,7 +176,8 @@
                                     :disabled="selectedUser.is_superuser && !auth.isSuperuser">🔄 Reset mật
                                     khẩu</button>
                                 <button @click="confirmDeleteUser" class="btn-danger"
-                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">🗑️ Xóa tài
+                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">
+                                    <SvgIcon name="trash" size="sm" /> Xóa tài
                                     khoản</button>
                             </div>
                         </section>
@@ -193,7 +196,9 @@
             <div class="pane pane-left" :style="{ width: groupPaneWidth + '%' }">
                 <div class="pane-header">
                     <h3>Danh sách Nhóm</h3>
-                    <button @click="createNewGroup" class="btn-primary">➕ Tạo Nhóm</button>
+                    <button @click="createNewGroup" class="btn-primary">
+                        <SvgIcon name="plus" size="sm" /> Tạo Nhóm
+                    </button>
                 </div>
                 <div class="table-container scrollable">
                     <table class="data-table">
@@ -219,12 +224,14 @@
             <!-- RIGHT: GROUP EDITOR -->
             <div class="pane pane-right" :style="{ width: (100 - groupPaneWidth) + '%' }">
                 <div v-if="selectedGroup" class="editor-container">
-                    <div class="pane-header">
-                        <input type="text" v-model="selectedGroup.name" class="admin-form-control h3-input"
+                    <div class="pane-header admin-row">
+                        <input type="text" v-model="selectedGroup.name" class="admin-form-control h3-input flex-1"
                             placeholder="Tên nhóm..." />
                         <div class="actions">
                             <button @click="saveGroup" class="btn-success" :disabled="isSaving">Lưu Nhóm</button>
-                            <button @click="confirmDeleteGroup" class="btn-icon danger">🗑️</button>
+                            <button @click="confirmDeleteGroup" class="btn-icon danger">
+                                <SvgIcon name="trash" size="sm" />
+                            </button>
                         </div>
                     </div>
 
@@ -263,8 +270,8 @@
 
         <!-- TAB 3: AUDIT LOG -->
         <div v-if="activeMainTab === 'audit'" class="audit-view pane">
-            <div class="pane-header">
-                <h3>Nhật ký hệ thống</h3>
+            <div class="pane-header admin-row">
+                <h3 class="flex-1">Nhật ký hệ thống</h3>
                 <div class="audit-filters">
                     <input type="text" v-model="auditSearch" placeholder="Tìm theo username, hành động..."
                         class="admin-form-control" />
@@ -747,7 +754,7 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    /*margin-bottom: 1rem;*/
     flex-wrap: wrap;
     gap: 10px;
     background: #fff;

@@ -1,17 +1,20 @@
 <template>
   <div class="admin-page">
     <h2>Quản lý Nhóm Thông tin</h2>
-    <div class="admin-row mb-4">
-      <input v-model="newGroup.name" placeholder="Tên nhóm mới" class="admin-input">
-      <input v-model="newGroup.slug" placeholder="Mã (Slug - Tùy chọn)" class="admin-input">
-      <select v-model="newGroup.layout_position" class="admin-input">
-        <option value="LEFT">Cột Trái</option>
-        <option value="RIGHT">Cột Phải</option>
-      </select>
-      <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" class="admin-input">
-      <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="max-width: 100px"
-        class="admin-input">
-      <button @click="addGroup" class="btn-action btn-create">Thêm Nhóm</button>
+    <div class="admin-panel">
+      <h4>Thêm nhóm mới</h4>
+      <div class="admin-row">
+        <input v-model="newGroup.name" placeholder="Tên nhóm mới" class="admin-input">
+        <input v-model="newGroup.slug" placeholder="Mã (Slug - Tùy chọn)" class="admin-input">
+        <select v-model="newGroup.layout_position" class="admin-input">
+          <option value="LEFT">Cột Trái</option>
+          <option value="RIGHT">Cột Phải</option>
+        </select>
+        <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" class="admin-input">
+        <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="max-width: 100px"
+          class="admin-input">
+        <button @click="addGroup" class="btn-action btn-create">Thêm Nhóm</button>
+      </div>
     </div>
 
     <table class="data-table">

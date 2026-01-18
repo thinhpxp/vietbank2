@@ -5,16 +5,24 @@
       <div class="brand">Vietbank Contract App</div>
       <div class="links">
         <router-link to="/">Danh sách Hồ sơ</router-link>
-        <router-link v-if="isAuthenticated" to="/master-data">🗂️ Dữ liệu gốc</router-link>
-        <router-link v-if="isAdmin" to="/admin/groups">⚙️ Admin Panel</router-link>
+        <router-link v-if="isAuthenticated" to="/master-data">
+          <SvgIcon name="folder" size="sm" /> Dữ liệu gốc
+        </router-link>
+        <router-link v-if="isAdmin" to="/admin/groups">
+          <SvgIcon name="settings" size="sm" /> Admin Panel
+        </router-link>
       </div>
 
       <div v-if="isAuthenticated" class="user-info">
         <router-link to="/profile" class="user-profile-link">
-          <span class="user-avatar">👤</span>
+          <span class="user-avatar">
+            <SvgIcon name="user" size="md" />
+          </span>
           <span class="user-name">{{ userDisplayName }}</span>
         </router-link>
-        <button @click="logout" class="btn-action btn-logout">Đăng xuất</button>
+        <button @click="logout" class="btn-action btn-logout">
+          <SvgIcon name="logout" size="sm" /> Đăng xuất
+        </button>
       </div>
     </nav>
 

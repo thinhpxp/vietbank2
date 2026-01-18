@@ -174,6 +174,14 @@ class RegistrationSerializer(serializers.ModelSerializer):
         user.profile.workplace = workplace
         user.profile.department = department
         user.profile.save()
+
+        # Tự động gán nhóm "soạn thảo" nếu có
+        try:
+            draft_group = Group.objects.filter(name='soạn thảo').first()
+            if draft_group:
+                user.groups.add(draft_group)
+        except Exception:
+            pass # Tránh lỗi làm đứt quãng quá trình đăng ký nếu có vấn đề về Group
         
         return user
 

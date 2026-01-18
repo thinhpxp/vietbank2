@@ -483,11 +483,19 @@
 
 /* Panels & Containers */
 .admin-panel {
-    background: #f8f9fa;
+    background: #4180bf;
+    color: #ffffff;
+    /* Sáng màu để nổi bật trên nền xanh */
     padding: 15px;
     margin-bottom: 20px;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-light);
+}
+
+.admin-panel h4 {
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 12px;
 }
 
 /* Table Utilities */
@@ -603,6 +611,10 @@
 /* Utilities */
 .w-full {
     width: 100%;
+}
+
+.flex-1 {
+    flex: 1;
 }
 
 .flex {

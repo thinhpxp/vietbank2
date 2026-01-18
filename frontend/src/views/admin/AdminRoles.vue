@@ -1,12 +1,15 @@
 <template>
   <div class="admin-page">
     <h2>Quản lý Vai trò (Roles)</h2>
-    <div class="admin-row mb-4">
-      <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" class="admin-input">
-      <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" class="admin-input">
-      <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" class="admin-input">
-      <input v-model="newRole.relation_type" placeholder="Quan hệ (VD: OWNER)" class="admin-input">
-      <button @click="addRole" class="btn-action btn-create mt-2 sm:mt-0">Thêm Vai trò</button>
+    <div class="admin-panel">
+      <h4>Thêm vai trò mới</h4>
+      <div class="admin-row">
+        <input v-model="newRole.name" placeholder="Tên vai trò mới (VD: Người Thừa kế)" class="admin-input">
+        <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" class="admin-input">
+        <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" class="admin-input">
+        <input v-model="newRole.relation_type" placeholder="Quan hệ (VD: OWNER)" class="admin-input">
+        <button @click="addRole" class="btn-action btn-create">Thêm Vai trò</button>
+      </div>
     </div>
 
     <table class="data-table">
