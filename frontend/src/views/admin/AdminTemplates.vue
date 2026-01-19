@@ -46,6 +46,16 @@
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa mẫu '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
       @cancel="showDeleteModal = false" />
+
+    <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+      :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+      confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
+    <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
+      :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
+      @cancel="showSuccessModal = false" />
+    <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
+      :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
+      @cancel="showWarningModal = false" />
   </div>
 </template>
 
@@ -53,9 +63,11 @@
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
+import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
   components: { ConfirmModal },
+  mixins: [errorHandlingMixin],
   data() {
     return {
       templates: [],
@@ -87,7 +99,10 @@ export default {
       this.selectedFile = e.target.files[0];
     },
     async uploadTemplate() {
-      if (!this.selectedFile || !this.newName) return alert('Nhập tên và chọn file!');
+      if (!this.selectedFile || !this.newName) {
+        this.showWarning('Vui lòng nhập tên và chọn file!', 'Thiếu thông tin');
+        return;
+      }
 
       const formData = new FormData();
       formData.append('name', this.newName);
@@ -100,8 +115,10 @@ export default {
         });
         this.newName = ''; this.newDesc = ''; this.selectedFile = null; this.$refs.fileInput.value = '';
         this.fetchTemplates();
-        alert('Upload thành công!');
-      } catch (e) { alert('Lỗi upload'); }
+        this.showSuccess('Upload thành công!');
+      } catch (e) {
+        this.showError(e, 'Lỗi upload');
+      }
     },
     deleteTemplate(id) {
       const tpl = this.templates.find(t => t.id === id);

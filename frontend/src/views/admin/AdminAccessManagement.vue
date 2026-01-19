@@ -178,7 +178,8 @@
                                 <button @click="confirmDeleteUser" class="btn-danger"
                                     :disabled="selectedUser.is_superuser && !auth.isSuperuser">
                                     <SvgIcon name="trash" size="sm" /> Xóa tài
-                                    khoản</button>
+                                    khoản
+                                </button>
                             </div>
                         </section>
                     </div>
@@ -316,17 +317,41 @@
                 </div>
             </div>
         </div>
+
+        <!-- Delete User Confirm Modal -->
+        <ConfirmModal v-if="selectedUser" :visible="showDeleteUserConfirm" type="warning" title="Xác nhận xóa tài khoản"
+            :message="`Bạn có chắc chắn muốn XÓA tài khoản '${selectedUser.username}'? Hành động này không thể hoàn tác.`"
+            confirmText="Xóa" @confirm="handleDeleteUser" @cancel="showDeleteUserConfirm = false" />
+
+        <!-- Create Group Input Modal -->
+        <InputModal :visible="showCreateGroupInput" title="Tạo nhóm mới" label="Tên nhóm:" confirmText="Tạo"
+            @confirm="handleCreateGroup" @cancel="showCreateGroupInput = false" />
+
+        <!-- Delete Group Confirm Modal -->
+        <ConfirmModal v-if="selectedGroup" :visible="showDeleteGroupConfirm" type="warning" title="Xác nhận xóa nhóm"
+            :message="`Bạn có chắc chắn muốn xóa nhóm '${selectedGroup.name}'?`" confirmText="Xóa"
+            @confirm="handleDeleteGroup" @cancel="showDeleteGroupConfirm = false" />
+
+        <!-- Error Modal (from mixin) -->
+        <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+            :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+            confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
     </div>
 </template>
 
 <script>
 import axios from 'axios';
 import auth from '@/store/auth';
+import { errorHandlingMixin } from '@/utils/errorHandler';
+import ConfirmModal from '@/components/ConfirmModal.vue';
+import InputModal from '@/components/InputModal.vue';
 
 const API_BASE = 'http://localhost:8000/api';
 
 export default {
     name: 'AdminAccessManagement',
+    components: { ConfirmModal, InputModal },
+    mixins: [errorHandlingMixin],
     data() {
         return {
             activeMainTab: 'users',
@@ -354,6 +379,12 @@ export default {
             resizeMode: '',
             showResetModal: false,
             newPassword: '',
+
+            // Confirm/Input Modals
+            showDeleteUserConfirm: false,
+            showDeleteGroupConfirm: false,
+            showCreateGroupInput: false,
+
             auth // Add to data for template use
         };
     },
@@ -451,15 +482,17 @@ export default {
             }
         },
         async confirmDeleteUser() {
-            if (confirm(`Bạn có chắc muốn XÓA tài khoản ${this.selectedUser.username}?`)) {
-                try {
-                    await axios.delete(`${API_BASE}/users/${this.selectedUser.id}/`);
-                    this.users = this.users.filter(u => u.id !== this.selectedUser.id);
-                    this.selectedUser = null;
-                    this.$toast.success('Đã xóa tài khoản.');
-                } catch (e) {
-                    this.$toast.error('Lỗi khi xóa.');
-                }
+            this.showDeleteUserConfirm = true;
+        },
+        async handleDeleteUser() {
+            this.showDeleteUserConfirm = false;
+            try {
+                await axios.delete(`${API_BASE}/users/${this.selectedUser.id}/`);
+                this.users = this.users.filter(u => u.id !== this.selectedUser.id);
+                this.selectedUser = null;
+                this.$toast.success('Đã xóa tài khoản.');
+            } catch (e) {
+                this.$toast.error('Lỗi khi xóa.');
             }
         },
 
@@ -468,14 +501,17 @@ export default {
             this.selectedGroup = JSON.parse(JSON.stringify(g));
         },
         async createNewGroup() {
-            const name = prompt("Nhập tên nhóm mới:");
+            this.showCreateGroupInput = true;
+        },
+        async handleCreateGroup(name) {
+            this.showCreateGroupInput = false;
             if (!name) return;
             try {
                 const res = await axios.post(`${API_BASE}/user-groups/`, { name, permissions: [] });
                 this.groups.push(res.data);
-                this.selectGroup(res.data);
+                this.$toast.success('Đã tạo nhóm mới.');
             } catch (e) {
-                this.$toast.error('Lỗi tạo nhóm.');
+                this.$toast.error('Lỗi khi tạo nhóm.');
             }
         },
         async saveGroup() {
@@ -492,15 +528,17 @@ export default {
             }
         },
         async confirmDeleteGroup() {
-            if (confirm(`Xóa nhóm ${this.selectedGroup.name}?`)) {
-                try {
-                    await axios.delete(`${API_BASE}/user-groups/${this.selectedGroup.id}/`);
-                    this.groups = this.groups.filter(g => g.id !== this.selectedGroup.id);
-                    this.selectedGroup = null;
-                    this.$toast.success('Đã xóa nhóm.');
-                } catch (e) {
-                    this.$toast.error('Lỗi khi xóa.');
-                }
+            this.showDeleteGroupConfirm = true;
+        },
+        async handleDeleteGroup() {
+            this.showDeleteGroupConfirm = false;
+            try {
+                await axios.delete(`${API_BASE}/user-groups/${this.selectedGroup.id}/`);
+                this.groups = this.groups.filter(g => g.id !== this.selectedGroup.id);
+                this.selectedGroup = null;
+                this.$toast.success('Đã xóa nhóm.');
+            } catch (e) {
+                this.$toast.error('Lỗi khi xóa nhóm.');
             }
         },
 

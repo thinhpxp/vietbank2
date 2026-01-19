@@ -71,9 +71,12 @@
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
+import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
+  name: 'AdminRoles',
   components: { ConfirmModal },
+  mixins: [errorHandlingMixin],
   data() {
     return {
       roles: [],
@@ -105,7 +108,10 @@ export default {
       }
     },
     async addRole() {
-      if (!this.newRole.name) return alert('Vui lòng nhập tên vai trò');
+      if (!this.newRole.name) {
+        this.showWarning('Vui lòng nhập tên vai trò', 'Thiếu thông tin');
+        return;
+      }
       try {
         await axios.post('http://127.0.0.1:8000/api/roles/', this.newRole);
         this.newRole.name = '';
@@ -113,7 +119,7 @@ export default {
         this.newRole.description = '';
         this.fetchRoles();
       } catch (e) {
-        alert('Lỗi thêm vai trò: ' + e.response?.data?.message || e.message);
+        this.showError(e, 'Lỗi thêm vai trò');
       }
     },
     deleteRole(id) {
@@ -130,7 +136,7 @@ export default {
           this.deleteTargetId = null;
           this.fetchRoles();
         } catch (e) {
-          alert('Lỗi xóa vai trò');
+          this.showError(e, 'Lỗi xóa vai trò');
         }
       }
     },
@@ -139,7 +145,7 @@ export default {
         await axios.put(`http://127.0.0.1:8000/api/roles/${role.id}/`, role);
         this.editingId = null;
       } catch (e) {
-        alert('Lỗi cập nhật vai trò');
+        this.showError(e, 'Lỗi cập nhật vai trò');
       }
     }
   }

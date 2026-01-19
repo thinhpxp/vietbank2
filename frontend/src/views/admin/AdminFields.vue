@@ -79,7 +79,7 @@
       <thead>
         <tr>
           <th @click="toggleSort('id')" class="admin-sortable">ID <span v-if="sortBy === 'id'">{{ sortDesc ? '▼' : '▲'
-              }}</span></th>
+          }}</span></th>
           <th @click="toggleSort('order')" class="admin-sortable" width="50">Thứ tự <span v-if="sortBy === 'order'">{{
             sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('placeholder_key')" class="admin-sortable">Key <span
@@ -87,13 +87,13 @@
                 sortDesc ? '▼' : '▲' }}</span></th>
           <th @click="toggleSort('label')" class="admin-sortable">Nhãn <span v-if="sortBy === 'label'">{{ sortDesc ? '▼'
             : '▲'
-              }}</span></th>
+          }}</span></th>
           <th @click="toggleSort('data_type')" class="admin-sortable">Loại <span v-if="sortBy === 'data_type'">{{
             sortDesc ?
               '▼' : '▲' }}</span></th>
           <th @click="toggleSort('group')" class="admin-sortable">Nhóm <span v-if="sortBy === 'group'">{{ sortDesc ? '▼'
             : '▲'
-              }}</span></th>
+          }}</span></th>
           <th width="50">Rộng</th>
           <th>CSS</th>
           <th>Mặc định</th>
@@ -197,6 +197,16 @@
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa trường '${deleteTargetLabel}'?`" confirmText="Xóa" @confirm="confirmDelete"
       @cancel="showDeleteModal = false" />
+    <!-- Generic Modals -->
+    <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+      :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+      confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
+    <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
+      :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
+      @cancel="showSuccessModal = false" />
+    <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
+      :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
+      @cancel="showWarningModal = false" />
   </div>
 </template>
 
@@ -204,9 +214,12 @@
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table.js';
+import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
+  name: 'AdminFields',
   components: { ConfirmModal },
+  mixins: [errorHandlingMixin],
   data() {
     return {
       fields: [], groups: [],
@@ -308,7 +321,10 @@ export default {
         .join(', ');
     },
     async addField() {
-      if (!this.newField.group) return alert('Vui lòng chọn nhóm!');
+      if (!this.newField.group) {
+        this.showWarning('Vui lòng chọn nhóm!', 'Thiếu thông tin');
+        return;
+      }
       try {
         await axios.post('http://127.0.0.1:8000/api/fields/', this.newField);
         this.fetchData();
@@ -317,7 +333,10 @@ export default {
           order: 0, width_cols: 12, css_class: '', use_digit_grouping: false, show_amount_in_words: false,
           allowed_object_types: []
         };
-      } catch (e) { alert('Lỗi: ' + JSON.stringify(e.response.data)); }
+        this.showSuccess('Thêm trường thành công!');
+      } catch (e) {
+        this.showError(e, 'Lỗi khi thêm trường');
+      }
     },
     async updateField(field) {
       try {
@@ -325,7 +344,7 @@ export default {
         this.editingId = null;
         await this.fetchData();
       } catch (e) {
-        alert('Lỗi khi cập nhật: ' + JSON.stringify(e.response.data));
+        this.showError(e, 'Lỗi khi cập nhật');
       }
     },
     deleteField(id) {

@@ -81,6 +81,21 @@
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa người dùng '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
       @cancel="showDeleteModal = false" />
+
+    <!-- Error Modal -->
+    <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+      :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+      confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
+
+    <!-- Success Modal -->
+    <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
+      :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
+      @cancel="showSuccessModal = false" />
+
+    <!-- Warning Modal -->
+    <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
+      :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
+      @cancel="showWarningModal = false" />
   </div>
 </template>
 
@@ -88,10 +103,12 @@
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
+import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
   name: 'AdminUsers',
   components: { ConfirmModal },
+  mixins: [errorHandlingMixin],
   data() {
     return {
       users: [],
@@ -140,24 +157,25 @@ export default {
         await this.fetchUsers(); // Tải lại để đảm bảo dữ liệu đồng bộ
       } catch (error) {
         console.error(error);
-        alert("Lỗi khi cập nhật user: " + JSON.stringify(error.response?.data));
+        this.showError(error, 'Lỗi khi cập nhật user');
       }
     },
     async addUser() {
       if (!this.newUser.username || !this.newUser.password) {
-        return alert("Vui lòng nhập Username và Password!");
+        this.showWarning('Vui lòng nhập Username và Password!', 'Thiếu thông tin');
+        return;
       }
 
       try {
         await axios.post('http://127.0.0.1:8000/api/users/', this.newUser);
-        alert("Tạo người dùng thành công!");
+        this.showSuccess('Tạo người dùng thành công!');
 
         // Reset form
         this.newUser = { username: '', password: '', email: '', is_staff: false };
         this.fetchUsers();
       } catch (error) {
         console.error(error);
-        alert("Lỗi khi tạo user: " + JSON.stringify(error.response?.data));
+        this.showError(error, 'Lỗi khi tạo user');
       }
     },
     deleteUser(id) {
@@ -174,7 +192,7 @@ export default {
           this.deleteTargetId = null;
           this.fetchUsers();
         } catch (error) {
-          alert("Lỗi khi xóa user");
+          this.showError(error, 'Lỗi khi xóa user');
         }
       }
     }

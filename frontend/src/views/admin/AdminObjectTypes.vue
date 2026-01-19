@@ -51,8 +51,8 @@
                 <div class="flex-1 overflow-y-auto">
                     <div class="admin-field">
                         <label>Mã loại (Code) *</label>
-                        <input v-model="formData.code" :disabled="isEdit" placeholder="VD: PROJECT" class="admin-form-control"
-                            style="width: 100%" />
+                        <input v-model="formData.code" :disabled="isEdit" placeholder="VD: PROJECT"
+                            class="admin-form-control" style="width: 100%" />
                         <small class="text-gray-500 text-xs mt-1 block">Viết hoa, không dấu, không khoảng trắng.</small>
                     </div>
 
@@ -66,7 +66,8 @@
                         <label>Trường định danh (key)</label>
                         <input v-model="formData.identity_field_key" placeholder="VD: ho_ten, bien_so_xe"
                             class="admin-form-control" style="width: 100%" />
-                        <small class="text-gray-500 text-xs mt-1 block">Tên trường dùng để định danh cho đối tượng này.</small>
+                        <small class="text-gray-500 text-xs mt-1 block">Tên trường dùng để định danh cho đối tượng
+                            này.</small>
                     </div>
 
                     <div class="admin-field">
@@ -87,6 +88,17 @@
         <ConfirmModal :visible="showDeleteModal" title="Xóa Loại đối tượng"
             :message="`Bạn có chắc muốn xóa loại '${deleteTarget?.name}'? Các dữ liệu thuộc loại này có thể bị ảnh hưởng.`"
             confirmText="Xóa ngay" @confirm="executeDelete" @cancel="showDeleteModal = false" />
+
+        <!-- Generic Modals -->
+        <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+            :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+            confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
+        <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
+            :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
+            @cancel="showSuccessModal = false" />
+        <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
+            :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
+            @cancel="showWarningModal = false" />
     </div>
 </template>
 
@@ -94,10 +106,12 @@
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
+import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
     name: 'AdminObjectTypes',
     components: { ConfirmModal },
+    mixins: [errorHandlingMixin],
     data() {
         return {
             types: [],
@@ -142,7 +156,10 @@ export default {
             this.showModal = false;
         },
         async saveType() {
-            if (!this.formData.code || !this.formData.name) return alert('Vui lòng nhập Mã và Tên');
+            if (!this.formData.code || !this.formData.name) {
+                this.showWarning('Vui lòng nhập Mã và Tên', 'Thiếu thông tin');
+                return;
+            }
 
             try {
                 if (this.isEdit) {
@@ -153,7 +170,7 @@ export default {
                 this.fetchTypes();
                 this.closeModal();
             } catch (e) {
-                alert('Lỗi khi lưu (Có thể mã đã tồn tại)');
+                this.showError(e, 'Lỗi khi lưu (Có thể mã đã tồn tại)');
                 console.error(e);
             }
         },
@@ -167,10 +184,9 @@ export default {
                 this.fetchTypes();
                 this.showDeleteModal = false;
             } catch (e) {
-                alert('Lỗi xóa');
+                this.showError(e, 'Lỗi xóa');
             }
         }
     }
 };
 </script>
-

@@ -37,7 +37,9 @@
                     <tr v-for="item in items" :key="item.id">
                         <td>
                             {{ item.id }}
-                            <div v-if="item.profiles_count === 0" class="inline-block px-1 py-0.5 rounded text-xs bg-orange-100 text-orange-600 border border-orange-200 mt-1 font-bold">Chưa liên kết</div>
+                            <div v-if="item.profiles_count === 0"
+                                class="inline-block px-1 py-0.5 rounded text-xs bg-orange-100 text-orange-600 border border-orange-200 mt-1 font-bold">
+                                Chưa liên kết</div>
                         </td>
                         <td class="font-bold">
                             <!-- Hiển thị tên hoặc số GCN tùy loại, hoặc fallback display_name -->
@@ -56,7 +58,8 @@
                         <td>
                             <div class="text-sm">
                                 <div>{{ formatDate(item.updated_at) }}</div>
-                                <small class="inline-block px-1 bg-gray-100 text-gray-600 rounded bg-gray-100" v-if="item.last_updated_by_name">
+                                <small class="inline-block px-1 bg-gray-100 text-gray-600 rounded bg-gray-100"
+                                    v-if="item.last_updated_by_name">
                                     👤 {{ item.last_updated_by_name }}
                                 </small>
                             </div>
@@ -88,18 +91,25 @@
                     <div v-else>
                         <!-- TABS IN MODAL -->
                         <div class="flex gap-2 mb-4 border-b pb-2">
-                            <button class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium" :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'profiles' }" @click="relatedTab = 'profiles'">Hồ
+                            <button class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
+                                :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'profiles' }"
+                                @click="relatedTab = 'profiles'">Hồ
                                 sơ
                                 ({{ relatedProfiles.length }})</button>
-                            <button v-if="relatedType === 'PERSON'" class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium" :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'assets' }"
+                            <button v-if="relatedType === 'PERSON'"
+                                class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
+                                :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'assets' }"
                                 @click="relatedTab = 'assets'">Tài sản ({{ relatedAssets.length }})</button>
-                            <button v-if="relatedType !== 'PERSON'" class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium" :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'owners' }"
+                            <button v-if="relatedType !== 'PERSON'"
+                                class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
+                                :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'owners' }"
                                 @click="relatedTab = 'owners'">Chủ sở hữu ({{ owners.length }})</button>
                         </div>
 
                         <!-- CONTENT: PROFILES -->
                         <ul v-if="relatedTab === 'profiles'" class="list-none p-0">
-                            <li v-for="item in relatedProfiles" :key="item.id" class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
+                            <li v-for="item in relatedProfiles" :key="item.id"
+                                class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
                                 <div class="font-bold mb-1">📄 {{ item.name }}</div>
                                 <div class="text-sm text-gray-500 mb-2">
                                     <span>Loại: {{ item.form_name }}</span> |
@@ -107,34 +117,41 @@
                                 </div>
                                 <button class="btn-action btn-secondary" @click="goToProfile(item.id)">Mở Hồ sơ</button>
                             </li>
-                            <li v-if="relatedProfiles.length === 0" class="text-center text-gray-400 p-4">Chưa có hồ sơ liên quan.</li>
+                            <li v-if="relatedProfiles.length === 0" class="text-center text-gray-400 p-4">Chưa có hồ sơ
+                                liên quan.</li>
                         </ul>
 
                         <!-- CONTENT: ASSETS (For Person) -->
                         <ul v-if="relatedTab === 'assets'" class="list-none p-0">
-                            <li v-for="rel in relatedAssets" :key="rel.id" class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
+                            <li v-for="rel in relatedAssets" :key="rel.id"
+                                class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
                                 <div class="font-bold mb-1">🏠 {{ rel.target_name }}</div>
                                 <div class="text-sm text-gray-500 mb-2">
                                     <span>Loại: {{ rel.target_type }}</span> |
                                     <span>Quan hệ: {{ rel.relation_type }}</span>
                                 </div>
-                                <button class="btn-action btn-secondary" @click="viewChildDetails(rel.target_object)">Xem chi
+                                <button class="btn-action btn-secondary"
+                                    @click="viewChildDetails(rel.target_object)">Xem chi
                                     tiết</button>
                             </li>
-                            <li v-if="relatedAssets.length === 0" class="text-center text-gray-400 p-4">Chưa sở hữu tài sản nào.</li>
+                            <li v-if="relatedAssets.length === 0" class="text-center text-gray-400 p-4">Chưa sở hữu tài
+                                sản nào.</li>
                         </ul>
 
                         <!-- CONTENT: OWNERS (For Assets) -->
                         <ul v-if="relatedTab === 'owners'" class="list-none p-0">
-                            <li v-for="rel in owners" :key="rel.id" class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
+                            <li v-for="rel in owners" :key="rel.id"
+                                class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
                                 <div class="font-bold mb-1">👤 {{ rel.source_name }}</div>
                                 <div class="text-sm text-gray-500 mb-2">
                                     <span>Quan hệ: {{ rel.relation_type }}</span>
                                 </div>
-                                <button class="btn-action btn-secondary" @click="viewChildDetails(rel.source_object)">Xem chi
+                                <button class="btn-action btn-secondary"
+                                    @click="viewChildDetails(rel.source_object)">Xem chi
                                     tiết</button>
                             </li>
-                            <li v-if="owners.length === 0" class="text-center text-gray-400 p-4">Chưa xác định chủ sở hữu.</li>
+                            <li v-if="owners.length === 0" class="text-center text-gray-400 p-4">Chưa xác định chủ sở
+                                hữu.</li>
                         </ul>
 
                     </div>
@@ -146,6 +163,17 @@
         <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
             :message="`Bạn có chắc muốn xóa đối tượng này? Thao tác này sẽ gỡ liên kết khỏi các hồ sơ cũ nhưng không xóa dữ liệu trong hồ sơ.`"
             confirmText="Xóa" @confirm="executeDelete" @cancel="showDeleteModal = false" />
+
+        <!-- Generic Modals -->
+        <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+            :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+            confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
+        <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
+            :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
+            @cancel="showSuccessModal = false" />
+        <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
+            :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
+            @cancel="showWarningModal = false" />
 
         <!-- CREATE/EDIT MODAL -->
         <MasterCreateModal :isOpen="showCreateModal" :type="tempOverrideType || activeTab"
@@ -159,10 +187,12 @@ import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import MasterCreateModal from '../../components/MasterCreateModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
+import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
     name: 'MasterData',
     components: { ConfirmModal, MasterCreateModal },
+    mixins: [errorHandlingMixin],
     data() {
         return {
             objectTypes: [], // List of dynamic types
@@ -299,9 +329,9 @@ export default {
                 await axios.delete(`http://127.0.0.1:8000/api/master-objects/${this.deleteTarget.id}/`);
                 this.showDeleteModal = false;
                 this.fetchData();
-                alert('Đã xóa thành công!');
+                this.showSuccess('Đã xóa thành công!');
             } catch (error) {
-                alert('Lỗi khi xóa: ' + error.message);
+                this.showError(error, 'Lỗi khi xóa');
             }
         },
         openCreateModal(objToEdit = null) {
@@ -421,7 +451,7 @@ export default {
 }
 
 .resizer-handle:hover {
-    background: rgba(59, 130, 246, 0.2); /* color-primary with opacity */
+    background: rgba(59, 130, 246, 0.2);
+    /* color-primary with opacity */
 }
 </style>
-

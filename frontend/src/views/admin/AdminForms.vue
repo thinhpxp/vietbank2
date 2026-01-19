@@ -51,19 +51,41 @@
                 </tr>
             </tbody>
         </table>
+
+        <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
+            :message="`Bạn có chắc muốn xóa form '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
+            @cancel="showDeleteModal = false" />
+
+        <!-- Generic Modals -->
+        <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+            :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+            confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
+        <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
+            :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
+            @cancel="showSuccessModal = false" />
+        <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
+            :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
+            @cancel="showWarningModal = false" />
     </div>
 </template>
 
 <script>
 import axios from 'axios';
 import { makeTableResizable } from '../../utils/resizable-table';
+import ConfirmModal from '../../components/ConfirmModal.vue';
+import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
+    components: { ConfirmModal },
+    mixins: [errorHandlingMixin],
     data() {
         return {
             forms: [],
             editingId: null,
-            newForm: { name: '', slug: '', note: '' }
+            newForm: { name: '', slug: '', note: '' },
+            showDeleteModal: false,
+            deleteTargetId: null,
+            deleteTargetName: ''
         }
     },
     mounted() {
@@ -83,24 +105,46 @@ export default {
             }
         },
         async addForm() {
-            if (!this.newForm.name || !this.newForm.slug) return alert('Vui lòng nhập đủ Tên và Slug!');
+            if (!this.newForm.name || !this.newForm.slug) {
+                this.showWarning('Vui lòng nhập đủ Tên và Slug!', 'Thiếu thông tin');
+                return;
+            }
             try {
                 await axios.post('http://127.0.0.1:8000/api/form-views/', this.newForm);
                 this.newForm = { name: '', slug: '', note: '' };
                 this.fetchData();
-            } catch (e) { alert('Lỗi: ' + JSON.stringify(e.response.data)); }
+                this.showSuccess('Thêm form thành công!');
+            } catch (e) {
+                this.showError(e, 'Lỗi khi thêm form');
+            }
         },
         async updateForm(f) {
             try {
                 await axios.put(`http://127.0.0.1:8000/api/form-views/${f.id}/`, f);
                 this.editingId = null;
                 this.fetchData();
-            } catch (e) { alert('Lỗi: ' + JSON.stringify(e.response.data)); }
+            } catch (e) {
+                this.showError(e, 'Lỗi cập nhật form');
+            }
         },
-        async deleteForm(id) {
-            if (!confirm('Bạn có chắc muốn xóa?')) return;
-            await axios.delete(`http://127.0.0.1:8000/api/form-views/${id}/`);
-            this.fetchData();
+        deleteForm(id) {
+            const form = this.forms.find(f => f.id === id);
+            this.deleteTargetId = id;
+            this.deleteTargetName = form ? form.name : '';
+            this.showDeleteModal = true;
+        },
+        async confirmDelete() {
+            if (this.deleteTargetId) {
+                try {
+                    await axios.delete(`http://127.0.0.1:8000/api/form-views/${this.deleteTargetId}/`);
+                    this.showDeleteModal = false;
+                    this.deleteTargetId = null;
+                    this.fetchData();
+                    this.showSuccess('Đã xóa form!');
+                } catch (e) {
+                    this.showError(e, 'Lỗi xóa form');
+                }
+            }
         }
     }
 }

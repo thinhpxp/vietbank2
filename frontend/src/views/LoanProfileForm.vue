@@ -125,6 +125,29 @@
       :defaultValue="duplicateDefaultName" confirmText="Tạo bản sao" @confirm="confirmDuplicate"
       @cancel="showDuplicateModal = false" />
 
+    <!-- Lock Password Modal -->
+    <InputModal :visible="showLockPasswordModal" title="Khóa hồ sơ" label="Thiết lập mật khẩu để khóa hồ sơ:"
+      confirmText="Khóa" @confirm="handleLockPassword" @cancel="showLockPasswordModal = false" />
+
+    <!-- Unlock Password Modal -->
+    <InputModal :visible="showUnlockPasswordModal" title="Mở khóa hồ sơ" label="Nhập mật khẩu để mở khóa:"
+      confirmText="Mở khóa" @confirm="handleUnlockPassword" @cancel="showUnlockPasswordModal = false" />
+
+    <!-- Error Modal (from mixin) -->
+    <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
+      :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
+      confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
+
+    <!-- Success Modal (from mixin) -->
+    <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
+      :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
+      @cancel="showSuccessModal = false" />
+
+    <!-- Warning Modal (from mixin) -->
+    <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
+      :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
+      @cancel="showWarningModal = false" />
+
     <!-- Contract Downloader Modal -->
     <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="Number(currentId || id)" :profileName="profileName"
       @close="isDownloadModalOpen = false" />
@@ -139,10 +162,12 @@ import AssetForm from '../components/AssetForm.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
 import ContractDownloader from '../components/ContractDownloader.vue';
+import { errorHandlingMixin } from '../utils/errorHandler';
 
 export default {
   name: 'LoanProfileForm',
   components: { DynamicForm, PersonForm, AssetForm, ConfirmModal, InputModal, ContractDownloader },
+  mixins: [errorHandlingMixin],
   props: ['id'],
   data() {
     return {
@@ -174,6 +199,10 @@ export default {
       // Duplicate Modal
       showDuplicateModal: false,
       duplicateDefaultName: '',
+
+      // Password Input Modals
+      showLockPasswordModal: false,
+      showUnlockPasswordModal: false,
 
       // Profile Status
       profileStatus: 'DRAFT'
@@ -332,7 +361,7 @@ export default {
         });
       } catch (e) {
         console.error(e);
-        alert('Lỗi tải cấu hình fields');
+        this.showError(e, 'Lỗi tải cấu hình fields');
       } finally {
         this.loading = false;
         this.fetchFormDetails(form_slug);
@@ -450,7 +479,7 @@ export default {
         this.fetchProfileData(response.data.id);
       } catch (error) {
         console.error(error);
-        alert('Lỗi khi tạo bản sao!');
+        this.showError(error, 'Lỗi khi tạo bản sao');
       }
     },
 
@@ -477,7 +506,7 @@ export default {
 
       } catch (e) {
         console.error('Lỗi load hồ sơ:', e);
-        alert('Không tải được dữ liệu hồ sơ!');
+        this.showError(e, 'Không tải được dữ liệu hồ sơ');
       } finally {
         this.loading = false;
       }
@@ -494,7 +523,10 @@ export default {
         return; // Dừng nếu có trùng lặp
       }
 
-      if (!this.profileName) return alert('Vui lòng nhập tên hồ sơ!');
+      if (!this.profileName) {
+        this.showWarning('Vui lòng nhập tên hồ sơ!', 'Thiếu thông tin');
+        return;
+      }
       this.isSaving = true;
       try {
         let targetId = this.currentId;
@@ -580,7 +612,10 @@ export default {
       this.isDownloadModalOpen = true;
     },
     async lockProfile() {
-      const password = prompt("Thiết lập mật khẩu để khóa hồ sơ này:");
+      this.showLockPasswordModal = true;
+    },
+    async handleLockPassword(password) {
+      this.showLockPasswordModal = false;
       if (!password) return;
 
       try {
@@ -588,11 +623,14 @@ export default {
         this.profileStatus = 'FINALIZED';
         this.$toast.success("Hồ sơ đã được khóa.");
       } catch (e) {
-        alert("Lỗi khi khóa hồ sơ: " + (e.response?.data?.error || e.message));
+        this.showError(e, 'Lỗi khi khóa hồ sơ');
       }
     },
     async unlockProfile() {
-      const password = prompt("Nhập mật khẩu để mở khóa:");
+      this.showUnlockPasswordModal = true;
+    },
+    async handleUnlockPassword(password) {
+      this.showUnlockPasswordModal = false;
       if (!password) return;
 
       try {
@@ -600,7 +638,7 @@ export default {
         this.profileStatus = 'DRAFT';
         this.$toast.success("Hồ sơ đã được mở khóa.");
       } catch (e) {
-        alert("Lỗi khi mở khóa: " + (e.response?.data?.error || e.message));
+        this.showError(e, 'Lỗi khi mở khóa');
       }
     }
   }
