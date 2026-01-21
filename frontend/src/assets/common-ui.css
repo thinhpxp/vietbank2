@@ -123,11 +123,37 @@
     background: #138496;
 }
 
-/* 3. Data Table */
-.data-table {
+/* 3. Data Table & Scroll Wrapper */
+.ui-table-wrapper {
     width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
+    /* Custom scrollbar for better look */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.ui-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.ui-table-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.ui-table-wrapper::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+.data-table {
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
+    table-layout: fixed;
 }
 
 .data-table th,
@@ -342,4 +368,27 @@
 
 .btn-search-master:hover {
     background: #138496;
-}
+}
+
+/* 10. Sortable Tables */
+.ui-sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.ui-sortable:hover {
+    background-color: #f1f3f5;
+    color: var(--color-primary);
+}
+
+/* 11. Resizing State Overrides */
+body.is-resizing,
+body.is-resizing * {
+    cursor: col-resize !important;
+}
+
+body.is-resizing .ui-sortable {
+    pointer-events: none;
+    background-color: transparent !important;
+}

@@ -21,59 +21,62 @@
 
         <div class="tab-content">
             <div v-if="loading" class="loading-state">Đang tải dữ liệu...</div>
-            <table v-else class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <!-- Dynamic Headers based on Type could be improved later, for now Generic -->
-                        <th>Tên / Số hiệu</th>
-                        <th>Thông tin thêm</th>
-                        <th>Ngày tạo</th>
-                        <th>Cập nhật gần nhất</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="item in items" :key="item.id">
-                        <td>
-                            {{ item.id }}
-                            <div v-if="item.profiles_count === 0"
-                                class="inline-block px-1 py-0.5 rounded text-xs bg-orange-100 text-orange-600 border border-orange-200 mt-1 font-bold">
-                                Chưa liên kết</div>
-                        </td>
-                        <td class="font-bold">
-                            <!-- Hiển thị tên hoặc số GCN tùy loại, hoặc fallback display_name -->
-                            {{ item.ho_ten || item.so_giay_chung_nhan || item.display_name || '---' }}
-                        </td>
-                        <td>
-                            <!-- Hiển thị CCCD hoặc Chủ sở hữu -->
-                            <span v-if="activeTab === 'PERSON'">CCCD: {{ item.cccd }}</span>
-                            <span v-else-if="activeTab === 'VEHICLE'">Hãng: {{ item.nhan_hieu_xe }}</span>
-                            <span v-else-if="activeTab === 'REALESTATE'">Số vào sổ: {{ item.so_vao_so }}</span>
-                            <span v-else-if="activeTab === 'BOND'">Kỳ hạn: {{ item.ky_han_trai_phieu }}</span>
-                            <span v-else-if="activeTab === 'SAVINGS'">Số tiền: {{ item.so_tien_goi }}</span>
-                            <span v-else>{{ item.owner_name }}</span>
-                        </td>
-                        <td>{{ formatDate(item.created_at) }}</td>
-                        <td>
-                            <div class="text-sm">
-                                <div>{{ formatDate(item.updated_at) }}</div>
-                                <small class="inline-block px-1 bg-gray-100 text-gray-600 rounded bg-gray-100"
-                                    v-if="item.last_updated_by_name">
-                                    👤 {{ item.last_updated_by_name }}
-                                </small>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="flex gap-2">
-                                <button class="btn-action btn-secondary" @click="viewRelated(item)">Liên kết</button>
-                                <button class="btn-action btn-edit" @click="editObject(item)">Sửa</button>
-                                <button class="btn-action btn-delete" @click="confirmDelete(item)">Xóa</button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div v-else class="ui-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <!-- Dynamic Headers based on Type could be improved later, for now Generic -->
+                            <th>Tên / Số hiệu</th>
+                            <th>Thông tin thêm</th>
+                            <th>Ngày tạo</th>
+                            <th>Cập nhật gần nhất</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="item in items" :key="item.id">
+                            <td>
+                                {{ item.id }}
+                                <div v-if="item.profiles_count === 0"
+                                    class="inline-block px-1 py-0.5 rounded text-xs bg-orange-100 text-orange-600 border border-orange-200 mt-1 font-bold">
+                                    Chưa liên kết</div>
+                            </td>
+                            <td class="font-bold">
+                                <!-- Hiển thị tên hoặc số GCN tùy loại, hoặc fallback display_name -->
+                                {{ item.ho_ten || item.so_giay_chung_nhan || item.display_name || '---' }}
+                            </td>
+                            <td>
+                                <!-- Hiển thị CCCD hoặc Chủ sở hữu -->
+                                <span v-if="activeTab === 'PERSON'">CCCD: {{ item.cccd }}</span>
+                                <span v-else-if="activeTab === 'VEHICLE'">Hãng: {{ item.nhan_hieu_xe }}</span>
+                                <span v-else-if="activeTab === 'REALESTATE'">Số vào sổ: {{ item.so_vao_so }}</span>
+                                <span v-else-if="activeTab === 'BOND'">Kỳ hạn: {{ item.ky_han_trai_phieu }}</span>
+                                <span v-else-if="activeTab === 'SAVINGS'">Số tiền: {{ item.so_tien_goi }}</span>
+                                <span v-else>{{ item.owner_name }}</span>
+                            </td>
+                            <td>{{ formatDate(item.created_at) }}</td>
+                            <td>
+                                <div class="text-sm">
+                                    <div>{{ formatDate(item.updated_at) }}</div>
+                                    <small class="inline-block px-1 bg-gray-100 text-gray-600 rounded bg-gray-100"
+                                        v-if="item.last_updated_by_name">
+                                        👤 {{ item.last_updated_by_name }}
+                                    </small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <button class="btn-action btn-secondary" @click="viewRelated(item)">Liên
+                                        kết</button>
+                                    <button class="btn-action btn-edit" @click="editObject(item)">Sửa</button>
+                                    <button class="btn-action btn-delete" @click="confirmDelete(item)">Xóa</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- RELATED INFO MODAL -->
@@ -82,78 +85,79 @@
                 <!-- RESIZE HANDLE -->
                 <div class="resizer-handle" @mousedown="startResize"></div>
 
-                <div class="flex justify-between items-center p-4 border-b">
+                <div class="side-modal-header">
                     <h3>{{ relatedTitle }}</h3>
-                    <button class="text-2xl" @click="showRelatedModal = false">&times;</button>
+                    <button class="side-modal-close" @click="showRelatedModal = false">&times;</button>
                 </div>
-                <div class="flex-1 overflow-y-auto p-4">
-                    <div v-if="relatedLoading">Đang tải...</div>
-                    <div v-else>
-                        <!-- TABS IN MODAL -->
-                        <div class="flex gap-2 mb-4 border-b pb-2">
-                            <button class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
-                                :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'profiles' }"
-                                @click="relatedTab = 'profiles'">Hồ
-                                sơ
-                                ({{ relatedProfiles.length }})</button>
-                            <button v-if="relatedType === 'PERSON'"
-                                class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
-                                :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'assets' }"
-                                @click="relatedTab = 'assets'">Tài sản ({{ relatedAssets.length }})</button>
-                            <button v-if="relatedType !== 'PERSON'"
-                                class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-gray-700 font-medium"
-                                :class="{ 'bg-blue-100 text-blue-700': relatedTab === 'owners' }"
-                                @click="relatedTab = 'owners'">Chủ sở hữu ({{ owners.length }})</button>
-                        </div>
 
+                <div class="side-modal-tabs">
+                    <button class="side-modal-tab-btn" :class="{ active: relatedTab === 'profiles' }"
+                        @click="relatedTab = 'profiles'">
+                        Hồ sơ ({{ relatedProfiles.length }})
+                    </button>
+                    <button v-if="relatedType === 'PERSON'" class="side-modal-tab-btn"
+                        :class="{ active: relatedTab === 'assets' }" @click="relatedTab = 'assets'">
+                        Tài sản ({{ relatedAssets.length }})
+                    </button>
+                    <button v-if="relatedType !== 'PERSON'" class="side-modal-tab-btn"
+                        :class="{ active: relatedTab === 'owners' }" @click="relatedTab = 'owners'">
+                        Chủ sở hữu ({{ owners.length }})
+                    </button>
+                </div>
+
+                <div class="side-modal-body">
+                    <div v-if="relatedLoading" class="text-center p-8 text-gray-500">
+                        <span class="inline-block animate-spin mr-2">⏳</span> Đang tải...
+                    </div>
+                    <div v-else>
                         <!-- CONTENT: PROFILES -->
-                        <ul v-if="relatedTab === 'profiles'" class="list-none p-0">
-                            <li v-for="item in relatedProfiles" :key="item.id"
-                                class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
-                                <div class="font-bold mb-1">📄 {{ item.name }}</div>
-                                <div class="text-sm text-gray-500 mb-2">
+                        <div v-if="relatedTab === 'profiles'">
+                            <div v-for="item in relatedProfiles" :key="item.id" class="side-detail-item">
+                                <div class="font-bold mb-1 text-slate-700">📄 {{ item.name }}</div>
+                                <div class="text-sm text-gray-500 mb-3">
                                     <span>Loại: {{ item.form_name }}</span> |
                                     <span>Ngày: {{ formatDate(item.created_at) }}</span>
                                 </div>
-                                <button class="btn-action btn-secondary" @click="goToProfile(item.id)">Mở Hồ sơ</button>
-                            </li>
-                            <li v-if="relatedProfiles.length === 0" class="text-center text-gray-400 p-4">Chưa có hồ sơ
-                                liên quan.</li>
-                        </ul>
+                                <button class="btn-action btn-secondary w-full" @click="goToProfile(item.id)">Mở Hồ
+                                    sơ</button>
+                            </div>
+                            <div v-if="relatedProfiles.length === 0" class="text-center text-gray-400 p-8">
+                                Chưa có hồ sơ liên quan.
+                            </div>
+                        </div>
 
                         <!-- CONTENT: ASSETS (For Person) -->
-                        <ul v-if="relatedTab === 'assets'" class="list-none p-0">
-                            <li v-for="rel in relatedAssets" :key="rel.id"
-                                class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
-                                <div class="font-bold mb-1">🏠 {{ rel.target_name }}</div>
-                                <div class="text-sm text-gray-500 mb-2">
+                        <div v-if="relatedTab === 'assets'">
+                            <div v-for="rel in relatedAssets" :key="rel.id" class="side-detail-item">
+                                <div class="font-bold mb-1 text-slate-700">🏠 {{ rel.target_name }}</div>
+                                <div class="text-sm text-gray-500 mb-3">
                                     <span>Loại: {{ rel.target_type }}</span> |
                                     <span>Quan hệ: {{ rel.relation_type }}</span>
                                 </div>
-                                <button class="btn-action btn-secondary"
+                                <button class="btn-action btn-secondary w-full"
                                     @click="viewChildDetails(rel.target_object)">Xem chi
                                     tiết</button>
-                            </li>
-                            <li v-if="relatedAssets.length === 0" class="text-center text-gray-400 p-4">Chưa sở hữu tài
-                                sản nào.</li>
-                        </ul>
+                            </div>
+                            <div v-if="relatedAssets.length === 0" class="text-center text-gray-400 p-8">
+                                Chưa sở hữu tài sản nào.
+                            </div>
+                        </div>
 
                         <!-- CONTENT: OWNERS (For Assets) -->
-                        <ul v-if="relatedTab === 'owners'" class="list-none p-0">
-                            <li v-for="rel in owners" :key="rel.id"
-                                class="p-4 border border-gray-100 rounded mb-2 bg-gray-50">
-                                <div class="font-bold mb-1">👤 {{ rel.source_name }}</div>
-                                <div class="text-sm text-gray-500 mb-2">
+                        <div v-if="relatedTab === 'owners'">
+                            <div v-for="rel in owners" :key="rel.id" class="side-detail-item">
+                                <div class="font-bold mb-1 text-slate-700">👤 {{ rel.source_name }}</div>
+                                <div class="text-sm text-gray-500 mb-3">
                                     <span>Quan hệ: {{ rel.relation_type }}</span>
                                 </div>
-                                <button class="btn-action btn-secondary"
+                                <button class="btn-action btn-secondary w-full"
                                     @click="viewChildDetails(rel.source_object)">Xem chi
                                     tiết</button>
-                            </li>
-                            <li v-if="owners.length === 0" class="text-center text-gray-400 p-4">Chưa xác định chủ sở
-                                hữu.</li>
-                        </ul>
-
+                            </div>
+                            <div v-if="owners.length === 0" class="text-center text-gray-400 p-8">
+                                Chưa xác định chủ sở hữu.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -222,7 +226,7 @@ export default {
             targetEditObject: null,
 
             // Resizing (cleaned up)
-            sideModalWidth: 400,
+            sideModalWidth: 500,
             isResizing: false,
 
             // Modal Type Override (for viewing cross-type relations)

@@ -6,48 +6,80 @@
         @click="openFormSelectModal">+ Tạo Mới</button>
     </div>
 
-    <div v-if="loading">Đang tải dữ liệu...</div>
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Tìm kiếm</label>
+        <input v-model="filters.search" placeholder="Tìm kiếm hồ sơ..." class="filter-control" style="width: 250px">
+      </div>
+      <div class="filter-group">
+        <label>Trạng thái</label>
+        <select v-model="filters.status" class="filter-control" style="width: 200px">
+          <option :value="null">- Tất cả trạng thái -</option>
+          <option value="DRAFT">Nháp</option>
+          <option value="FINALIZED">Đã khóa</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Ngày tạo</label>
+        <input v-model="filters.createdDate" type="date" class="filter-control" style="width: 150px">
+      </div>
+      <div class="filter-group">
+        <label>Người tạo</label>
+        <input v-model="filters.creator" placeholder="Nhập tên người tạo..." class="filter-control"
+          style="width: 180px">
+      </div>
+      <button class="btn-action btn-secondary" @click="resetFilters">Đặt lại</button>
+    </div>
 
-    <table v-else class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Tên Hồ sơ</th>
-          <th>Người tạo</th>
-          <th>Ngày tạo</th>
-          <th>Loại Form</th>
-          <th>Trạng thái</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="profile in profiles" :key="profile.id">
-          <td>{{ profile.id }}</td>
-          <td>{{ profile.name }}</td>
-          <td>{{ profile.created_by_user_name || 'Admin' }}</td>
-          <td>{{ formatDate(profile.created_at) }}</td>
-          <td>
-            <span class="badge-form" v-if="profile.form_view_name">{{ profile.form_view_name }}</span>
-            <span v-else class="text-muted">Mặc định</span>
-          </td>
-          <td>
-            <div class="status-badge-container">
-              <span v-if="profile.status === 'FINALIZED'" class="status-badge finalized">🔒 ĐÃ KHÓA</span>
-              <span v-else class="status-badge draft">✍️ NHÁP</span>
-            </div>
-          </td>
-          <td>
-            <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-action btn-edit"
-              @click="editProfile(profile.id)">Sửa</button>
-            <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-copy"
-              @click="openDuplicateModal(profile)">Sao chép</button>
-            <button class="btn-action btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
-            <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-action btn-delete"
-              @click="deleteProfile(profile.id)">Xóa</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-if="loading">Đang tải dữ liệu...</div>
+    <div v-else class="ui-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th @click="toggleSort('id')" :class="getSortableClass('id')">ID {{ getSortIcon('id') }}</th>
+            <th @click="toggleSort('name')" :class="getSortableClass('name')">Tên Hồ sơ {{ getSortIcon('name') }}</th>
+            <th @click="toggleSort('created_by_user_name', 'id')" :class="getSortableClass('created_by_user_name')">
+              Người
+              tạo {{ getSortIcon('created_by_user_name') }}</th>
+            <th @click="toggleSort('created_at')" :class="getSortableClass('created_at')">Ngày tạo {{
+              getSortIcon('created_at') }}</th>
+            <th @click="toggleSort('form_view_name')" :class="getSortableClass('form_view_name')">Loại Form {{
+              getSortIcon('form_view_name') }}</th>
+            <th @click="toggleSort('status')" :class="getSortableClass('status')">Trạng thái {{ getSortIcon('status') }}
+            </th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="profile in sortedProfiles" :key="profile.id">
+            <td>{{ profile.id }}</td>
+            <td>{{ profile.name }}</td>
+            <td>{{ profile.created_by_user_name || 'Admin' }}</td>
+            <td>{{ formatDate(profile.created_at) }}</td>
+            <td>
+              <span class="badge-form" v-if="profile.form_view_name">{{ profile.form_view_name }}</span>
+              <span v-else class="text-muted">Mặc định</span>
+            </td>
+            <td>
+              <div class="status-badge-container">
+                <span v-if="profile.status === 'FINALIZED'" class="status-badge finalized">🔒 ĐÃ KHÓA</span>
+                <span v-else class="status-badge draft">✍️ NHÁP</span>
+              </div>
+            </td>
+            <td>
+              <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-action btn-edit"
+                @click="editProfile(profile.id)">Sửa</button>
+              <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-copy"
+                @click="openDuplicateModal(profile)">Sao chép</button>
+              <button class="btn-action btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
+              <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-action btn-delete"
+                @click="deleteProfile(profile.id)">Xóa</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <!-- Contract Downloader Modal -->
     <ContractDownloader :isOpen="isModalOpen" :profileId="currentProfileId" :profileName="currentProfileName"
@@ -90,15 +122,25 @@ import auth from '@/store/auth';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
+import { makeTableResizable } from '@/utils/resizable-table';
+import { SortableTableMixin } from '@/mixins/SortableTableMixin';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'DashboardView',
   components: { ContractDownloader, ConfirmModal, InputModal },
+  mixins: [SortableTableMixin, FilterableTableMixin],
   data() {
     return {
       auth,
       profiles: [],
       loading: true,
+      filters: {
+        search: '',
+        status: null,
+        createdDate: '',
+        creator: ''
+      },
 
       // State cho Modal
       isModalOpen: false,
@@ -120,6 +162,17 @@ export default {
     this.fetchProfiles();
     this.fetchForms();
   },
+  computed: {
+    sortedProfiles() {
+      const filtered = this.filterArray(this.profiles, this.filters, {
+        search: { type: 'text', fields: ['name', 'created_by_user_name'] },
+        status: { type: 'exact' },
+        createdDate: { type: 'date', field: 'created_at' },
+        creator: { type: 'text', field: 'created_by_user_name' }
+      });
+      return this.sortArray(filtered);
+    }
+  },
   methods: {
     async fetchProfiles() {
       try {
@@ -130,6 +183,15 @@ export default {
         this.$toast.error('Lỗi tải danh sách hồ sơ');
       } finally {
         this.loading = false;
+        this.$nextTick(() => {
+          this.initResizable();
+        });
+      }
+    },
+    initResizable() {
+      const table = this.$el.querySelector('.data-table');
+      if (table) {
+        makeTableResizable(table, 'dashboard-profiles');
       }
     },
     async fetchForms() {
@@ -204,6 +266,14 @@ export default {
     formatDate(dateString) {
       if (!dateString) return '';
       return new Date(dateString).toLocaleDateString('vi-VN');
+    },
+    resetFilters() {
+      this.filters = {
+        search: '',
+        status: null,
+        createdDate: '',
+        creator: ''
+      };
     }
   }
 }
@@ -215,6 +285,7 @@ export default {
   width: 500px;
   max-width: 90%;
 }
+
 .form-options {
   display: grid;
   grid-template-columns: 1fr;
@@ -223,6 +294,7 @@ export default {
   overflow-y: auto;
   padding: 5px;
 }
+
 .form-option-item {
   display: flex;
   align-items: center;
@@ -236,12 +308,26 @@ export default {
   transition: all 0.2s;
   width: 100%;
 }
+
 .form-option-item:hover {
   background: #e1f5fe;
   border-color: #0288d1;
   transform: translateY(-2px);
 }
-.option-icon { font-size: 24px; }
-.option-name { font-weight: bold; font-size: 1.1em; color: #2c3e50; }
-.option-note { font-size: 0.9em; color: #7f8c8d; margin-top: 4px; }
+
+.option-icon {
+  font-size: 24px;
+}
+
+.option-name {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #2c3e50;
+}
+
+.option-note {
+  font-size: 0.9em;
+  color: #7f8c8d;
+  margin-top: 4px;
+}
 </style>

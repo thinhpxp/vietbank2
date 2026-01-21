@@ -222,9 +222,10 @@ export default {
           // Nếu lọc theo vị trí mà không khớp -> bỏ qua
           if (gPos !== position) return groups;
 
-          // Lọc bỏ các nhóm đặc biệt (CÓ gán allowed_object_types) khỏi luồng hiển thị Generic
-          // Nhóm gán object types sẽ được hiển thị qua PersonForm hoặc AssetForm
-          if (field.group_allowed_object_types && field.group_allowed_object_types.length > 0) {
+          // Lọc bỏ các nhóm đặc biệt (PERSON/ASSET) khỏi luồng hiển thị Generic
+          // Chúng sẽ được hiển thị qua PersonForm hoặc AssetForm
+          const specialTypes = field.group_allowed_object_types || [];
+          if (specialTypes.length > 0 && !specialTypes.includes('CONTRACT')) {
             return groups;
           }
 
@@ -269,11 +270,13 @@ export default {
       return this.allFields.filter(f => f.group_allowed_object_types?.includes('PERSON'));
     },
     assetFields() {
-      // Thông tin TÀI SẢN = group có object types nhưng không phải chỉ PERSON
+      // Thông tin TÀI SẢN = group có object types nhưng không phải chỉ PERSON hoặc CONTRACT
       return this.allFields.filter(f => {
         const types = f.group_allowed_object_types || [];
-        // Có ít nhất 1 type và không phải là duy nhất PERSON
-        return types.length > 0 && !(types.length === 1 && types[0] === 'PERSON');
+        // Có ít nhất 1 type và không phải là duy nhất PERSON hoặc CONTRACT
+        return types.length > 0 &&
+          !(types.length === 1 && types[0] === 'PERSON') &&
+          !(types.length === 1 && types[0] === 'CONTRACT');
       });
     }
   },

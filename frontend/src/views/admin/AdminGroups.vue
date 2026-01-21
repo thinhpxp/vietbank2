@@ -17,86 +17,89 @@
       </div>
     </div>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Tên Nhóm</th>
-          <th>Mã (Slug)</th>
-          <th>Vị trí</th>
-          <th>Ghi chú</th>
-          <th>Thứ tự</th>
-          <th>Loại đối tượng áp dụng</th>
-          <th>Hiển thị ở Form</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
+    <div class="ui-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tên Nhóm</th>
+            <th>Mã (Slug)</th>
+            <th>Vị trí</th>
+            <th>Ghi chú</th>
+            <th>Thứ tự</th>
+            <th>Loại đối tượng áp dụng</th>
+            <th>Hiển thị ở Form</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
 
-      <tbody class="tbody">
-        <tr v-for="grp in groups" :key="grp.id">
-          <td>{{ grp.id }}</td>
-          <td>
-            <input v-if="editingId === grp.id" v-model="grp.name" style="width: 35%">
-            <span v-else>{{ grp.name }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === grp.id" v-model="grp.slug" style="width: 90%" placeholder="vd: thong-tin-chung">
-            <span v-else><code>{{ grp.slug || '---' }}</code></span>
-          </td>
-          <td>
-            <select v-if="editingId === grp.id" v-model="grp.layout_position">
-              <option value="LEFT">Cột Trái</option>
-              <option value="RIGHT">Cột Phải</option>
-            </select>
-            <span v-else>
-              <span v-if="grp.layout_position === 'RIGHT'" class="badge badge-warning">Cột Phải</span>
-              <span v-else class="badge badge-info">Cột Trái</span>
-            </span>
-          </td>
-          <td>
-            <input v-if="editingId === grp.id" v-model="grp.note" style="width: 60%">
-            <span v-else>{{ grp.note }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === grp.id" v-model.number="grp.order" type="number" style="width:50px">
-            <span v-else>{{ grp.order }}</span>
-          </td>
-          <td style="min-width: 150px;">
-            <!-- Object Types Column -->
-            <div v-if="editingId === grp.id">
-              <div v-for="type in objectTypes" :key="type.id">
-                <label>
-                  <input type="checkbox" :value="type.id" v-model="grp.allowed_object_types">
-                  {{ type.name }}
+        <tbody class="tbody">
+          <tr v-for="grp in groups" :key="grp.id">
+            <td>{{ grp.id }}</td>
+            <td>
+              <input v-if="editingId === grp.id" v-model="grp.name" style="width: 35%">
+              <span v-else>{{ grp.name }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === grp.id" v-model="grp.slug" style="width: 90%"
+                placeholder="vd: thong-tin-chung">
+              <span v-else><code>{{ grp.slug || '---' }}</code></span>
+            </td>
+            <td>
+              <select v-if="editingId === grp.id" v-model="grp.layout_position">
+                <option value="LEFT">Cột Trái</option>
+                <option value="RIGHT">Cột Phải</option>
+              </select>
+              <span v-else>
+                <span v-if="grp.layout_position === 'RIGHT'" class="badge badge-warning">Cột Phải</span>
+                <span v-else class="badge badge-info">Cột Trái</span>
+              </span>
+            </td>
+            <td>
+              <input v-if="editingId === grp.id" v-model="grp.note" style="width: 60%">
+              <span v-else>{{ grp.note }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === grp.id" v-model.number="grp.order" type="number" style="width:50px">
+              <span v-else>{{ grp.order }}</span>
+            </td>
+            <td style="min-width: 150px;">
+              <!-- Object Types Column -->
+              <div v-if="editingId === grp.id">
+                <div v-for="type in objectTypes" :key="type.id">
+                  <label>
+                    <input type="checkbox" :value="type.id" v-model="grp.allowed_object_types">
+                    {{ type.name }}
+                  </label>
+                </div>
+              </div>
+              <div v-else>
+                <span v-if="!grp.allowed_object_types || grp.allowed_object_types.length === 0" class="badge-all">Tất
+                  cả</span>
+                <span v-else v-for="tid in grp.allowed_object_types" :key="tid" class="badge">
+                  {{objectTypes.find(t => t.id === tid)?.name || tid}}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div v-if="editingId === grp.id" class="admin-form-selector">
+                <label v-for="f in allForms" :key="f.id">
+                  <input type="checkbox" :value="f.id" v-model="grp.allowed_forms"> {{ f.name }}
                 </label>
               </div>
-            </div>
-            <div v-else>
-              <span v-if="!grp.allowed_object_types || grp.allowed_object_types.length === 0" class="badge-all">Tất
-                cả</span>
-              <span v-else v-for="tid in grp.allowed_object_types" :key="tid" class="badge">
-                {{objectTypes.find(t => t.id === tid)?.name || tid}}
-              </span>
-            </div>
-          </td>
-          <td>
-            <div v-if="editingId === grp.id" class="admin-form-selector">
-              <label v-for="f in allForms" :key="f.id">
-                <input type="checkbox" :value="f.id" v-model="grp.allowed_forms"> {{ f.name }}
-              </label>
-            </div>
-            <span v-else>{{ getFormNames(grp.allowed_forms) }}</span>
-          </td>
-          <td>
-            <div class="flex gap-2">
-              <button v-if="editingId === grp.id" @click="updateGroup(grp)" class="btn-action btn-save">Lưu</button>
-              <button v-else @click="editingId = grp.id" class="btn-action btn-edit">Sửa</button>
-              <button @click="deleteGroup(grp.id)" class="btn-action btn-delete">Xóa</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+              <span v-else>{{ getFormNames(grp.allowed_forms) }}</span>
+            </td>
+            <td>
+              <div class="flex gap-2">
+                <button v-if="editingId === grp.id" @click="updateGroup(grp)" class="btn-action btn-save">Lưu</button>
+                <button v-else @click="editingId = grp.id" class="btn-action btn-edit">Sửa</button>
+                <button @click="deleteGroup(grp.id)" class="btn-action btn-delete">Xóa</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa nhóm '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"

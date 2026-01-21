@@ -12,54 +12,57 @@
       </div>
     </div>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Tên Vai trò</th>
-          <th>Mã (Slug)</th>
-          <th>Mô tả</th>
-          <th>Quan hệ Tự động</th>
-          <th>Hệ thống</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
+    <div class="ui-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tên Vai trò</th>
+            <th>Mã (Slug)</th>
+            <th>Mô tả</th>
+            <th>Quan hệ Tự động</th>
+            <th>Hệ thống</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
 
-      <tbody class="tbody">
-        <tr v-for="role in roles" :key="role.id">
-          <td>{{ role.id }}</td>
-          <td>
-            <input v-if="editingId === role.id" v-model="role.name">
-            <span v-else>{{ role.name }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === role.id" v-model="role.slug">
-            <span v-else>{{ role.slug || '---' }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === role.id" v-model="role.description" style="width: 100%" class="admin-input">
-            <span v-else>{{ role.description }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === role.id" v-model="role.relation_type" placeholder="OWNER..." class="admin-input">
-            <span v-else>{{ role.relation_type || '---' }}</span>
-          </td>
-          <td style="text-align: center;">
-            <span v-if="role.is_system" class="badge badge-system">System</span>
-            <span v-else class="badge badge-user">User</span>
-          </td>
-          <td>
-            <div class="flex gap-2">
-              <button v-if="editingId === role.id" @click="updateRole(role)" class="btn-action btn-save">Lưu</button>
-              <button v-else @click="editingId = role.id" class="btn-action btn-edit">Sửa</button>
+        <tbody class="tbody">
+          <tr v-for="role in roles" :key="role.id">
+            <td>{{ role.id }}</td>
+            <td>
+              <input v-if="editingId === role.id" v-model="role.name">
+              <span v-else>{{ role.name }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === role.id" v-model="role.slug">
+              <span v-else>{{ role.slug || '---' }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === role.id" v-model="role.description" style="width: 100%" class="admin-input">
+              <span v-else>{{ role.description }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === role.id" v-model="role.relation_type" placeholder="OWNER..."
+                class="admin-input">
+              <span v-else>{{ role.relation_type || '---' }}</span>
+            </td>
+            <td style="text-align: center;">
+              <span v-if="role.is_system" class="badge badge-system">System</span>
+              <span v-else class="badge badge-user">User</span>
+            </td>
+            <td>
+              <div class="flex gap-2">
+                <button v-if="editingId === role.id" @click="updateRole(role)" class="btn-action btn-save">Lưu</button>
+                <button v-else @click="editingId = role.id" class="btn-action btn-edit">Sửa</button>
 
-              <button v-if="!role.is_system" @click="deleteRole(role.id)" class="btn-action btn-delete">Xóa</button>
-              <span v-else title="Role hệ thống không thể xóa" class="text-gray-400 px-2 cursor-not-allowed">🔒</span>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+                <button v-if="!role.is_system" @click="deleteRole(role.id)" class="btn-action btn-delete">Xóa</button>
+                <span v-else title="Role hệ thống không thể xóa" class="text-gray-400 px-2 cursor-not-allowed">🔒</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa vai trò '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"

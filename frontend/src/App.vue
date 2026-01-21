@@ -2,7 +2,7 @@
   <div id="app">
     <!-- Thanh điều hướng chung (Ẩn khi ở trang Login/Register) -->
     <nav v-if="!hideNavbar" class="navbar">
-      <div class="brand">Vietbank Contract App</div>
+      <div class="brand">AutoContract App</div>
       <div class="links">
         <router-link to="/">Danh sách Hồ sơ</router-link>
         <router-link v-if="isAuthenticated" to="/master-data">
@@ -73,7 +73,7 @@ body {
 }
 
 .navbar {
-  background: #2c3e50;
+  background: #0366d6;
   padding: 15px;
   color: white;
   display: flex;
@@ -91,10 +91,11 @@ body {
   text-decoration: none;
   margin: 0 15px;
   font-weight: 500;
+  font-size: larger;
 }
 
 .links a.router-link-active {
-  color: #42b983;
+  color: #ffffff;
   font-weight: 700;
 }
 

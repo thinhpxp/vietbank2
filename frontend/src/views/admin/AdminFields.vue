@@ -11,10 +11,10 @@
         <input v-model="newField.note" placeholder="Ghi chú về trường thông tin này" class="admin-input">
       </div>
       <div class="admin-row mb-2">
-        <input v-model.number="newField.order" type="number" placeholder="Thứ tự (0)" style="max-width: 80px"
-          class="admin-input">
-        <input v-model.number="newField.width_cols" type="number" min="1" max="12" placeholder="Độ rộng (1-12)"
-          style="max-width: 100px" class="admin-input">
+        <input v-model.number="newField.order" type="text" inputmode="numeric" placeholder="Thứ tự"
+          style="max-width: 80px" class="admin-input">
+        <input v-model.number="newField.width_cols" type="text" inputmode="numeric" min="1" max="12"
+          placeholder="Độ rộng (1-12)" style="max-width: 100px" class="admin-input">
         <input v-model="newField.css_class" placeholder="CSS Class (VD: text-red)" class="admin-input">
         <input v-model="newField.default_value" placeholder="Giá trị mặc định" class="admin-input">
       </div>
@@ -75,124 +75,122 @@
     </div>
 
     <!-- Danh sách -->
-    <table class="data-table" ref="resizableTable">
-      <thead>
-        <tr>
-          <th @click="toggleSort('id')" class="admin-sortable">ID <span v-if="sortBy === 'id'">{{ sortDesc ? '▼' : '▲'
-          }}</span></th>
-          <th @click="toggleSort('order')" class="admin-sortable" width="50">Thứ tự <span v-if="sortBy === 'order'">{{
-            sortDesc ? '▼' : '▲' }}</span></th>
-          <th @click="toggleSort('placeholder_key')" class="admin-sortable">Key <span
-              v-if="sortBy === 'placeholder_key'">{{
-                sortDesc ? '▼' : '▲' }}</span></th>
-          <th @click="toggleSort('label')" class="admin-sortable">Nhãn <span v-if="sortBy === 'label'">{{ sortDesc ? '▼'
-            : '▲'
-          }}</span></th>
-          <th @click="toggleSort('data_type')" class="admin-sortable">Loại <span v-if="sortBy === 'data_type'">{{
-            sortDesc ?
-              '▼' : '▲' }}</span></th>
-          <th @click="toggleSort('group')" class="admin-sortable">Nhóm <span v-if="sortBy === 'group'">{{ sortDesc ? '▼'
-            : '▲'
-          }}</span></th>
-          <th width="50">Rộng</th>
-          <th>CSS</th>
-          <th>Mặc định</th>
-          <th>Tách nghìn</th>
-          <th>Hiện chữ</th>
-          <th>Form</th>
-          <th>Loại đối tượng</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody class="tbody">
-        <tr v-for="f in sortedFields" :key="f.id">
-          <td>{{ f.id }}</td>
-          <td>
-            <input v-if="editingId === f.id" v-model.number="f.order" type="number" style="width: 40px">
-            <span v-else>{{ f.order }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === f.id" v-model="f.placeholder_key" style="width: 100%">
-            <span v-else>{{ f.placeholder_key }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === f.id" v-model="f.label" style="width: 100%">
-            <span v-else>{{ f.label }}</span>
-          </td>
-          <td>
-            <select v-if="editingId === f.id" v-model="f.data_type">
-              <option value="TEXT">Văn bản</option>
-              <option value="TEXTAREA">Đoạn văn bản</option>
-              <option value="NUMBER">Số</option>
-              <option value="DATE">Ngày</option>
-              <option value="CHECKBOX">Hộp kiểm</option>
-            </select>
-            <span v-else>{{ f.data_type }}</span>
-          </td>
-          <td>
-            <select v-if="editingId === f.id" v-model="f.group">
-              <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
-            </select>
-            <span v-else>{{ f.group_name }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === f.id" v-model.number="f.width_cols" type="number" min="1" max="12"
-              style="width: 40px">
-            <span v-else>{{ f.width_cols }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === f.id" v-model="f.css_class" style="width: 80px">
-            <span v-else>{{ f.css_class }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === f.id" v-model="f.default_value" style="width: 100px">
-            <span v-else>{{ f.default_value }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === f.id" type="checkbox" v-model="f.use_digit_grouping">
-            <span v-else>{{ f.use_digit_grouping ? '✅' : '❌' }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === f.id" type="checkbox" v-model="f.show_amount_in_words">
-            <span v-else>{{ f.show_amount_in_words ? '✅' : '❌' }}</span>
-          </td>
-          <td>
-            <div v-if="editingId === f.id" class="admin-form-selector">
-              <label v-for="form in allForms" :key="form.id">
-                <input type="checkbox" :value="form.id" v-model="f.allowed_forms"> {{ form.name }}
-              </label>
-            </div>
-            <span v-else>{{ getFormNames(f.allowed_forms) }}</span>
-          </td>
-          <td>
-            <div v-if="editingId === f.id" class="form-selector">
-              <div v-for="type in objectTypes" :key="type.id">
-                <label>
-                  <input type="checkbox" :value="type.id" v-model="f.allowed_object_types">
-                  {{ type.name }}
+    <div class="ui-table-wrapper">
+      <table class="data-table" ref="resizableTable">
+        <thead>
+          <tr>
+            <th @click="toggleSort('id')" :class="getSortableClass('id')">ID {{ getSortIcon('id') }}</th>
+            <th @click="toggleSort('order')" :class="getSortableClass('order')" width="50">Thứ tự {{
+              getSortIcon('order')
+            }}</th>
+            <th @click="toggleSort('placeholder_key')" :class="getSortableClass('placeholder_key')">Key {{
+              getSortIcon('placeholder_key') }}
+            </th>
+            <th @click="toggleSort('label')" :class="getSortableClass('label')">Nhãn {{ getSortIcon('label') }}</th>
+            <th @click="toggleSort('data_type')" :class="getSortableClass('data_type')">Loại {{ getSortIcon('data_type')
+            }}</th>
+            <th @click="toggleSort('group')" :class="getSortableClass('group')">Nhóm {{ getSortIcon('group') }}</th>
+            <th width="50">Rộng</th>
+            <th>CSS</th>
+            <th>Mặc định</th>
+            <th>Tách nghìn</th>
+            <th>Hiện chữ</th>
+            <th>Form</th>
+            <th>Loại đối tượng</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody class="tbody">
+          <tr v-for="f in sortedFields" :key="f.id">
+            <td>{{ f.id }}</td>
+            <td>
+              <input v-if="editingId === f.id" v-model.number="f.order" type="text" inputmode="numeric"
+                style="width: 40px">
+              <span v-else>{{ f.order }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === f.id" v-model="f.placeholder_key" style="width: 100%">
+              <span v-else>{{ f.placeholder_key }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === f.id" v-model="f.label" style="width: 100%">
+              <span v-else>{{ f.label }}</span>
+            </td>
+            <td>
+              <select v-if="editingId === f.id" v-model="f.data_type">
+                <option value="TEXT">Văn bản</option>
+                <option value="TEXTAREA">Đoạn văn bản</option>
+                <option value="NUMBER">Số</option>
+                <option value="DATE">Ngày</option>
+                <option value="CHECKBOX">Hộp kiểm</option>
+              </select>
+              <span v-else>{{ f.data_type }}</span>
+            </td>
+            <td>
+              <select v-if="editingId === f.id" v-model="f.group">
+                <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+              </select>
+              <span v-else>{{ f.group_name }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === f.id" v-model.number="f.width_cols" type="text" inputmode="numeric" min="1"
+                max="12" style="width: 40px">
+              <span v-else>{{ f.width_cols }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === f.id" v-model="f.css_class" style="width: 80px">
+              <span v-else>{{ f.css_class }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === f.id" v-model="f.default_value" style="width: 100px">
+              <span v-else>{{ f.default_value }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === f.id" type="checkbox" v-model="f.use_digit_grouping">
+              <span v-else>{{ f.use_digit_grouping ? '✅' : '❌' }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === f.id" type="checkbox" v-model="f.show_amount_in_words">
+              <span v-else>{{ f.show_amount_in_words ? '✅' : '❌' }}</span>
+            </td>
+            <td>
+              <div v-if="editingId === f.id" class="admin-form-selector">
+                <label v-for="form in allForms" :key="form.id">
+                  <input type="checkbox" :value="form.id" v-model="f.allowed_forms"> {{ form.name }}
                 </label>
               </div>
-            </div>
-            <div v-else>
-              <span v-if="!f.allowed_object_types || f.allowed_object_types.length === 0" class="badge-all">Tất
-                cả</span>
-              <span v-else v-for="tid in f.allowed_object_types" :key="tid" class="badge">
-                {{objectTypes.find(t => t.id === tid)?.name || tid}}
-              </span>
-            </div>
-          </td>
-          <td>
-            <div class="flex gap-2">
-              <button v-if="editingId === f.id" @click="updateField(f)" class="btn-action btn-save">Lưu</button>
-              <button v-else @click="editingId = f.id" class="btn-action btn-edit">Sửa</button>
-              <button @click="copyField(f)" class="btn-action btn-copy">Copy</button>
-              <button v-if="!f.is_protected" @click="deleteField(f.id)" class="btn-action btn-delete">Xóa</button>
-              <span v-else class="protected-badge">🔒</span>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+              <span v-else>{{ getFormNames(f.allowed_forms) }}</span>
+            </td>
+            <td>
+              <div v-if="editingId === f.id" class="form-selector">
+                <div v-for="type in objectTypes" :key="type.id">
+                  <label>
+                    <input type="checkbox" :value="type.id" v-model="f.allowed_object_types">
+                    {{ type.name }}
+                  </label>
+                </div>
+              </div>
+              <div v-else>
+                <span v-if="!f.allowed_object_types || f.allowed_object_types.length === 0" class="badge-all">Tất
+                  cả</span>
+                <span v-else v-for="tid in f.allowed_object_types" :key="tid" class="badge">
+                  {{objectTypes.find(t => t.id === tid)?.name || tid}}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="flex gap-2">
+                <button v-if="editingId === f.id" @click="updateField(f)" class="btn-action btn-save">Lưu</button>
+                <button v-else @click="editingId = f.id" class="btn-action btn-edit">Sửa</button>
+                <button @click="copyField(f)" class="btn-action btn-copy">Copy</button>
+                <button v-if="!f.is_protected" @click="deleteField(f.id)" class="btn-action btn-delete">Xóa</button>
+                <span v-else class="protected-badge">🔒</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa trường '${deleteTargetLabel}'?`" confirmText="Xóa" @confirm="confirmDelete"
@@ -215,11 +213,13 @@ import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table.js';
 import { errorHandlingMixin } from '../../utils/errorHandler';
+import { SortableTableMixin } from '../../mixins/SortableTableMixin';
+import { FilterableTableMixin } from '../../mixins/FilterableTableMixin';
 
 export default {
   name: 'AdminFields',
   components: { ConfirmModal },
-  mixins: [errorHandlingMixin],
+  mixins: [errorHandlingMixin, SortableTableMixin, FilterableTableMixin],
   data() {
     return {
       fields: [], groups: [],
@@ -237,11 +237,10 @@ export default {
       },
       newField: {
         label: '', placeholder_key: '', note: '', data_type: 'TEXT', group: null,
-        order: 0, width_cols: 12, css_class: '', default_value: '', allowed_forms: [], allowed_object_types: [],
+        order: null, width_cols: null, css_class: '', default_value: '', allowed_forms: [], allowed_object_types: [],
         use_digit_grouping: false, show_amount_in_words: false
       },
-      sortBy: 'order',
-      sortDesc: false
+      allowed_object_types: []
     }
   },
   mounted() {
@@ -251,47 +250,20 @@ export default {
   },
   computed: {
     sortedFields() {
-      let filtered = this.fields.filter(f => {
-        if (this.filters.search) {
-          const s = this.filters.search.toLowerCase();
-          const matchLabel = f.label && f.label.toLowerCase().includes(s);
-          const matchKey = f.placeholder_key && f.placeholder_key.toLowerCase().includes(s);
-          if (!matchLabel && !matchKey) return false;
-        }
-        if (this.filters.group && f.group !== this.filters.group) return false;
-        if (this.filters.dataType && f.data_type !== this.filters.dataType) return false;
-        if (this.filters.objectType) {
-          if (f.allowed_object_types && f.allowed_object_types.length > 0) {
-            if (!f.allowed_object_types.includes(this.filters.objectType)) return false;
-          }
-        }
-        return true;
+      const filtered = this.filterArray(this.fields, this.filters, {
+        search: { type: 'text', fields: ['label', 'placeholder_key'] },
+        group: { type: 'exact' },
+        dataType: { type: 'exact', field: 'data_type' },
+        objectType: { type: 'array_includes', field: 'allowed_object_types' }
       });
 
-      return filtered.sort((a, b) => {
-        let valA = a[this.sortBy];
-        let valB = b[this.sortBy];
-        if (valA === null || valA === undefined) valA = '';
-        if (valB === null || valB === undefined) valB = '';
-        if (this.sortBy === 'group') {
-          valA = a.group_name || '';
-          valB = b.group_name || '';
-        }
-        if (valA < valB) return this.sortDesc ? 1 : -1;
-        if (valA > valB) return this.sortDesc ? -1 : 1;
-        return 0;
+      return this.sortArray(filtered, {
+        'group': 'group_name' // Custom mapping for group column
       });
     }
   },
   methods: {
-    toggleSort(column) {
-      if (this.sortBy === column) {
-        this.sortDesc = !this.sortDesc;
-      } else {
-        this.sortBy = column;
-        this.sortDesc = false;
-      }
-    },
+    // toggleSort removed (provided by mixin)
     async fetchData() {
       const [resFields, resGroups, resTypes] = await Promise.all([
         axios.get('http://127.0.0.1:8000/api/fields/'),
@@ -330,7 +302,7 @@ export default {
         this.fetchData();
         this.newField = {
           label: '', placeholder_key: '', note: '', data_type: 'TEXT', group: this.newField.group,
-          order: 0, width_cols: 12, css_class: '', use_digit_grouping: false, show_amount_in_words: false,
+          order: null, width_cols: null, css_class: '', use_digit_grouping: false, show_amount_in_words: false,
           allowed_object_types: []
         };
         this.showSuccess('Thêm trường thành công!');

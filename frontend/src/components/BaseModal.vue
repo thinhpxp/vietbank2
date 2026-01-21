@@ -35,7 +35,7 @@ export default {
     props: {
         isOpen: { type: Boolean, required: true },
         title: { type: String, default: 'Modal' },
-        initialWidth: { type: [Number, String], default: 650 },
+        initialWidth: { type: [Number, String], default: 750 },
         initialHeight: { type: [Number, String], default: null },
         isResizable: { type: Boolean, default: true },
         minWidth: { type: Number, default: 400 },

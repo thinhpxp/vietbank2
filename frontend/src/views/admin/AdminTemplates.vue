@@ -18,30 +18,42 @@
       </button>
     </div>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Tên Mẫu</th>
-          <th>Ghi chú</th>
-          <th>File</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="tpl in templates" :key="tpl.id">
-          <td>{{ tpl.id }}</td>
-          <td>{{ tpl.name }}</td>
-          <td>{{ tpl.description }}</td>
-          <td><a :href="tpl.file" target="_blank">Tải xuống</a></td>
-          <td>
-            <div class="flex gap-2">
-              <button @click="deleteTemplate(tpl.id)" class="btn-action btn-delete">Xóa</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="ui-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tên Mẫu</th>
+            <th>Ghi chú</th>
+            <th>Thời điểm</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="tpl in templates" :key="tpl.id">
+            <td>{{ tpl.id }}</td>
+            <td>
+              <input v-if="editingId === tpl.id" v-model="tpl.name" class="admin-input-small">
+              <span v-else>{{ tpl.name }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === tpl.id" v-model="tpl.description" class="admin-input-small">
+              <span v-else>{{ tpl.description }}</span>
+            </td>
+            <td>{{ formatDate(tpl.uploaded_at) }}</td>
+            <td>
+              <div class="flex gap-2">
+                <button v-if="editingId === tpl.id" @click="updateTemplate(tpl)"
+                  class="btn-action btn-save">Lưu</button>
+                <button v-else @click="editingId = tpl.id" class="btn-action btn-edit">Sửa</button>
+                <a :href="tpl.file" target="_blank" class="btn-action btn-doc no-underline">Tải về</a>
+                <button @click="deleteTemplate(tpl.id)" class="btn-action btn-delete">Xóa</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa mẫu '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
@@ -74,6 +86,7 @@ export default {
       newName: '',
       newDesc: '',
       selectedFile: null,
+      editingId: null,
       showDeleteModal: false,
       deleteTargetId: null,
       deleteTargetName: ''
@@ -133,6 +146,23 @@ export default {
         this.deleteTargetId = null;
         this.fetchTemplates();
       }
+    },
+    async updateTemplate(tpl) {
+      try {
+        await axios.patch(`http://127.0.0.1:8000/api/document-templates/${tpl.id}/`, {
+          name: tpl.name,
+          description: tpl.description
+        });
+        this.editingId = null;
+        this.showSuccess('Cập nhật thành công!');
+        this.fetchTemplates();
+      } catch (e) {
+        this.showError(e, 'Lỗi khi cập nhật');
+      }
+    },
+    formatDate(dateString) {
+      if (!dateString) return '';
+      return new Date(dateString).toLocaleString('vi-VN');
     }
   }
 }

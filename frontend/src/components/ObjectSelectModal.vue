@@ -59,6 +59,7 @@
 
 <script>
 import axios from 'axios';
+import { makeTableResizable } from '@/utils/resizable-table';
 
 export default {
     name: 'ObjectSelectModal',
@@ -145,6 +146,10 @@ export default {
                 console.error('Lỗi khi tải dữ liệu master:', error);
             } finally {
                 this.loading = false;
+                this.$nextTick(() => {
+                    const table = this.$el.querySelector('.data-table');
+                    if (table) makeTableResizable(table, 'object-select-modal');
+                });
             }
         },
         getIdentityValue(item) {

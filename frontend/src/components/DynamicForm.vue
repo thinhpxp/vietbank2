@@ -24,7 +24,7 @@
         <textarea :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control custom-textarea"
-          :class="inputClass" rows="4" :disabled="disabled"></textarea>
+          :class="inputClass" rows="3" :disabled="disabled"></textarea>
         <button v-if="hasDynamicTemplate(field) && !disabled" class="btn-magic" title="Tự động điền theo mẫu"
           @click="applyTemplate(field)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -59,7 +59,8 @@
         <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control hybrid-text"
           :class="inputClass" placeholder="Ngày/Tháng/Năm" :disabled="disabled" />
-        <div class="calendar-trigger" :class="{ 'disabled': disabled }" @click="!disabled && openPicker(field.placeholder_key)">
+        <div class="calendar-trigger" :class="{ 'disabled': disabled }"
+          @click="!disabled && openPicker(field.placeholder_key)">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -272,7 +273,7 @@ export default {
 }
 
 .custom-textarea {
-  min-height: 100px;
+  min-height: 80px;
   resize: vertical;
   line-height: 1.5;
 }

@@ -20,63 +20,65 @@
     </div>
 
     <!-- Danh sách User -->
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Ghi chú</th>
-          <th>Vai trò</th>
-          <th>Trạng thái</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="u in users" :key="u.id">
-          <td>{{ u.id }}</td>
-          <td>
-            <input v-if="editingId === u.id" v-model="u.username" class="inline-edit">
-            <strong v-else>{{ u.username }}</strong>
-          </td>
-          <td>
-            <input v-if="editingId === u.id" v-model="u.email" class="inline-edit">
-            <span v-else>{{ u.email }}</span>
-          </td>
-          <td>
-            <input v-if="editingId === u.id" v-model="u.note" class="inline-edit">
-            <span v-else>{{ u.note }}</span>
-          </td>
-          <td>
-            <select v-if="editingId === u.id" v-model="u.is_staff" class="inline-edit">
-              <option :value="true">Admin</option>
-              <option :value="false">User</option>
-            </select>
-            <template v-else>
-              <span v-if="u.is_staff" class="badge admin">Admin</span>
-              <span v-else class="badge user">User</span>
-            </template>
-          </td>
-          <td>
-            <select v-if="editingId === u.id" v-model="u.is_active" class="inline-edit">
-              <option :value="true">Active</option>
-              <option :value="false">Inactive</option>
-            </select>
-            <template v-else>
-              <span v-if="u.is_active" class="status active">Active</span>
-              <span v-else class="status inactive">Inactive</span>
-            </template>
-          </td>
-          <td>
-            <div class="action-group">
-              <button v-if="editingId === u.id" @click="updateUser(u)" class="btn-action btn-save">Lưu</button>
-              <button v-else @click="editingId = u.id" class="btn-action btn-edit">Sửa</button>
-              <button @click="deleteUser(u.id)" class="btn-action btn-delete">Xóa</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="ui-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Ghi chú</th>
+            <th>Vai trò</th>
+            <th>Trạng thái</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="u in users" :key="u.id">
+            <td>{{ u.id }}</td>
+            <td>
+              <input v-if="editingId === u.id" v-model="u.username" class="inline-edit">
+              <strong v-else>{{ u.username }}</strong>
+            </td>
+            <td>
+              <input v-if="editingId === u.id" v-model="u.email" class="inline-edit">
+              <span v-else>{{ u.email }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === u.id" v-model="u.note" class="inline-edit">
+              <span v-else>{{ u.note }}</span>
+            </td>
+            <td>
+              <select v-if="editingId === u.id" v-model="u.is_staff" class="inline-edit">
+                <option :value="true">Admin</option>
+                <option :value="false">User</option>
+              </select>
+              <template v-else>
+                <span v-if="u.is_staff" class="badge admin">Admin</span>
+                <span v-else class="badge user">User</span>
+              </template>
+            </td>
+            <td>
+              <select v-if="editingId === u.id" v-model="u.is_active" class="inline-edit">
+                <option :value="true">Active</option>
+                <option :value="false">Inactive</option>
+              </select>
+              <template v-else>
+                <span v-if="u.is_active" class="status active">Active</span>
+                <span v-else class="status inactive">Inactive</span>
+              </template>
+            </td>
+            <td>
+              <div class="action-group">
+                <button v-if="editingId === u.id" @click="updateUser(u)" class="btn-action btn-save">Lưu</button>
+                <button v-else @click="editingId = u.id" class="btn-action btn-edit">Sửa</button>
+                <button @click="deleteUser(u.id)" class="btn-action btn-delete">Xóa</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa người dùng '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"

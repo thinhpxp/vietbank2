@@ -5,40 +5,42 @@
             <button class="btn-action btn-create" @click="openCreateModal">+ Thêm Loại mới</button>
         </div>
 
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Mã (Code)</th>
-                    <th>Tên hiển thị</th>
-                    <th>Trường định danh (key)</th>
-                    <th>Mô tả</th>
-                    <th>Hệ thống</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="type in types" :key="type.id">
-                    <td><code>{{ type.code }}</code></td>
-                    <td class="font-bold">{{ type.name }}</td>
-                    <td><code>{{ type.identity_field_key || '---' }}</code></td>
-                    <td>{{ type.description || '---' }}</td>
-                    <td>
-                        <span v-if="type.is_system" class="badge badge-system">System</span>
-                        <span v-else class="badge badge-custom">Custom</span>
-                    </td>
-                    <td>
-                        <div class="flex gap-2">
-                            <button class="btn-action btn-edit" @click="editType(type)">Sửa</button>
-                            <button class="btn-action btn-delete" :disabled="type.is_system"
-                                @click="confirmDelete(type)"
-                                :title="type.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
-                                Xóa
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="ui-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Mã (Code)</th>
+                        <th>Tên hiển thị</th>
+                        <th>Trường định danh (key)</th>
+                        <th>Mô tả</th>
+                        <th>Hệ thống</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="type in types" :key="type.id">
+                        <td><code>{{ type.code }}</code></td>
+                        <td class="font-bold">{{ type.name }}</td>
+                        <td><code>{{ type.identity_field_key || '---' }}</code></td>
+                        <td>{{ type.description || '---' }}</td>
+                        <td>
+                            <span v-if="type.is_system" class="badge badge-system">System</span>
+                            <span v-else class="badge badge-custom">Custom</span>
+                        </td>
+                        <td>
+                            <div class="flex gap-2">
+                                <button class="btn-action btn-edit" @click="editType(type)">Sửa</button>
+                                <button class="btn-action btn-delete" :disabled="type.is_system"
+                                    @click="confirmDelete(type)"
+                                    :title="type.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
+                                    Xóa
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <!-- Modal Create/Edit -->
         <div v-if="showModal" class="admin-modal-overlay" @click.self="closeModal">

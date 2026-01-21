@@ -36,6 +36,7 @@ export default {
         typeName: { type: String, default: 'Đối tượng' },
         editObject: Object // Null if creating
     },
+    emits: ['close', 'success'],
     data() {
         return {
             loadingFields: false,

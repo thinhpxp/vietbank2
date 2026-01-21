@@ -36,28 +36,35 @@
                     </button>
                 </div>
 
-                <div class="table-container scrollable">
+                <div class="table-container scrollable ui-table-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Username</th>
+                                <th>Tài khoản</th>
                                 <th>Họ tên</th>
+                                <th>Email</th>
+                                <th>Admin</th>
                                 <th>Trạng thái</th>
+                                <th>Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="u in filteredUsers" :key="u.id" :class="{ selected: selectedUser?.id === u.id }"
-                                @click="selectUser(u)">
-                                <td><strong>{{ u.username }}</strong></td>
-                                <td>{{ u.full_name || '---' }}</td>
+                            <tr v-for="user in filteredUsers" :key="user.id">
+                                <td><strong>{{ user.username }}</strong></td>
+                                <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                <td>{{ user.email }}</td>
                                 <td>
-                                    <span :class="['badge', u.is_active ? 'badge-active' : 'badge-inactive']">
-                                        {{ u.is_active ? 'Active' : 'Locked' }}
+                                    <span v-if="user.is_superuser" class="badge-root">ROOT</span>
+                                    <span v-else-if="user.is_staff" class="tag tag-blue">Staff</span>
+                                    <span v-else class="tag tag-gray">User</span>
+                                </td>
+                                <td>
+                                    <span :class="user.is_active ? 'text-green' : 'text-red'">
+                                        {{ user.is_active ? '● Hoạt động' : '○ Đang khóa' }}
                                     </span>
-                                    <span v-if="u.is_staff && !u.is_superuser" class="badge badge-admin">Admin</span>
-                                    <span v-if="u.is_superuser" class="badge badge-superuser"
-                                        title="Tài khoản Hệ thống">ROOT</span>
-                                    <span v-if="!u.is_staff && !u.is_superuser" class="badge badge-user">User</span>
+                                </td>
+                                <td>
+                                    <button class="btn-action btn-edit" @click="editUser(user)">Sửa / Quyền</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -196,24 +203,31 @@
             <!-- LEFT: GROUP LIST -->
             <div class="pane pane-left" :style="{ width: groupPaneWidth + '%' }">
                 <div class="pane-header">
-                    <h3>Danh sách Nhóm</h3>
+                    <div class="flex-1 mr-4">
+                        <input type="text" v-model="groupSearch" placeholder="Tìm kiếm nhóm..."
+                            class="admin-input w-full" />
+                    </div>
                     <button @click="createNewGroup" class="btn-primary">
                         <SvgIcon name="plus" size="sm" /> Tạo Nhóm
                     </button>
                 </div>
-                <div class="table-container scrollable">
+                <div class="table-container scrollable ui-table-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>Tên nhóm</th>
-                                <th>Số quyền</th>
+                                <th>Mã</th>
+                                <th width="100">Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="g in groups" :key="g.id" :class="{ selected: selectedGroup?.id === g.id }"
-                                @click="selectGroup(g)">
-                                <td><strong>{{ g.name }}</strong></td>
-                                <td>{{ g.permissions?.length || 0 }} quyền</td>
+                            <tr v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)"
+                                :class="{ active: selectedGroup && selectedGroup.id === group.id }">
+                                <td>{{ group.name }}</td>
+                                <td><code>{{ group.name }}</code></td>
+                                <td>
+                                    <button class="btn-action btn-edit" @click.stop="selectGroup(group)">Sửa</button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -278,7 +292,7 @@
                         class="admin-form-control" />
                 </div>
             </div>
-            <div class="table-container scrollable">
+            <div class="table-container scrollable ui-table-wrapper">
                 <table class="data-table audit-table">
                     <thead>
                         <tr>
@@ -346,6 +360,8 @@ import { errorHandlingMixin } from '@/utils/errorHandler';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import InputModal from '@/components/InputModal.vue';
 
+import { makeTableResizable } from '@/utils/resizable-table';
+
 const API_BASE = 'http://localhost:8000/api';
 
 export default {
@@ -370,6 +386,7 @@ export default {
 
             // Search
             userSearch: '',
+            groupSearch: '',
             permSearch: '',
             auditSearch: '',
 
@@ -395,6 +412,13 @@ export default {
             return this.users.filter(u =>
                 u.username.toLowerCase().includes(q) ||
                 u.full_name?.toLowerCase().includes(q)
+            );
+        },
+        filteredGroups() {
+            if (!this.groupSearch) return this.groups;
+            const q = this.groupSearch.toLowerCase();
+            return this.groups.filter(g =>
+                g.name.toLowerCase().includes(q)
             );
         },
         groupedPermissions() {
@@ -424,6 +448,12 @@ export default {
     },
     async created() {
         await this.loadAllData();
+        this.$nextTick(() => this.initResizable());
+    },
+    watch: {
+        activeMainTab() {
+            this.$nextTick(() => this.initResizable());
+        }
     },
     methods: {
         async loadAllData() {
@@ -568,6 +598,25 @@ export default {
             document.removeEventListener('mousemove', this.doResize);
             document.removeEventListener('mouseup', this.stopResize);
             document.body.style.cursor = '';
+        },
+        initResizable() {
+            let table = null;
+            let id = '';
+
+            if (this.activeMainTab === 'users') {
+                table = this.$el.querySelector('.pane-left .data-table');
+                id = 'admin-access-users';
+            } else if (this.activeMainTab === 'groups') {
+                table = this.$el.querySelector('.pane-left .data-table');
+                id = 'admin-access-groups';
+            } else if (this.activeMainTab === 'audit') {
+                table = this.$el.querySelector('.audit-table');
+                id = 'admin-access-audit';
+            }
+
+            if (table && id) {
+                makeTableResizable(table, id);
+            }
         }
     }
 };
