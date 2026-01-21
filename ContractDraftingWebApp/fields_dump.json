@@ -1,0 +1,302 @@
+{
+    "groups": [
+        {
+            "name": "Thông tin Khoản vay",
+            "slug": "tt-khoan-vay",
+            "entity_type": "PROFILE",
+            "allowed_object_types": [
+                "CONTRACT"
+            ],
+            "fields": [
+                {
+                    "label": "HĐTC",
+                    "key": "hdtc",
+                    "data_type": "TEXT",
+                    "note": "Số hợp đồng thế chấp"
+                },
+                {
+                    "label": "HĐTD",
+                    "key": "hdtd",
+                    "data_type": "TEXT",
+                    "note": "Số hợp đồng tín dụng"
+                },
+                {
+                    "label": "Ngày xác lập",
+                    "key": "ngay_hop_dong",
+                    "data_type": "DATE",
+                    "note": "Ngày ký kết các hợp đồng"
+                },
+                {
+                    "label": "Số tiền vay",
+                    "key": "so_tien_vay",
+                    "data_type": "NUMBER",
+                    "note": "Số tiền vay/hạn mức vay"
+                },
+                {
+                    "label": "Tổng giá trị tài sản",
+                    "key": "tong_gia_tri_tai_san",
+                    "data_type": "NUMBER",
+                    "note": "Tổng giá trị của các tài sản xuất hiện trong hợp đồng vay"
+                }
+            ]
+        },
+        {
+            "name": "Thông tin Khách hàng",
+            "slug": "tt-khach-hang",
+            "entity_type": "PROFILE",
+            "allowed_object_types": [
+                "PERSON"
+            ],
+            "fields": [
+                {
+                    "label": "Họ Tên",
+                    "key": "ho_ten",
+                    "data_type": "TEXT",
+                    "note": "Họ tên những người xuất hiện trong các văn bản"
+                },
+                {
+                    "label": "CCCD/CC/Hộ Chiếu",
+                    "key": "cccd",
+                    "data_type": "NUMBER",
+                    "note": "Số căn cước công dân"
+                },
+                {
+                    "label": "Nơi cấp CCCD",
+                    "key": "noi_cap_cccd",
+                    "data_type": "TEXT",
+                    "note": "Nơi cấp/cơ quan cấp CCCD/CC/Hộ Chiếu"
+                },
+                {
+                    "label": "Ngày cấp CC",
+                    "key": "ngay_cap_cccd",
+                    "data_type": "DATE",
+                    "note": "Ngày cấp CCCD/CC/Hộ Chiếu"
+                },
+                {
+                    "label": "Năm sinh",
+                    "key": "nam_sinh",
+                    "data_type": "DATE",
+                    "note": "Ngày tháng năm sinh của khách hàng"
+                },
+                {
+                    "label": "Địa chỉ Thường trú",
+                    "key": "dia_chi_thuong_tru",
+                    "data_type": "TEXT",
+                    "note": "Địa chỉ thường trú của khách hàng"
+                },
+                {
+                    "label": "Số Điện Thoại",
+                    "key": "dien_thoai",
+                    "data_type": "NUMBER",
+                    "note": "Số điện thoại của khách hàng"
+                }
+            ]
+        },
+        {
+            "name": "Thông tin Tài sản",
+            "slug": "tt-tai-san",
+            "entity_type": "PROFILE",
+            "allowed_object_types": [
+                "INSURANCE",
+                "VEHICLE",
+                "REALESTATE",
+                "SAVINGS",
+                "BOND"
+            ],
+            "fields": [
+                {
+                    "label": "Mã trái phiếu",
+                    "key": "ma_trai_phieu",
+                    "data_type": "TEXT",
+                    "note": "Mã trái phiếu"
+                },
+                {
+                    "label": "Giấy CN QSDĐ",
+                    "key": "chung_nhan_qsdd",
+                    "data_type": "TEXT",
+                    "note": "Số giấy chứng nhận quyền sử dụng đất và tài sản gắn liền với đất"
+                },
+                {
+                    "label": "Số đăng ký",
+                    "key": "dang_ky_xe",
+                    "data_type": "NUMBER",
+                    "note": "Số giấy đăng ký xe (số cà vẹt)"
+                },
+                {
+                    "label": "Số STK",
+                    "key": "stk",
+                    "data_type": "TEXT",
+                    "note": "Số sổ tiết kiệm"
+                },
+                {
+                    "label": "Mệnh giá",
+                    "key": "menh_gia_trai_phieu",
+                    "data_type": "NUMBER",
+                    "note": "Mệnh giá của trái phiếu"
+                },
+                {
+                    "label": "Nhãn hiệu",
+                    "key": "nhan_hieu_xe",
+                    "data_type": "TEXT",
+                    "note": "Nhãn hiệu của xe"
+                },
+                {
+                    "label": "Số tiền gởi",
+                    "key": "so_tien_goi",
+                    "data_type": "NUMBER",
+                    "note": "Số tiền gởi"
+                },
+                {
+                    "label": "Số vào sổ",
+                    "key": "so_vao_so",
+                    "data_type": "TEXT",
+                    "note": "Số vào sổ cấp giấy chứng nhận QSDĐ"
+                },
+                {
+                    "label": "Kỳ hạn",
+                    "key": "ky_han_trai_phieu",
+                    "data_type": "NUMBER",
+                    "note": "Kỳ hạn của trái phiếu"
+                },
+                {
+                    "label": "Số máy",
+                    "key": "so_may",
+                    "data_type": "TEXT",
+                    "note": "Số máy/động cơ xe"
+                },
+                {
+                    "label": "Tờ bản đồ",
+                    "key": "to_ban_do",
+                    "data_type": "TEXT",
+                    "note": "Số của tờ bản đồ mà thửa đất thuộc về"
+                },
+                {
+                    "label": "Ngày gởi",
+                    "key": "ngay_goi_stk",
+                    "data_type": "DATE",
+                    "note": "ngày mà khách hàng tạo sổ tiết kiệm"
+                },
+                {
+                    "label": "Số khung",
+                    "key": "so_khung",
+                    "data_type": "TEXT",
+                    "note": "Số khung xe"
+                },
+                {
+                    "label": "Thửa đất số",
+                    "key": "thua_dat_so",
+                    "data_type": "DATE",
+                    "note": "Số của thửa đất"
+                },
+                {
+                    "label": "ngày đến hạn",
+                    "key": "ngay_den_han_stk",
+                    "data_type": "DATE",
+                    "note": "Ngày tất toán sổ tiết kiệm"
+                },
+                {
+                    "label": "ngày cấp GCN",
+                    "key": "ngay_cap_gcn",
+                    "data_type": "DATE",
+                    "note": "Ngày cấp giấy chứng nhận quyền sử dụng đất và ts gắn liền với đất"
+                },
+                {
+                    "label": "Cơ quan cấp",
+                    "key": "co_quan_cap",
+                    "data_type": "TEXT",
+                    "note": "Cơ quan cấp giấy chứng nhận QSDĐ"
+                },
+                {
+                    "label": "Diện tích",
+                    "key": "dien_tich_thua_dat",
+                    "data_type": "NUMBER",
+                    "note": "Diện tích của thửa đất"
+                },
+                {
+                    "label": "Hình thức SD",
+                    "key": "hinh_thuc_sd",
+                    "data_type": "TEXT",
+                    "note": "Diện tích sử dụng riêng"
+                },
+                {
+                    "label": "Mục đích SDĐ",
+                    "key": "muc_dich_su_dung_dat",
+                    "data_type": "TEXT",
+                    "note": ""
+                },
+                {
+                    "label": "Thời hạn SDĐ",
+                    "key": "thoi_han_su_dung_dat",
+                    "data_type": "TEXT",
+                    "note": ""
+                },
+                {
+                    "label": "Địa chỉ Thửa đất",
+                    "key": "dia_chi_thua_dat",
+                    "data_type": "TEXT",
+                    "note": "Địa chỉ của bất động sản"
+                },
+                {
+                    "label": "Nguồn gốc SDĐ",
+                    "key": "nguon_goc_sdd",
+                    "data_type": "TEXT",
+                    "note": "Nguồn gốc sử dụng đất"
+                },
+                {
+                    "label": "Tài sản bảo đảm",
+                    "key": "tai_san_bao_dam",
+                    "data_type": "TEXTAREA",
+                    "note": "Thông tin tổng hợp về tài sản bảo đảm"
+                },
+                {
+                    "label": "Loại TS GLVĐ",
+                    "key": "loai_tai_san_glvd",
+                    "data_type": "TEXT",
+                    "note": "Loại tài sản gắn liền với đất"
+                },
+                {
+                    "label": "Địa chỉ TS GLVĐ",
+                    "key": "dia_chi_tai_san_glvd",
+                    "data_type": "TEXT",
+                    "note": "Địa chỉ của tài sản gắn liền với đất"
+                },
+                {
+                    "label": "Diện tích XD",
+                    "key": "dien_tich_xd_tsglvd",
+                    "data_type": "NUMBER",
+                    "note": "Diện tích xây dựng"
+                },
+                {
+                    "label": "Tổng DT sử dụng",
+                    "key": "dien_tich_sd_tsglvd",
+                    "data_type": "NUMBER",
+                    "note": "Tổng diện tích sử dụng của công trình"
+                },
+                {
+                    "label": "Kết cấu nhà",
+                    "key": "ket_cau_tsglvd",
+                    "data_type": "TEXT",
+                    "note": ""
+                },
+                {
+                    "label": "Số tầng",
+                    "key": "so_tang_tsglvd",
+                    "data_type": "NUMBER",
+                    "note": ""
+                },
+                {
+                    "label": "Thay đổi pháp lý (nếu có)",
+                    "key": "thay_doi_phap_ly",
+                    "data_type": "TEXT",
+                    "note": "Nội dung thay đổi pháp lý"
+                },
+                {
+                    "label": "Định giá",
+                    "key": "dinh_gia",
+                    "data_type": "NUMBER",
+                    "note": "Định giá tài sản"
+                }
+            ]
+        }
+    ]
+}

@@ -701,8 +701,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         # Xử lý Ngày lập hồ sơ (ngay_tao) ưu tiên lấy từ trường động 'ngay_lap_ho_so'
         ngay_lap_fv = loan_profile.fieldvalue_set.filter(
             field__placeholder_key='ngay_lap_ho_so', 
-            person__isnull=True, 
-            asset__isnull=True
+            master_object__isnull=True
         ).first()
         
         if ngay_lap_fv:
@@ -712,9 +711,9 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             # Fallback cho các hồ sơ cũ chưa có trường này
             context['ngay_tao'] = loan_profile.created_at
 
-        # B. Các trường chung (FieldValues không gắn với Person hoặc Asset)
+        # B. Các trường chung (FieldValues không gắn với MasterObject cụ thể)
         # Biến đổi từ: {field: "so_tien", value: "100"} -> context["so_tien"] = "100"
-        general_fvs = loan_profile.fieldvalue_set.filter(person__isnull=True, asset__isnull=True)
+        general_fvs = loan_profile.fieldvalue_set.filter(master_object__isnull=True)
         for fv in general_fvs:
             context[fv.field.placeholder_key] = fv.value
 
@@ -746,21 +745,43 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
         context['people'] = people_list
 
-        # D. Danh sách Assets (from Universal)
+        # D. Danh sách Assets (from Universal) - Lấy tất cả trừ PERSON và CONTRACT
         assets_list = []
-        asset_links = loan_profile.object_links.filter(master_object__object_type='ASSET').select_related('master_object')
+        asset_links = loan_profile.object_links.exclude(
+            master_object__object_type__in=['PERSON', 'CONTRACT']
+        ).select_related('master_object')
 
         for link in asset_links:
             master = link.master_object
             specific_fvs = loan_profile.fieldvalue_set.filter(master_object=master)
             
-            a_data = {'id': master.id}
+            a_data = {
+                'id': master.id,
+                '_object_type': master.object_type # Lưu để phân loại sau
+            }
             for fv in specific_fvs:
                 a_data[fv.field.placeholder_key] = fv.value
                 
             assets_list.append(a_data)
         
         context['assets'] = assets_list
+
+        # MỚI: Tự động tạo các Group danh sách theo Object Type (VD: context['REALESTATE'], context['VEHICLE'])
+        # Giúp người dùng dùng vòng lặp {% for as in REALESTATE %} trong template
+        for a in assets_list:
+            obj_type = a.get('_object_type')
+            if not obj_type: continue
+            
+            # 1. Dạng nguyên bản: {% for x in REALESTATE %}
+            if obj_type not in context:
+                context[obj_type] = []
+            context[obj_type].append(a)
+            
+            # 2. Dạng lowercase_list: {% for x in realestate_list %}
+            slug_key = f"{obj_type.lower()}_list"
+            if slug_key not in context:
+                context[slug_key] = []
+            context[slug_key].append(a)
 
         # E. Tạo các danh sách lọc sẵn dựa trên VAI TRÒ (Gộp cả Slug động và Legacy)
         # 1. Lấy danh sách Role từ DB để làm bản đồ Mapping

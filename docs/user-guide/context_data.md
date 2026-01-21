@@ -8,26 +8,18 @@ Các biến này có thể sử dụng trực tiếp ở bất kỳ đâu trong 
 | Biến | Mô tả | Định dạng / Ví dụ |
 | :--- | :--- | :--- |
 | `ten_ho_so` | Tên hồ sơ vay | "Hồ sơ vay Nguyễn Văn A" |
-| `ngay_tao` | Ngày lập hồ sơ (Ưu tiên lấy từ trường "Ngày lập hồ sơ" nếu có điền, nếu không sẽ lấy ngày tạo hồ sơ trên hệ thống) | "25/12/2025" hoặc rỗng |
-
-> [!TIP]
-> **Cách điều chỉnh ngày tháng:**
-> Bạn có thể tìm trường **"Ngày lập hồ sơ"** trong phần **Thông tin Hồ sơ** để tự nhập ngày (quá khứ/tương lai). 
-> - Nếu bạn muốn ngày tháng bị **để trống** trong hợp đồng để ghi tay sau, hãy để trống trường này trong giao diện.
-
+| `ngay_tao` | Ngày lập hồ sơ (Lấy từ ngày tạo hồ sơ trên hệ thống) | "21/01/2026" |
 
 ## 2. Các Trường Động (General Fields)
-Đây là các trường thuộc nhóm "Thông tin Hồ sơ" hoặc "Thông tin khoản vay" (thường không gắn với từng người cụ thể).
+Đây là các trường thuộc nhóm **"Thông tin Khoản vay"**. Chúng xuất hiện trực tiếp trong form chính.
 
-| Placeholder Key | Nhãn (Label) | Nhóm |
+| Placeholder Key | Nhãn (Label) | Ghi chú |
 | :--- | :--- | :--- |
-| `hop_dong_the_chap` | Hợp đồng thế chấp số | Thông tin Hồ sơ |
-| `hop_dong_tin_dung` | Hợp đồng tín dụng số | Thông tin Hồ sơ |
-| `so_tien_vay` | Số tiền vay | Thông tin khoản vay |
-| `thoi_han_vay` | Thời hạn vay | Thông tin khoản vay |
-| `lai_suat_vay` | Lãi suất | Thông tin khoản vay |
-| `muc_dich_vay` | Mục đích vay | Thông tin khoản vay |
-| `tong_gia_tri_tai_san` | Tổng giá trị TSBĐ | Thông tin khoản vay |
+| `hdtc` | HĐTC | Số hợp đồng thế chấp |
+| `hdtd` | HĐTD | Số hợp đồng tín dụng |
+| `ngay_hop_dong` | Ngày xác lập | Ngày ký kết các hợp đồng |
+| `so_tien_vay` | Số tiền vay | Số tiền vay/hạn mức vay |
+| `tong_gia_tri_tai_san` | Tổng giá trị tài sản | Tổng giá trị của các TSBĐ |
 
 *Sử dụng:* `{{ so_tien_vay | format_currency }}`
 
@@ -38,65 +30,75 @@ Dữ liệu người dùng được gửi dưới dạng danh sách (List).
 - `people`: Tất cả người trong hồ sơ.
 
 #### 1. Danh sách theo Vai trò (Động):
-Hệ thống tự động tạo các danh sách dựa trên **Mã định danh (Slug)** của Vai trò được cấu hình trong Admin.
+Hệ thống tự động tạo các danh sách dựa trên **Mã định danh (Slug)** của Vai trò.
 - Cú pháp: `{{ slug }}_list`
-- Ví dụ: Nếu vai trò "Người thừa kế" có slug là `nguoi_thua_ke` -> Sử dụng: `nguoi_thua_ke_list`.
-
-#### 2. Danh sách mặc định (Tương thích ngược):
-- `ben_duoc_cap_tin_dung_list`: Những người có vai trò "Bên được cấp tín dụng".
-- `ben_the_chap_list`: Những người có vai trò "Bên thế chấp".
-- `ben_vay_list`: Tương đương `ben_duoc_cap_tin_dung_list`.
-- `ben_bao_dam_list`: Tương đương `ben_the_chap_list`.
-- `ben_bao_lanh_list`: Những người có vai trò "Bên bảo lãnh".
+- Ví dụ: `ben_vay_list`, `ben_the_chap_list`, `nguoi_thua_ke_list`.
 
 ### Các thuộc tính bên trong mỗi người (person):
 Khi dùng trong vòng lặp `{%tr for p in people %}`, bạn truy cập bằng `p.key_name`.
 
-| Key | Nhãn |
-| :--- | :--- |
-| `ho_ten` | Họ tên |
-| `cccd_so` | Số CCCD |
-| `cccd` | Số CCCD (trường động) |
-| `noi_cap_cccd` | Nơi cấp CCCD |
-| `ngay_cap_cccd` | Ngày cấp CCCD |
-| `dia_chi_thuong_tru` | Địa chỉ thường trú |
-| `cif` | Mã CIF |
-| `roles` | Danh sách vai trò (mảng) |
+| Key | Nhãn | Ghi chú |
+| :--- | :--- | :--- |
+| `ho_ten` | Họ Tên | |
+| `cccd` | CCCD/CC/Hộ Chiếu | Số căn cước công dân |
+| `noi_cap_cccd` | Nơi cấp CCCD | |
+| `ngay_cap_cccd` | Ngày cấp CC | |
+| `nam_sinh` | Năm sinh | Ngày tháng năm sinh |
+| `dia_chi_thuong_tru` | Địa chỉ Thường trú | |
+| `dien_thoai` | Số Điện Thoại | |
+| `roles` | Danh sách vai trò | Dạng mảng (ví dụ: ["Bên vay"]) |
 
 *Ví dụ vòng lặp:*
 ```jinja2
-{% for p in ben_duoc_cap_tin_dung_list %}
+{% for p in ben_vay_list %}
 Ông/Bà: {{ p.ho_ten }}
-Số CCCD: {{ p.cccd_so }}
+Số CCCD: {{ p.cccd }}
 {% endfor %}
 ```
 
 ## 4. Danh sách Tài sản (Assets)
-Tương tự như người liên quan, dữ liệu tài sản được gửi dưới dạng danh sách `assets`.
+Dữ liệu tài sản được gửi dưới dạng danh sách (List).
 
 ### Biến danh sách chính:
-- `assets`: Tất cả tài sản trong hồ sơ.
+- `assets`: Tất cả tài sản trong hồ sơ (không phân biệt loại).
+
+#### 1. Danh sách theo Loại đối tượng (Động):
+Hệ thống tự động phân loại tài sản vào các biến dựa trên **Mã loại đối tượng (Object Type)**.
+- Cú pháp 1 (Viết hoa): `REALESTATE`, `VEHICLE`, `SAVINGBOOK`, `BOND`...
+- Cú pháp 2 (Lowercase + list): `realestate_list`, `vehicle_list`, ...
 
 ### Các thuộc tính bên trong mỗi tài sản (asset):
-Khi dùng trong vòng lặp `{%tr for as in assets %}`, bạn truy cập bằng `as.key_name`.
+Hệ thống hỗ trợ nhiều loại tài sản khác nhau. Dưới đây là các key phổ biến:
 
-| Key | Nhãn |
-| :--- | :--- |
-| `so_giay_chung_nhan` | Giấy chứng nhận số |
-| `so_vao_so` | Số vào sổ |
-| `ngay_cap_tai_san` | Ngày cấp |
-| `to_ban_do` | Tờ bản đồ số |
-| `thua_dat_so` | Thửa đất số |
-| `dien_tich_thua_dat` | Diện tích |
-| `dia_chi_tai_san` | Địa chỉ tài sản |
-| `gia_tri_tsbd` | Giá trị TSBĐ |
+| Key | Nhãn | Loại TS |
+| :--- | :--- | :--- |
+| `chung_nhan_qsdd` | Giấy CN QSDĐ | Bất động sản |
+| `thua_dat_so` | Thửa đất số | Bất động sản |
+| `to_ban_do` | Tờ bản đồ | Bất động sản |
+| `dien_tich_thua_dat` | Diện tích | Bất động sản |
+| `dia_chi_thua_dat` | Địa chỉ Thửa đất | Bất động sản |
+| `dang_ky_xe` | Số đăng ký | Xe cộ |
+| `nhan_hieu_xe` | Nhãn hiệu | Xe cộ |
+| `so_khung` | Số khung | Xe cộ |
+| `so_may` | Số máy | Xe cộ |
+| `stk` | Số STK | Sổ tiết kiệm |
+| `so_tien_goi` | Số tiền gởi | Sổ tiết kiệm |
+| `ma_trai_phieu` | Mã trái phiếu | Trái phiếu |
+| `tai_san_bao_dam` | Tài sản bảo đảm | Mô tả tổng hợp |
+| `dinh_gia` | Định giá | Giá trị tài sản |
 
-*Ví dụ vòng lặp trong bảng:*
+*Ví dụ lặp theo loại cụ thể (Bất động sản):*
+```jinja2
+{%tr for as in REALESTATE %}
+- Tài sản: {{ as.tai_san_bao_dam }}
+- Trị giá: {{ as.dinh_gia | format_currency }} VNĐ
+{%tr endfor %}
 ```
-DANH MỤC TÀI SẢN:
-{%tr for as in assets %}
-- Thửa đất số: {{ as.thua_dat_so }}, Diện tích: {{ as.dien_tich_thua_dat }} m2
-- Địa chỉ: {{ as.dia_chi_tai_san }}
+
+*Ví dụ lặp tất cả tài sản trong hồ sơ:*
+```jinja2
+{%tr for item in assets %}
+- {{ loop.index }}. {{ item.tai_san_bao_dam }}
 {%tr endfor %}
 ```
 
@@ -110,10 +112,35 @@ Sử dụng sau dấu gạch đứng `|`.
 2. **Số thành chữ:** `{{ gia_tri | num2words }}` 
    - Đầu vào: `1200000` -> Kết quả: `Một triệu hai trăm nghìn`
 3. **Ngày tháng thông minh:** `{{ ngay | dateformat('%d/%m/%Y') }}`
-   - Cơ chế: Nếu trường ngày bị trống, hệ thống tự điền dấu chấm `.. / .. / ....` để ký tay.
+   - Cơ chế: Nếu trường ngày bị trống, hệ thống tự điền dấu chấm `.. / .. / ....`
 4. **Nối mảng:** `{{ p.roles | join(', ') }}`
-5. **Số La Mã:** `({{ loop.index | to_roman }})`
-   - Kết quả: `(i)`, `(ii)`, `(iii)`...
+5. **Số La Mã:** `({{ loop.index | to_roman }})` -> `(i)`, `(ii)`, `(iii)`...
 
 ---
-*Tài liệu được xuất tự động từ hệ thống ngày 24/12/2025.*
+
+## 6. Lưu ý quan trọng khi soạn thảo mẫu Word
+Để tránh lỗi "Server Error" (unknown tag) do cấu trúc XML của Word gây ra, bạn nên tuân thủ các quy tắc sau:
+
+1. **Ưu tiên tách dòng các thẻ điều khiển:**
+   - **Nên:** 
+     ```jinja2
+     {%p for as in REALESTATE %}
+     {% if assets | length > 1 %}
+     ...
+     {% endif %}
+     {%p endfor %}
+     ```
+   - **Không nên:** Viết dính chùm các thẻ trên cùng một dòng (ví dụ: `{%p for ... %}{% if ... %}`).
+   
+2. **Xóa định dạng (Clear Formatting):** Nếu thẻ bị báo lỗi dù đã viết đúng, hãy bôi đen thẻ đó và nhấn **Clear All Formatting** trong Word. Điều này giúp loại bỏ các mã XML ẩn (như kiểm tra chính tả) xen vào giữa các ký tự của thẻ.
+
+3. **Phân biệt Thẻ Inline (Trên cùng 1 dòng) và Thẻ Cấu trúc (Paragraph/Table):**
+   - **Thẻ Inline (Dùng trên cùng 1 dòng):** Chỉ sử dụng cú pháp tiêu chuẩn `{% ... %}` (không có chữ `p`, `tr`, `tc`).
+     - *Ví dụ:* `Tài sản: {{ as.tai_san }} {% if as.dinh_gia %}(Giá: {{ as.dinh_gia }}){% endif %}`. Cách này an toàn để viết chung dòng với văn bản khác.
+   - **Thẻ Cấu trúc (Dùng để lặp đoạn văn hoặc bảng):** Phải sử dụng `{%p ... %}` cho đoạn văn, `{%tr ... %}` cho dòng trong bảng. 
+     - *Quy tắc:* Khi đã dùng `p`, `tr`, `tc`, bạn **bắt buộc** phải để chúng ở các dòng riêng biệt hoặc các ô riêng biệt để tránh làm loạn cấu trúc XML của Word.
+
+4. **Sử dụng thẻ `{%p ... %}` đúng cách:** Thẻ có chữ `p` (`{%p for %}`, `{%p if %}`) sẽ tác động lên toàn bộ đoạn văn (paragraph). Nếu bạn dùng thẻ này, hãy để nó ở một dòng riêng.
+
+---
+*Tài liệu được cập nhật tự động từ cấu hình hệ thống ngày 21/01/2026.*
