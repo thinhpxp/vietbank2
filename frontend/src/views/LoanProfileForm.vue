@@ -40,6 +40,27 @@
           <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly" />
         </div>
 
+        <!-- DANH SÁCH ĐẠI DIỆN NGÂN HÀNG -->
+        <div v-if="attorneyFields.length > 0" class="panel-section attorney-section">
+          <div class="panel-header">
+            <h3>Đại diện Ngân hàng</h3>
+            <div class="header-actions">
+              <button class="btn-action btn-secondary btn-sm" @click="showAttorneySelect = true">🔍 Tìm & Chọn</button>
+              <button class="btn-action btn-secondary btn-sm" @click="addAttorney">+ Thêm nhân sự</button>
+            </div>
+          </div>
+          <div v-if="attorneys.length === 0" class="empty-state">
+            Chưa có thông tin đại diện. Nhấn 'Tìm & Chọn' để lấy từ danh sách sẵn có.
+          </div>
+          <div v-for="(attorney, index) in attorneys" :key="'attorney-' + index" class="master-card attorney-card">
+            <div class="card-header-mini">
+              <strong>Đại diện #{{ index + 1 }}</strong>
+              <button class="btn-remove-mini" @click="removeAttorney(index)">&times;</button>
+            </div>
+            <DynamicForm :fields="attorneyFields" v-model="attorney.individual_field_values" :disabled="isReadOnly" />
+          </div>
+        </div>
+
         <!-- DANH SÁCH NGƯỜI (CỘT TRÁI - Default) -->
         <div v-if="!isPersonRight && personFields.length > 0">
           <div class="panel-header">
@@ -151,6 +172,10 @@
     <!-- Contract Downloader Modal -->
     <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="Number(currentId || id)" :profileName="profileName"
       @close="isDownloadModalOpen = false" />
+
+    <!-- Modal tìm kiếm Đại diện ngân hàng -->
+    <ObjectSelectModal :isOpen="showAttorneySelect" type="attorney" @select="handleAttorneySelect"
+      @close="showAttorneySelect = false" />
   </div>
 </template>
 
@@ -162,11 +187,12 @@ import AssetForm from '../components/AssetForm.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
 import ContractDownloader from '../components/ContractDownloader.vue';
+import ObjectSelectModal from '../components/ObjectSelectModal.vue';
 import { errorHandlingMixin } from '../utils/errorHandler';
 
 export default {
   name: 'LoanProfileForm',
-  components: { DynamicForm, PersonForm, AssetForm, ConfirmModal, InputModal, ContractDownloader },
+  components: { DynamicForm, PersonForm, AssetForm, ConfirmModal, InputModal, ContractDownloader, ObjectSelectModal },
   mixins: [errorHandlingMixin],
   props: ['id'],
   data() {
@@ -177,6 +203,7 @@ export default {
       profileName: '',
       generalFieldValues: {},
       people: [],
+      attorneys: [], // Danh sách đại diện ngân hàng
       assets: [], // Danh sách tài sản
       currentId: null,
       availableRoles: [],
@@ -204,6 +231,9 @@ export default {
       showLockPasswordModal: false,
       showUnlockPasswordModal: false,
 
+      // Attorney Select
+      showAttorneySelect: false,
+
       // Profile Status
       profileStatus: 'DRAFT'
     };
@@ -222,8 +252,8 @@ export default {
           // Nếu lọc theo vị trí mà không khớp -> bỏ qua
           if (gPos !== position) return groups;
 
-          // Lọc bỏ các nhóm đặc biệt (PERSON/ASSET) khỏi luồng hiển thị Generic
-          // Chúng sẽ được hiển thị qua PersonForm hoặc AssetForm
+          // Lọc bỏ các nhóm đặc biệt (PERSON/ASSET/ATTORNEY) khỏi luồng hiển thị Generic
+          // Chúng sẽ được hiển thị qua PersonForm, AssetForm hoặc Attorney section
           const specialTypes = field.group_allowed_object_types || [];
           if (specialTypes.length > 0 && !specialTypes.includes('CONTRACT')) {
             return groups;
@@ -270,14 +300,19 @@ export default {
       return this.allFields.filter(f => f.group_allowed_object_types?.includes('PERSON'));
     },
     assetFields() {
-      // Thông tin TÀI SẢN = group có object types nhưng không phải chỉ PERSON hoặc CONTRACT
+      // Thông tin TÀI SẢN = group có object types nhưng không phải chỉ PERSON hoặc CONTRACT hoặc ATTORNEY
       return this.allFields.filter(f => {
         const types = f.group_allowed_object_types || [];
-        // Có ít nhất 1 type và không phải là duy nhất PERSON hoặc CONTRACT
+        // Có ít nhất 1 type và không phải là duy nhất PERSON, CONTRACT, hoặc ATTORNEY
         return types.length > 0 &&
           !(types.length === 1 && types[0] === 'PERSON') &&
-          !(types.length === 1 && types[0] === 'CONTRACT');
+          !(types.length === 1 && types[0] === 'CONTRACT') &&
+          !(types.length === 1 && types[0] === 'ATTORNEY');
       });
+    },
+    attorneyFields() {
+      // Thông tin ĐẠI DIỆN NGÂN HÀNG = group có ATTORNEY trong allowed_object_types
+      return this.allFields.filter(f => f.group_allowed_object_types?.includes('ATTORNEY'));
     }
   },
   async mounted() {
@@ -456,12 +491,56 @@ export default {
         this.people.splice(this.deleteIndex, 1);
       } else if (this.deleteAction === 'asset' && this.deleteIndex !== null) {
         this.assets.splice(this.deleteIndex, 1);
+      } else if (this.deleteAction === 'attorney' && this.deleteIndex !== null) {
+        this.attorneys.splice(this.deleteIndex, 1);
       }
       this.showDeleteModal = false;
       this.deleteAction = null;
       this.deleteIndex = null;
     },
     updateAsset(index, updated) { this.assets[index] = updated; },
+
+    // Attorney Actions
+    addAttorney() {
+      const attorneyDefaults = this.getDefaultValuesFor(this.attorneyFields);
+      this.attorneys.push({
+        id: null,
+        master_object: { id: null },
+        individual_field_values: { ...attorneyDefaults },
+        roles: ['đại diện'] // Vai trò mặc định cho ATTORNEY
+      });
+    },
+    removeAttorney(index) {
+      const person = this.attorneys[index];
+      const name = person.individual_field_values?.ho_ten || `Đại diện Ngân hàng #${index + 1}`;
+      this.deleteModalTitle = 'Xác nhận xóa';
+      this.deleteModalMessage = `Bạn có chắc muốn xóa đại diện '${name}' khỏi hồ sơ?`;
+      this.deleteAction = 'attorney';
+      this.deleteIndex = index;
+      this.showDeleteModal = true;
+    },
+    handleAttorneySelect(attorney) {
+      // attorney là master object từ modal
+      if (this.attorneys.length === 0) {
+        this.addAttorney();
+      }
+      const lastIdx = this.attorneys.length - 1;
+      this.handleSelectAttorney(lastIdx, attorney);
+    },
+    handleSelectAttorney(index, masterObj) {
+      this.attorneys[index].id = masterObj.id;
+      this.attorneys[index].master_object = { id: masterObj.id };
+
+      // Copy values
+      const currentValues = this.attorneys[index].individual_field_values || {};
+      if (masterObj.field_values) {
+        this.attorneys[index].individual_field_values = {
+          ...currentValues,
+          ...masterObj.field_values
+        };
+      }
+      this.$toast.success(`Đã chọn: ${masterObj.display_name}`);
+    },
 
     // Duplicate Actions
     openDuplicateModal() {
@@ -495,6 +574,7 @@ export default {
         this.profileStatus = data.status || 'DRAFT';
         this.generalFieldValues = data.field_values || {};
         this.people = data.people || [];
+        this.attorneys = data.attorneys || [];
         this.assets = data.assets || [];
 
         // Cập nhật slug form từ hồ sơ (nếu có)
@@ -547,6 +627,7 @@ export default {
           name: this.profileName,
           field_values: this.generalFieldValues,
           people: this.people,
+          attorneys: this.attorneys,
           assets: validAssets, // Use filtered assets
           form_slug: this.$route.query.form || this.currentFormSlug // Gửi kèm slug form để lưu
         };
@@ -766,5 +847,53 @@ export default {
   color: #777;
   border-radius: 8px;
   border: 2px dashed #ccc;
+}
+
+.attorney-section {
+  border-left: 5px solid #3498db;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.85em;
+}
+
+.attorney-card {
+  background: #fff;
+  border: 1px solid #d1e9f9;
+  border-radius: 6px;
+  padding: 15px;
+  margin-top: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed #3498db;
+  color: #3498db;
+}
+
+.btn-remove-mini {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #e74c3c;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 5px;
+}
+
+.btn-remove-mini:hover {
+  color: #c0392b;
+  transform: scale(1.2);
 }
 </style>

@@ -229,6 +229,7 @@ class LoanProfileSerializer(serializers.ModelSerializer):
     # Khai báo 3 trường tùy chỉnh mà Frontend cần
     field_values = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
+    attorneys = serializers.SerializerMethodField()
     assets = serializers.SerializerMethodField()
     form_view_slug = serializers.CharField(source='form_view.slug', read_only=True)
     form_view_name = serializers.CharField(source='form_view.name', read_only=True)
@@ -240,7 +241,7 @@ class LoanProfileSerializer(serializers.ModelSerializer):
         model = LoanProfile
         fields = [
             'id', 'name', 'status', 'created_at', 'updated_at', 'created_by_user_name', 
-            'field_values', 'people', 'assets', 'form_view_slug', 'form_view_name'
+            'field_values', 'people', 'attorneys', 'assets', 'form_view_slug', 'form_view_name'
         ]
         read_only_fields = ['created_at', 'updated_at']
 
@@ -262,27 +263,37 @@ class LoanProfileSerializer(serializers.ModelSerializer):
             specific_fvs = FieldValue.objects.filter(loan_profile=obj, master_object=master)
             fv_dict = {fv.field.placeholder_key: fv.value for fv in specific_fvs}
             
-            # Helper to get value (Specific > Master > Empty)
-            def get_val(key):
-                if key in fv_dict: return fv_dict[key]
-                # Fallback to Master data
-                master_fv = FieldValue.objects.filter(master_object=master, field__placeholder_key=key, loan_profile__isnull=True).first()
-                return master_fv.value if master_fv else ""
-
             # Standardize output for Frontend
             result.append({
                 "id": master.id, 
-                "ho_ten": get_val('ho_ten'),
-                "cccd_so": get_val('cccd_so'),
                 "roles": link.roles,
                 "individual_field_values": fv_dict 
             })
         return result
 
-    # Logic 3: Gom danh sách Assets (Tất cả đối tượng CÓ gán object_type và KHÔNG phải PERSON)
+    # Logic 2.5: Gom danh sách Attorneys (Đại diện ngân hàng)
+    def get_attorneys(self, obj):
+        result = []
+        links = obj.object_links.filter(master_object__object_type='ATTORNEY').select_related('master_object')
+        
+        for link in links:
+            master = link.master_object
+            specific_fvs = FieldValue.objects.filter(loan_profile=obj, master_object=master)
+            fv_dict = {fv.field.placeholder_key: fv.value for fv in specific_fvs}
+            
+            result.append({
+                "id": master.id,
+                "roles": link.roles,
+                "individual_field_values": fv_dict
+            })
+        return result
+
+    # Logic 3: Gom danh sách Assets (Tất cả đối tượng CÓ gán object_type và KHÔNG phải PERSON/ATTORNEY)
     def get_assets(self, obj):
         result = []
-        links = obj.object_links.exclude(master_object__object_type='PERSON').select_related('master_object')
+        links = obj.object_links.exclude(
+            master_object__object_type__in=['PERSON', 'ATTORNEY', 'CONTRACT']
+        ).select_related('master_object')
         
         for link in links:
             master = link.master_object
@@ -296,7 +307,7 @@ class LoanProfileSerializer(serializers.ModelSerializer):
                     "object_type": master.object_type
                 },
                 "asset_field_values": asset_fv_dict,
-                "roles": link.roles # Assets now support roles!
+                "roles": link.roles
             })
         return result
 

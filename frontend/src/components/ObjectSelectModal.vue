@@ -83,10 +83,14 @@ export default {
     },
     computed: {
         title() {
-            return this.type === 'person' ? 'Chọn Người từ danh sách' : 'Chọn Tài sản từ danh sách';
+            if (this.type === 'person') return 'Chọn Người từ danh sách';
+            if (this.type === 'attorney') return 'Chọn Đại diện Ngân hàng';
+            return 'Chọn Tài sản từ danh sách';
         },
         searchPlaceholder() {
-            return this.type === 'person' ? 'Tìm theo Tên hoặc CCCD...' : 'Tìm theo Số Giấy chứng nhận...';
+            if (this.type === 'person') return 'Tìm theo Tên hoặc CCCD...';
+            if (this.type === 'attorney') return 'Tìm theo Tên hoặc Mã nhân viên...';
+            return 'Tìm theo Số Giấy chứng nhận...';
         },
         filteredItems() {
             if (!this.searchQuery) return this.items;
@@ -124,10 +128,12 @@ export default {
                 let types = '';
                 if (this.type === 'person') {
                     types = 'PERSON';
+                } else if (this.type === 'attorney') {
+                    types = 'ATTORNEY';
                 } else {
-                    // Fetch all non-PERSON types
+                    // Fetch all non-PERSON and non-ATTORNEY types
                     types = this.objectTypes
-                        .filter(t => t.code !== 'PERSON')
+                        .filter(t => t.code !== 'PERSON' && t.code !== 'ATTORNEY')
                         .map(t => t.code)
                         .join(',');
 
@@ -170,6 +176,8 @@ export default {
                 return item.ky_han_trai_phieu ? `Kỳ hạn: ${item.ky_han_trai_phieu}` : '---';
             } else if (item.object_type === 'SAVINGS') {
                 return item.so_tien_goi ? `Số tiền: ${item.so_tien_goi}` : '---';
+            } else if (item.object_type === 'ATTORNEY') {
+                return item.nguoi_dai_dien ? `${item.nguoi_dai_dien}` : '---';
             }
             return item.owner_name || '---';
         },

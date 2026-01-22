@@ -605,6 +605,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                                 continue
 
                 process_objects(data.get('people', []), 'PERSON')
+                process_objects(data.get('attorneys', []), 'ATTORNEY')
                 process_objects(data.get('assets', []), 'ASSET')
 
                 # D. Cleanup

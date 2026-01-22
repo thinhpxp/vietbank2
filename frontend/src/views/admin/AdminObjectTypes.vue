@@ -2,88 +2,86 @@
     <div class="admin-page dashboard-container">
         <div class="header-actions flex justify-between items-center mb-4">
             <h2>Quản lý Loại Đối tượng (Object Types)</h2>
-            <button class="btn-action btn-create" @click="openCreateModal">+ Thêm Loại mới</button>
+        </div>
+
+        <!-- Add New Type Panel -->
+        <div class="admin-panel mb-4">
+            <h4 class="mb-3">Thêm loại đối tượng mới</h4>
+            <div class="admin-row flex gap-2 items-end">
+                <div class="flex-1">
+                    <label class="text-xs text-gray-500 block mb-1">Mã (Code) *</label>
+                    <input v-model="newType.code" placeholder="VD: PROJECT" class="admin-input w-full" />
+                </div>
+                <div class="flex-1">
+                    <label class="text-xs text-gray-500 block mb-1">Tên hiển thị *</label>
+                    <input v-model="newType.name" placeholder="VD: Dự án" class="admin-input w-full" />
+                </div>
+                <div class="flex-1">
+                    <label class="text-xs text-gray-500 block mb-1">Trường định danh (key)</label>
+                    <input v-model="newType.identity_field_key" placeholder="VD: ho_ten" class="admin-input w-full" />
+                </div>
+                <div class="flex-[2]">
+                    <label class="text-xs text-gray-500 block mb-1">Mô tả</label>
+                    <input v-model="newType.description" placeholder="Mô tả ngắn gọn..." class="admin-input w-full" />
+                </div>
+                <button @click="addType" class="btn-action btn-create h-[38px]">Thêm Loại</button>
+            </div>
         </div>
 
         <div class="ui-table-wrapper">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Mã (Code)</th>
-                        <th>Tên hiển thị</th>
-                        <th>Trường định danh (key)</th>
+                        <th style="width: 150px">Mã (Code)</th>
+                        <th style="width: 200px">Tên hiển thị</th>
+                        <th style="width: 180px">Trường định danh</th>
                         <th>Mô tả</th>
-                        <th>Hệ thống</th>
-                        <th>Hành động</th>
+                        <th style="width: 100px">Hệ thống</th>
+                        <th style="width: 150px">Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="type in types" :key="type.id">
-                        <td><code>{{ type.code }}</code></td>
-                        <td class="font-bold">{{ type.name }}</td>
-                        <td><code>{{ type.identity_field_key || '---' }}</code></td>
-                        <td>{{ type.description || '---' }}</td>
+                    <tr v-for="type in types" :key="type.id" :class="{ 'editing-row': editingId === type.id }">
+                        <td>
+                            <code>{{ type.code }}</code>
+                        </td>
+                        <td>
+                            <input v-if="editingId === type.id" v-model="editingData.name" class="admin-input w-full" />
+                            <span v-else class="font-bold">{{ type.name }}</span>
+                        </td>
+                        <td>
+                            <input v-if="editingId === type.id" v-model="editingData.identity_field_key"
+                                class="admin-input w-full" />
+                            <code v-else>{{ type.identity_field_key || '---' }}</code>
+                        </td>
+                        <td>
+                            <input v-if="editingId === type.id" v-model="editingData.description"
+                                class="admin-input w-full" />
+                            <span v-else>{{ type.description || '---' }}</span>
+                        </td>
                         <td>
                             <span v-if="type.is_system" class="badge badge-system">System</span>
                             <span v-else class="badge badge-custom">Custom</span>
                         </td>
                         <td>
                             <div class="flex gap-2">
-                                <button class="btn-action btn-edit" @click="editType(type)">Sửa</button>
-                                <button class="btn-action btn-delete" :disabled="type.is_system"
-                                    @click="confirmDelete(type)"
-                                    :title="type.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
-                                    Xóa
-                                </button>
+                                <template v-if="editingId === type.id">
+                                    <button class="btn-action btn-save" @click="updateType">Lưu</button>
+                                    <button class="btn-action btn-secondary" @click="editingId = null">Hủy</button>
+                                </template>
+                                <template v-else>
+                                    <button class="btn-action btn-edit" @click="startEdit(type)">Sửa</button>
+                                    <button class="btn-action btn-delete" :disabled="type.is_system"
+                                        @click="confirmDelete(type)"
+                                        :title="type.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
+                                        Xóa
+                                    </button>
+                                </template>
                             </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
-        </div>
-
-        <!-- Modal Create/Edit -->
-        <div v-if="showModal" class="admin-modal-overlay" @click.self="closeModal">
-            <div class="admin-side-modal p-4">
-                <div class="flex justify-between items-center mb-4 border-b pb-2">
-                    <h3>{{ isEdit ? 'Cập nhật Loại' : 'Thêm Loại mới' }}</h3>
-                    <button class="text-2xl" @click="closeModal">&times;</button>
-                </div>
-
-                <div class="flex-1 overflow-y-auto">
-                    <div class="admin-field">
-                        <label>Mã loại (Code) *</label>
-                        <input v-model="formData.code" :disabled="isEdit" placeholder="VD: PROJECT"
-                            class="admin-form-control" style="width: 100%" />
-                        <small class="text-gray-500 text-xs mt-1 block">Viết hoa, không dấu, không khoảng trắng.</small>
-                    </div>
-
-                    <div class="admin-field">
-                        <label>Tên hiển thị *</label>
-                        <input v-model="formData.name" placeholder="VD: Dự án" class="admin-form-control"
-                            style="width: 100%" />
-                    </div>
-
-                    <div class="admin-field">
-                        <label>Trường định danh (key)</label>
-                        <input v-model="formData.identity_field_key" placeholder="VD: ho_ten, bien_so_xe"
-                            class="admin-form-control" style="width: 100%" />
-                        <small class="text-gray-500 text-xs mt-1 block">Tên trường dùng để định danh cho đối tượng
-                            này.</small>
-                    </div>
-
-                    <div class="admin-field">
-                        <label>Mô tả</label>
-                        <textarea v-model="formData.description" class="admin-form-control" rows="3"
-                            style="width: 100%; min-height: 80px;"></textarea>
-                    </div>
-
-                    <div class="mt-4 flex gap-2 justify-end">
-                        <button class="btn-action btn-secondary" @click="closeModal">Hủy</button>
-                        <button class="btn-action btn-save" @click="saveType">Lưu</button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Confirm Delete -->
@@ -117,9 +115,9 @@ export default {
     data() {
         return {
             types: [],
-            showModal: false,
-            isEdit: false,
-            formData: { code: '', name: '', description: '' },
+            newType: { code: '', name: '', description: '', identity_field_key: '' },
+            editingId: null,
+            editingData: null,
             showDeleteModal: false,
             deleteTarget: null
         };
@@ -144,36 +142,35 @@ export default {
                 makeTableResizable(table, 'admin-object-types');
             }
         },
-        openCreateModal() {
-            this.isEdit = false;
-            this.formData = { code: '', name: '', description: '', identity_field_key: '' };
-            this.showModal = true;
-        },
-        editType(item) {
-            this.isEdit = true;
-            this.formData = { ...item };
-            this.showModal = true;
-        },
-        closeModal() {
-            this.showModal = false;
-        },
-        async saveType() {
-            if (!this.formData.code || !this.formData.name) {
+        async addType() {
+            if (!this.newType.code || !this.newType.name) {
                 this.showWarning('Vui lòng nhập Mã và Tên', 'Thiếu thông tin');
+                return;
+            }
+            try {
+                await axios.post('http://127.0.0.1:8000/api/object-types/', this.newType);
+                this.newType = { code: '', name: '', description: '', identity_field_key: '' };
+                this.fetchTypes();
+            } catch (e) {
+                this.showError(e, 'Lỗi khi thêm loại đối tượng');
+            }
+        },
+        startEdit(item) {
+            this.editingId = item.id;
+            this.editingData = { ...item };
+        },
+        async updateType() {
+            if (!this.editingData.name) {
+                this.showWarning('Vui lòng nhập Tên hiển thị', 'Thiếu thông tin');
                 return;
             }
 
             try {
-                if (this.isEdit) {
-                    await axios.patch(`http://127.0.0.1:8000/api/object-types/${this.formData.id}/`, this.formData);
-                } else {
-                    await axios.post('http://127.0.0.1:8000/api/object-types/', this.formData);
-                }
+                await axios.patch(`http://127.0.0.1:8000/api/object-types/${this.editingId}/`, this.editingData);
+                this.editingId = null;
                 this.fetchTypes();
-                this.closeModal();
             } catch (e) {
-                this.showError(e, 'Lỗi khi lưu (Có thể mã đã tồn tại)');
-                console.error(e);
+                this.showError(e, 'Lỗi khi cập nhật loại đối tượng');
             }
         },
         confirmDelete(item) {
