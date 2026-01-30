@@ -38,27 +38,10 @@
         <div v-for="(group, slug) in leftPanelGroups" :key="slug" class="panel-section">
           <h3>{{ group.name }}</h3>
           <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly"
-            :idPrefix="`gen-l-${slug}-`"/>
+            :idPrefix="`gen-l-${slug}-`" />
         </div>
 
-        <!-- DANH SÁCH NGƯỜI (CỘT TRÁI - Default) -->
-        <div v-if="!isPersonRight && getFieldsForType('PERSON').length > 0">
-          <div class="panel-header">
-            <h3>Danh sách Người liên quan</h3>
-            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
-          </div>
 
-          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
-            Chưa có người nào. Hãy thêm Bên vay hoặc Bên bảo đảm.
-          </div>
-
-          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
-            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-              :availableRoles="availableRoles" :availableTypes="objectTypes"
-              :profileObjects="allSavedObjects"
-              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
-          </div>
-        </div>
 
         <!-- DEDICATED SECTIONS (Render Động) -->
         <template v-for="section in dedicatedSections" :key="'sec-' + section.code">
@@ -85,14 +68,10 @@
               </div>
               <DynamicForm :fields="getFieldsForType(section.code)" v-model="item.individual_field_values"
                 :disabled="isReadOnly" :idPrefix="`ded-${section.code.toLowerCase()}-${index}-`" />
-              
+
               <!-- Relation Manager cho các phần Dedicated (Ví dụ: Hợp đồng) -->
-              <RelationManager 
-                v-if="item.master_object && item.master_object.id"
-                :masterObjectId="item.master_object.id"
-                :profileObjects="allSavedObjects"
-                :disabled="isReadOnly"
-              />
+              <RelationManager v-if="item.master_object && item.master_object.id"
+                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :disabled="isReadOnly" />
             </div>
           </div>
         </template>
@@ -106,8 +85,26 @@
           <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
           <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
             <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-              :profileObjects="allSavedObjects"
-              @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
+              :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
+              @remove="removeAssetList(index)" />
+          </div>
+        </div>
+
+        <!-- DANH SÁCH NGƯỜI (CỘT TRÁI - Moved to Bottom) -->
+        <div v-if="!isPersonRight && getFieldsForType('PERSON').length > 0">
+          <div class="panel-header">
+            <h3>Danh sách Người liên quan</h3>
+            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
+          </div>
+
+          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
+            Chưa có người nào. Hãy thêm Bên vay hoặc Bên bảo đảm.
+          </div>
+
+          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
+            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+              :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
           </div>
         </div>
       </div>
@@ -128,22 +125,7 @@
             :idPrefix="`gen-r-${slug}-`" />
         </div>
 
-        <!-- DANH SÁCH NGƯỜI (CỘT PHẢI - Optional) -->
-        <div v-if="isPersonRight && getFieldsForType('PERSON').length > 0">
-          <div class="panel-header">
-            <h3>Danh sách Người liên quan</h3>
-            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
-          </div>
-          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">Chưa có
-            người
-            nào.</div>
-          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-r-' + index">
-            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-              :availableRoles="availableRoles" :availableTypes="objectTypes"
-              :profileObjects="allSavedObjects"
-              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
-          </div>
-        </div>
+
 
         <!-- Asset List (Default Right, unless config Left) -->
         <div v-if="isAssetRight && assetListTypes.length > 0">
@@ -154,8 +136,24 @@
           <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
           <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
             <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-              :profileObjects="allSavedObjects"
-              @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
+              :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
+              @remove="removeAssetList(index)" />
+          </div>
+        </div>
+
+        <!-- DANH SÁCH NGƯỜI (CỘT PHẢI - Moved to Bottom) -->
+        <div v-if="isPersonRight && getFieldsForType('PERSON').length > 0">
+          <div class="panel-header">
+            <h3>Danh sách Người liên quan</h3>
+            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
+          </div>
+          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">Chưa có
+            người
+            nào.</div>
+          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-r-' + index">
+            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+              :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
           </div>
         </div>
       </div>
@@ -217,8 +215,8 @@ import { errorHandlingMixin } from '../utils/errorHandler';
 
 export default {
   name: 'LoanProfileForm',
-  components: { 
-    DynamicForm, PersonForm, AssetForm, ConfirmModal, 
+  components: {
+    DynamicForm, PersonForm, AssetForm, ConfirmModal,
     InputModal, ContractDownloader, ObjectSelectModal,
     RelationManager
   },
@@ -319,22 +317,22 @@ export default {
           if (item.master_object && item.master_object.id) {
             const typeConfig = this.objectTypes.find(t => t.code === typeCode);
             const typeName = typeConfig ? typeConfig.name : typeCode;
-            
+
             let displayName = '';
             const fv = item.individual_field_values || {};
-            
+
             if (typeConfig && typeConfig.identity_field_key) {
               displayName = fv[typeConfig.identity_field_key];
             }
-            
+
             if (!displayName) {
               // Fallback labels
-              displayName = fv.ho_ten || 
-                            fv.ten_tai_san || 
-                            fv.so_dien_thoai ||
-                            fv.bien_so_xe ||
-                            fv.chung_nhan_qsdd ||
-                            `#${item.master_object.id}`;
+              displayName = fv.ho_ten ||
+                fv.ten_tai_san ||
+                fv.so_dien_thoai ||
+                fv.bien_so_xe ||
+                fv.chung_nhan_qsdd ||
+                `#${item.master_object.id}`;
             }
 
             list.push({
@@ -521,16 +519,16 @@ export default {
       // TRƯỜNG HỢP: Đổi loại đối tượng (VD: Từ BOND sang REALESTATE)
       if (newType && newType !== oldType) {
         console.log(`DEBUG: Moving object from ${oldType} to ${newType}`);
-        
+
         // 1. Xóa khỏi mảng cũ
         this.objectSections[oldType].splice(index, 1);
-        
+
         // 2. Thêm vào mảng mới
         if (!this.objectSections[newType]) {
           this.objectSections[newType] = [];
         }
         this.objectSections[newType].push(updated);
-        
+
         this.$toast.info(`Đã chuyển loại sang: ${newType}`);
       } else {
         // Cập nhật giá trị bình thường trong cùng một mảng
@@ -542,7 +540,7 @@ export default {
 
       // Nếu không có typeCode -> Cho vào ngăn chứa chung 'ASSET' nhưng object_type = null để bắt buộc người dùng chọn
       if (!targetType) {
-        targetType = 'ASSET'; 
+        targetType = 'ASSET';
       }
 
       const fields = this.getFieldsForType(targetType);
@@ -587,7 +585,7 @@ export default {
     getAssetList() {
       const list = [];
       const seenTypes = new Set();
-      
+
       this.assetListTypes.forEach(t => {
         seenTypes.add(t);
         if (this.objectSections[t]) {
