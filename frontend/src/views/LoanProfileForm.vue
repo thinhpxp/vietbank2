@@ -37,58 +37,77 @@
       <div class="left-panel" :style="{ width: (showRightPanel ? leftPanelWidth : 100) + '%' }">
         <div v-for="(group, slug) in leftPanelGroups" :key="slug" class="panel-section">
           <h3>{{ group.name }}</h3>
-          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly" />
-        </div>
-
-        <!-- DANH SÁCH ĐẠI DIỆN NGÂN HÀNG -->
-        <div v-if="attorneyFields.length > 0" class="panel-section attorney-section">
-          <div class="panel-header">
-            <h3>Đại diện Ngân hàng</h3>
-            <div class="header-actions">
-              <button class="btn-action btn-secondary btn-sm" @click="showAttorneySelect = true">🔍 Tìm & Chọn</button>
-              <button class="btn-action btn-secondary btn-sm" @click="addAttorney">+ Thêm nhân sự</button>
-            </div>
-          </div>
-          <div v-if="attorneys.length === 0" class="empty-state">
-            Chưa có thông tin đại diện. Nhấn 'Tìm & Chọn' để lấy từ danh sách sẵn có.
-          </div>
-          <div v-for="(attorney, index) in attorneys" :key="'attorney-' + index" class="master-card attorney-card">
-            <div class="card-header-mini">
-              <strong>Đại diện #{{ index + 1 }}</strong>
-              <button class="btn-remove-mini" @click="removeAttorney(index)">&times;</button>
-            </div>
-            <DynamicForm :fields="attorneyFields" v-model="attorney.individual_field_values" :disabled="isReadOnly" />
-          </div>
+          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly"
+            :idPrefix="`gen-l-${slug}-`"/>
         </div>
 
         <!-- DANH SÁCH NGƯỜI (CỘT TRÁI - Default) -->
-        <div v-if="!isPersonRight && personFields.length > 0">
+        <div v-if="!isPersonRight && getFieldsForType('PERSON').length > 0">
           <div class="panel-header">
             <h3>Danh sách Người liên quan</h3>
-            <button class="btn-action btn-secondary" @click="addPerson">+ Thêm Người</button>
+            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
           </div>
 
-          <div v-if="people.length === 0" class="empty-state">
+          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
             Chưa có người nào. Hãy thêm Bên vay hoặc Bên bảo đảm.
           </div>
 
-          <div v-for="(person, index) in people" :key="'person-' + index">
-            <PersonForm :index="index" :person="person" :personFields="personFields" :availableRoles="availableRoles"
-              :availableTypes="objectTypes" @update:person="updatePerson(index, $event)"
-              @remove="removePerson(index)" />
+          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
+            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+              :availableRoles="availableRoles" :availableTypes="objectTypes"
+              :profileObjects="allSavedObjects"
+              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
           </div>
         </div>
 
+        <!-- DEDICATED SECTIONS (Render Động) -->
+        <template v-for="section in dedicatedSections" :key="'sec-' + section.code">
+          <div v-if="getFieldsForType(section.code).length > 0 && section.code !== 'PERSON'"
+            class="panel-section dedicated-section">
+            <div class="panel-header">
+              <h3>{{ section.name }}</h3>
+              <div class="header-actions">
+                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(section.code)">🔍 Tìm &
+                  Chọn</button>
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity(section.code)">+ Thêm mới</button>
+              </div>
+            </div>
+
+            <div v-if="!objectSections[section.code] || objectSections[section.code].length === 0" class="empty-state">
+              Chưa có thông tin {{ section.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
+            </div>
+
+            <div v-for="(item, index) in objectSections[section.code]" :key="section.code + '-' + index"
+              class="master-card generic-card">
+              <div class="card-header-mini">
+                <strong>{{ section.name }} #{{ index + 1 }}</strong>
+                <button class="btn-remove-mini" @click="removeEntity(section.code, index)">&times;</button>
+              </div>
+              <DynamicForm :fields="getFieldsForType(section.code)" v-model="item.individual_field_values"
+                :disabled="isReadOnly" :idPrefix="`ded-${section.code.toLowerCase()}-${index}-`" />
+              
+              <!-- Relation Manager cho các phần Dedicated (Ví dụ: Hợp đồng) -->
+              <RelationManager 
+                v-if="item.master_object && item.master_object.id"
+                :masterObjectId="item.master_object.id"
+                :profileObjects="allSavedObjects"
+                :disabled="isReadOnly"
+              />
+            </div>
+          </div>
+        </template>
+
         <!-- Asset List (Nếu config Left) -->
-        <div v-if="!isAssetRight && assetFields.length > 0">
+        <div v-if="!isAssetRight && assetListTypes.length > 0">
           <div class="panel-header">
             <h3>Danh sách Tài sản</h3>
-            <button class="btn-action btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
+            <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
           </div>
-          <div v-if="assets.length === 0" class="empty-state">Chưa có tài sản nào.</div>
-          <div v-for="(asset, index) in assets" :key="'asset-' + index">
-            <AssetForm :index="index" :asset="asset" :assetFields="assetFields" :availableTypes="objectTypes"
-              @update:asset="updateAsset(index, $event)" @remove="removeAsset(index)" />
+          <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
+          <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
+            <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
+              :profileObjects="allSavedObjects"
+              @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
           </div>
         </div>
       </div>
@@ -105,33 +124,38 @@
         <!-- Các nhóm Generic bên phải -->
         <div v-for="(group, slug) in rightPanelGroups" :key="'right-' + slug" class="panel-section">
           <h3>{{ group.name }}</h3>
-          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly" />
+          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly"
+            :idPrefix="`gen-r-${slug}-`" />
         </div>
 
-        <!-- Person List (nếu config Right) -->
-        <div v-if="isPersonRight && personFields.length > 0">
+        <!-- DANH SÁCH NGƯỜI (CỘT PHẢI - Optional) -->
+        <div v-if="isPersonRight && getFieldsForType('PERSON').length > 0">
           <div class="panel-header">
             <h3>Danh sách Người liên quan</h3>
-            <button class="btn-action btn-secondary" @click="addPerson">+ Thêm Người</button>
+            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
           </div>
-          <div v-if="people.length === 0" class="empty-state">Chưa có người nào.</div>
-          <div v-for="(person, index) in people" :key="'person-' + index">
-            <PersonForm :index="index" :person="person" :personFields="personFields" :availableRoles="availableRoles"
-              :availableTypes="objectTypes" @update:person="updatePerson(index, $event)"
-              @remove="removePerson(index)" />
+          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">Chưa có
+            người
+            nào.</div>
+          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-r-' + index">
+            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+              :availableRoles="availableRoles" :availableTypes="objectTypes"
+              :profileObjects="allSavedObjects"
+              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
           </div>
         </div>
 
         <!-- Asset List (Default Right, unless config Left) -->
-        <div v-if="isAssetRight && assetFields.length > 0">
+        <div v-if="isAssetRight && assetListTypes.length > 0">
           <div class="panel-header">
             <h3>Danh sách Tài sản</h3>
-            <button class="btn-action btn-secondary" @click="addAsset">+ Thêm Tài sản</button>
+            <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
           </div>
-          <div v-if="assets.length === 0" class="empty-state">Chưa có tài sản nào.</div>
-          <div v-for="(asset, index) in assets" :key="'asset-' + index">
-            <AssetForm :index="index" :asset="asset" :assetFields="assetFields" :availableTypes="objectTypes"
-              @update:asset="updateAsset(index, $event)" @remove="removeAsset(index)" />
+          <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
+          <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
+            <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
+              :profileObjects="allSavedObjects"
+              @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
           </div>
         </div>
       </div>
@@ -173,9 +197,9 @@
     <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="Number(currentId || id)" :profileName="profileName"
       @close="isDownloadModalOpen = false" />
 
-    <!-- Modal tìm kiếm Đại diện ngân hàng -->
-    <ObjectSelectModal :isOpen="showAttorneySelect" type="attorney" @select="handleAttorneySelect"
-      @close="showAttorneySelect = false" />
+    <!-- Modal tìm kiếm vạn năng -->
+    <ObjectSelectModal :isOpen="showUniversalSelect" :type="currentSelectType" @select="handleUniversalSelect"
+      @close="showUniversalSelect = false" />
   </div>
 </template>
 
@@ -188,11 +212,16 @@ import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ObjectSelectModal from '../components/ObjectSelectModal.vue';
+import RelationManager from '../components/RelationManager.vue';
 import { errorHandlingMixin } from '../utils/errorHandler';
 
 export default {
   name: 'LoanProfileForm',
-  components: { DynamicForm, PersonForm, AssetForm, ConfirmModal, InputModal, ContractDownloader, ObjectSelectModal },
+  components: { 
+    DynamicForm, PersonForm, AssetForm, ConfirmModal, 
+    InputModal, ContractDownloader, ObjectSelectModal,
+    RelationManager
+  },
   mixins: [errorHandlingMixin],
   props: ['id'],
   data() {
@@ -202,9 +231,7 @@ export default {
       allFields: [],
       profileName: '',
       generalFieldValues: {},
-      people: [],
-      attorneys: [], // Danh sách đại diện ngân hàng
-      assets: [], // Danh sách tài sản
+      objectSections: {}, // MỚI: Dùng thay cho people, assets, attorneys
       currentId: null,
       availableRoles: [],
       currentFormSlug: null, // MỚI: Theo dõi slug form hiện tại
@@ -231,11 +258,12 @@ export default {
       showLockPasswordModal: false,
       showUnlockPasswordModal: false,
 
-      // Attorney Select
-      showAttorneySelect: false,
-
       // Profile Status
-      profileStatus: 'DRAFT'
+      profileStatus: 'DRAFT',
+
+      // UOS Universal Selection
+      showUniversalSelect: false,
+      currentSelectType: 'PERSON',
     };
   },
   computed: {
@@ -271,62 +299,98 @@ export default {
     rightPanelGroups() {
       return this.getGroupsByPosition('RIGHT');
     },
-    isPersonRight() {
-      // Check if any Person group is set to Right
-      return this.personFields.some(f => f.group_layout_position === 'RIGHT');
-    },
     isAssetRight() {
       // Default Assets to Right unless explicitly set to Left
-      if (this.assetFields.length === 0) return true;
-      // If ANY asset group is LEFT, should we move all to left? Or just stick to default Right?
-      // Let's say if ALL are Left, move to Left. If ANY is Right (or default), keep Right.
-      // Actually user requested Explicit control.
-      // Logic: If the first asset group found is Left, move layout to Left.
-      const first = this.assetFields[0];
-      return first ? (first.group_layout_position === 'RIGHT') : true;
+      const assetListFields = this.getAssetFields();
+      if (assetListFields.length === 0) return true;
+      return assetListFields.some(f => f.group_layout_position === 'RIGHT');
+    },
+    isPersonRight() {
+      // Check if PERSON fields are set to RIGHT
+      const personFields = this.getFieldsForType('PERSON');
+      if (personFields.length === 0) return false;
+      return personFields.some(f => f.group_layout_position === 'RIGHT');
+    },
+    // Danh sách tất cả các đối tượng đã lưu (có ID) trong hồ sơ hiện tại
+    allSavedObjects() {
+      const list = [];
+      Object.keys(this.objectSections).forEach(typeCode => {
+        this.objectSections[typeCode].forEach(item => {
+          if (item.master_object && item.master_object.id) {
+            const typeConfig = this.objectTypes.find(t => t.code === typeCode);
+            const typeName = typeConfig ? typeConfig.name : typeCode;
+            
+            let displayName = '';
+            const fv = item.individual_field_values || {};
+            
+            if (typeConfig && typeConfig.identity_field_key) {
+              displayName = fv[typeConfig.identity_field_key];
+            }
+            
+            if (!displayName) {
+              // Fallback labels
+              displayName = fv.ho_ten || 
+                            fv.ten_tai_san || 
+                            fv.so_dien_thoai ||
+                            fv.bien_so_xe ||
+                            fv.chung_nhan_qsdd ||
+                            `#${item.master_object.id}`;
+            }
+
+            list.push({
+              id: item.master_object.id,
+              object_type: typeName,
+              display_name: `[${typeName}] ${displayName}`
+            });
+          }
+        });
+      });
+      return list;
+    },
+    // --- UOS COMPUTED ---
+    dedicatedSections() {
+      // Lấy danh sách các loại đối tượng có mode DEDICATED_SECTION
+      return this.objectTypes.filter(t => t.form_display_mode === 'DEDICATED_SECTION');
+    },
+    assetListTypes() {
+      // Lấy mã của các loại đối tượng gom trong danh sách Tài sản
+      return this.objectTypes
+        .filter(t => t.form_display_mode === 'ASSET_LIST' && t.code !== 'PERSON')
+        .map(t => t.code);
+    },
+    getFieldsForType() {
+      return (typeCode) => {
+        return this.allFields.filter(f => {
+          // Khớp qua group (ưu tiên) hoặc trực tiếp qua field level links
+          const groupMatch = f.group_allowed_object_types?.includes(typeCode);
+          const fieldMatch = f.allowed_object_types?.includes(typeCode);
+          return groupMatch || fieldMatch;
+        });
+      }
     },
     showRightPanel() {
-      return (this.assetFields.length > 0 && this.isAssetRight) ||
-        (this.personFields.length > 0 && this.isPersonRight) ||
-        Object.keys(this.rightPanelGroups).length > 0;
+      const hasRightAsset = this.assetListTypes.length > 0 && this.isAssetRight;
+      const hasRightPerson = this.getFieldsForType('PERSON').length > 0 && this.isPersonRight;
+      return hasRightAsset || hasRightPerson || Object.keys(this.rightPanelGroups).length > 0;
     },
     coreFields() {
-      // Thông tin CHUNG = Không có object_type hoặc rỗng (Core)
-      return this.allFields.filter(f => !f.group_allowed_object_types || f.group_allowed_object_types.length === 0)
-        .sort((a, b) => a.order - b.order);
-    },
-    personFields() {
-      // Thông tin NGƯỜI = group có PERSON trong allowed_object_types
-      return this.allFields.filter(f => f.group_allowed_object_types?.includes('PERSON'));
-    },
-    assetFields() {
-      // Thông tin TÀI SẢN = group có object types nhưng không phải chỉ PERSON hoặc CONTRACT hoặc ATTORNEY
+      // Thông tin CHUNG = Không có object_type đặc biệt hoặc thuộc về CONTRACT
       return this.allFields.filter(f => {
-        const types = f.group_allowed_object_types || [];
-        // Có ít nhất 1 type và không phải là duy nhất PERSON, CONTRACT, hoặc ATTORNEY
-        return types.length > 0 &&
-          !(types.length === 1 && types[0] === 'PERSON') &&
-          !(types.length === 1 && types[0] === 'CONTRACT') &&
-          !(types.length === 1 && types[0] === 'ATTORNEY');
-      });
+        const specialTypes = f.group_allowed_object_types || [];
+        // Nếu không có types -> là Core. Nếu có CONTRACT -> cũng coi là Core.
+        return specialTypes.length === 0 || specialTypes.includes('CONTRACT');
+      }).sort((a, b) => a.order - b.order);
     },
-    attorneyFields() {
-      // Thông tin ĐẠI DIỆN NGÂN HÀNG = group có ATTORNEY trong allowed_object_types
-      return this.allFields.filter(f => f.group_allowed_object_types?.includes('ATTORNEY'));
-    }
   },
   async mounted() {
-    await this.fetchFields(); // Chờ load xong fields trước khi làm tiếp
+    await this.fetchFields();
     this.fetchRoles();
-    this.fetchObjectTypes(); // New: Fetch object types
+    await this.fetchObjectTypes();
     if (this.id) {
       this.currentId = this.id;
-      this.fetchProfileData(this.id);
-    } else {
-      // Đã có fields rồi nên gọi addPerson/addAsset ở đây sẽ có default values
-      if (this.people.length === 0) this.addPerson();
-      if (this.assets.length === 0) this.addAsset();
+      await this.fetchProfileData(this.id);
     }
+    // ĐÃ XÓA: Tự động addEntity('PERSON') và addEntity(null) để tránh tạo rác
   },
   watch: {
     // Watchers for other logic if needed in future
@@ -379,23 +443,24 @@ export default {
         // Luôn kiểm tra và áp dụng giá trị mặc định cho các trường chung còn trống
         this.applyDefaultsToGeneral();
 
-        // MỞ RỘNG: Áp dụng giá trị mặc định cho cả Người và Tài sản (truy thu cho hồ sơ cũ)
-        this.people.forEach(p => {
-          const defaults = this.getDefaultValuesFor(this.personFields);
-          const currentValues = p.individual_field_values || {};
-          Object.keys(defaults).forEach(key => {
-            if (!currentValues[key]) currentValues[key] = defaults[key];
+        // MỞ RỘNG: Áp dụng giá trị mặc định cho tất cả các đối tượng trong objectSections
+        Object.keys(this.objectSections).forEach(typeCode => {
+          const fields = this.getFieldsForType(typeCode);
+          const defaults = this.getDefaultValuesFor(fields);
+          this.objectSections[typeCode].forEach(item => {
+            const currentValues = item.individual_field_values || {};
+            let changed = false;
+            Object.keys(defaults).forEach(key => {
+              // Áp dụng nếu key chưa tồn tại hoặc rỗng/null
+              if (currentValues[key] === undefined || currentValues[key] === null || currentValues[key] === '') {
+                currentValues[key] = defaults[key];
+                changed = true;
+              }
+            });
+            if (changed) {
+              item.individual_field_values = { ...currentValues };
+            }
           });
-          p.individual_field_values = { ...currentValues };
-        });
-
-        this.assets.forEach(a => {
-          const defaults = this.getDefaultValuesFor(this.assetFields);
-          const currentValues = a.asset_field_values || {};
-          Object.keys(defaults).forEach(key => {
-            if (!currentValues[key]) currentValues[key] = defaults[key];
-          });
-          a.asset_field_values = { ...currentValues };
         });
       } catch (e) {
         console.error(e);
@@ -421,14 +486,15 @@ export default {
       }
     },
     applyDefaultsToGeneral() {
-      // Áp dụng giá trị mặc định cho tất cả các trường KHÔNG thuộc nhóm Người hoặc Tài sản
+      // Áp dụng giá trị mặc định cho tất cả các trường CHUNG hiển thị trong Panel
+      // Logic MATCH với getGroupsByPosition để đảm bảo nhất quán
       const currentValues = { ...this.generalFieldValues };
       this.allFields.forEach(field => {
-        const isPersonGroup = (field.group_slug === 'thong-tin-ca-nhan' || field.group_slug === 'khach-hang');
-        const isAssetGroup = (field.group_slug || '').startsWith('tai-san');
+        const specialTypes = field.group_allowed_object_types || [];
+        const isCore = specialTypes.length === 0 || specialTypes.includes('CONTRACT');
 
-        if (!isPersonGroup && !isAssetGroup) {
-          if (field.default_value && !currentValues[field.placeholder_key]) {
+        if (isCore) {
+          if (field.default_value && (currentValues[field.placeholder_key] === undefined || currentValues[field.placeholder_key] === null || currentValues[field.placeholder_key] === '')) {
             currentValues[field.placeholder_key] = field.default_value;
           }
         }
@@ -445,96 +511,146 @@ export default {
       });
       return defaults;
     },
-    // Person Actions
-    addPerson() {
-      const personDefaults = this.getDefaultValuesFor(this.personFields);
-      this.people.push({
-        id: null,
-        ho_ten: '', // Xóa phần gán cứng, tất cả sẽ lấy từ personDefaults bên dưới
-        cccd_so: '',
-        roles: [],
-        individual_field_values: { ...personDefaults }
-      });
-      // Nếu personDefaults có ho_ten hoặc cccd_so thì nó sẽ tự map vào form nhờ v-model
-    },
-    removePerson(index) {
-      const person = this.people[index];
-      const name = person.individual_field_values?.ho_ten || `Người #${index + 1}`;
-      this.deleteModalTitle = 'Xác nhận xóa';
-      this.deleteModalMessage = `Bạn có chắc muốn xóa '${name}' khỏi hồ sơ?`;
-      this.deleteAction = 'person';
-      this.deleteIndex = index;
-      this.showDeleteModal = true;
-    },
-    updatePerson(index, updated) { this.people[index] = updated; },
+    // --- GENERIC ENTITY ACTIONS ---
+    updateEntity(typeCode, index, updated) {
+      if (!this.objectSections[typeCode]) return;
 
-    // Asset Actions
-    addAsset() {
-      const assetDefaults = this.getDefaultValuesFor(this.assetFields);
-      this.assets.push({
+      const oldType = typeCode;
+      const newType = updated.master_object?.object_type;
+
+      // TRƯỜNG HỢP: Đổi loại đối tượng (VD: Từ BOND sang REALESTATE)
+      if (newType && newType !== oldType) {
+        console.log(`DEBUG: Moving object from ${oldType} to ${newType}`);
+        
+        // 1. Xóa khỏi mảng cũ
+        this.objectSections[oldType].splice(index, 1);
+        
+        // 2. Thêm vào mảng mới
+        if (!this.objectSections[newType]) {
+          this.objectSections[newType] = [];
+        }
+        this.objectSections[newType].push(updated);
+        
+        this.$toast.info(`Đã chuyển loại sang: ${newType}`);
+      } else {
+        // Cập nhật giá trị bình thường trong cùng một mảng
+        this.objectSections[typeCode][index] = updated;
+      }
+    },
+    addEntity(typeCode) {
+      let targetType = typeCode;
+
+      // Nếu không có typeCode -> Cho vào ngăn chứa chung 'ASSET' nhưng object_type = null để bắt buộc người dùng chọn
+      if (!targetType) {
+        targetType = 'ASSET'; 
+      }
+
+      const fields = this.getFieldsForType(targetType);
+      const defaults = this.getDefaultValuesFor(fields);
+
+      if (!this.objectSections[targetType]) {
+        this.objectSections[targetType] = [];
+      }
+
+      this.objectSections[targetType].push({
         id: null,
-        master_object: { object_type: null },
-        asset_field_values: { ...assetDefaults }
+        master_object: { object_type: typeCode }, // Có thể là null nếu typeCode=null
+        individual_field_values: { ...defaults },
+        roles: targetType === 'ATTORNEY' ? ['đại diện'] : []
       });
     },
-    removeAsset(index) {
-      const asset = this.assets[index];
-      const name = asset.asset_field_values?.ten_tai_san || `Tài sản #${index + 1}`;
+    removeEntity(typeCode, index) {
+      const item = this.objectSections[typeCode][index];
+      const typeCfg = this.objectTypes.find(t => t.code === typeCode);
+      const name = item.individual_field_values?.ho_ten ||
+        item.individual_field_values?.nguoi_dai_dien ||
+        `${typeCfg?.name || typeCode} #${index + 1}`;
+
       this.deleteModalTitle = 'Xác nhận xóa';
       this.deleteModalMessage = `Bạn có chắc muốn xóa '${name}' khỏi hồ sơ?`;
-      this.deleteAction = 'asset';
-      this.deleteIndex = index;
+      this.deleteAction = 'uos_entity';
+      this.deleteContext = { typeCode, index };
       this.showDeleteModal = true;
     },
     confirmDelete() {
-      if (this.deleteAction === 'person' && this.deleteIndex !== null) {
-        this.people.splice(this.deleteIndex, 1);
-      } else if (this.deleteAction === 'asset' && this.deleteIndex !== null) {
-        this.assets.splice(this.deleteIndex, 1);
-      } else if (this.deleteAction === 'attorney' && this.deleteIndex !== null) {
-        this.attorneys.splice(this.deleteIndex, 1);
+      if (this.deleteAction === 'uos_entity') {
+        const { typeCode, index } = this.deleteContext;
+        if (this.objectSections[typeCode]) {
+          this.objectSections[typeCode].splice(index, 1);
+          this.$toast.success('Đã xóa đối tượng');
+        }
       }
       this.showDeleteModal = false;
-      this.deleteAction = null;
-      this.deleteIndex = null;
     },
-    updateAsset(index, updated) { this.assets[index] = updated; },
 
-    // Attorney Actions
-    addAttorney() {
-      const attorneyDefaults = this.getDefaultValuesFor(this.attorneyFields);
-      this.attorneys.push({
-        id: null,
-        master_object: { id: null },
-        individual_field_values: { ...attorneyDefaults },
-        roles: ['đại diện'] // Vai trò mặc định cho ATTORNEY
+    // --- ASSET LIST COMPATIBILITY ---
+    getAssetList() {
+      const list = [];
+      const seenTypes = new Set();
+      
+      this.assetListTypes.forEach(t => {
+        seenTypes.add(t);
+        if (this.objectSections[t]) {
+          this.objectSections[t].forEach((item, idx) => {
+            list.push({ ...item, _originalType: t, _originalIdx: idx });
+          });
+        }
+      });
+
+      // Luôn bao gồm ngăn chứa 'ASSET' (ngăn chứa chung ban đầu)
+      if (!seenTypes.has('ASSET') && this.objectSections['ASSET']) {
+        this.objectSections['ASSET'].forEach((item, idx) => {
+          list.push({ ...item, _originalType: 'ASSET', _originalIdx: idx });
+        });
+      }
+      return list;
+    },
+    getAssetFields() {
+      // Lấy tất cả các fields thuộc về bất kỳ loại tài sản nào trong assetListTypes
+      return this.allFields.filter(f => {
+        const types = f.group_allowed_object_types || [];
+        // Nếu không có types đặc thù -> Không phải field tài sản
+        if (types.length === 0) return false;
+        // Kiểm tra xem có trùng với bất kỳ loại ASSET_LIST nào không
+        return types.some(t => this.assetListTypes.includes(t));
       });
     },
-    removeAttorney(index) {
-      const person = this.attorneys[index];
-      const name = person.individual_field_values?.ho_ten || `Đại diện Ngân hàng #${index + 1}`;
-      this.deleteModalTitle = 'Xác nhận xóa';
-      this.deleteModalMessage = `Bạn có chắc muốn xóa đại diện '${name}' khỏi hồ sơ?`;
-      this.deleteAction = 'attorney';
-      this.deleteIndex = index;
-      this.showDeleteModal = true;
-    },
-    handleAttorneySelect(attorney) {
-      // attorney là master object từ modal
-      if (this.attorneys.length === 0) {
-        this.addAttorney();
+    updateAssetList(index, updated) {
+      const list = this.getAssetList();
+      const target = list[index];
+      if (target) {
+        this.updateEntity(target._originalType, target._originalIdx, updated);
       }
-      const lastIdx = this.attorneys.length - 1;
-      this.handleSelectAttorney(lastIdx, attorney);
     },
-    handleSelectAttorney(index, masterObj) {
-      this.attorneys[index].id = masterObj.id;
-      this.attorneys[index].master_object = { id: masterObj.id };
+    removeAssetList(index) {
+      const list = this.getAssetList();
+      const target = list[index];
+      if (target) {
+        this.removeEntity(target._originalType, target._originalIdx);
+      }
+    },
 
-      // Copy values
-      const currentValues = this.attorneys[index].individual_field_values || {};
+    openSelectModal(typeCode) {
+      this.currentSelectType = typeCode;
+      this.showUniversalSelect = true;
+    },
+    handleUniversalSelect(masterObj) {
+      const tCode = masterObj.object_type;
+      if (!this.objectSections[tCode] || this.objectSections[tCode].length === 0) {
+        this.addEntity(tCode);
+      }
+      const lastIdx = this.objectSections[tCode].length - 1;
+      this.handleSelectEntity(tCode, lastIdx, masterObj);
+    },
+    handleSelectEntity(typeCode, index, masterObj) {
+      if (!this.objectSections[typeCode]) return;
+      const item = this.objectSections[typeCode][index];
+      item.id = masterObj.id;
+      item.master_object = { id: masterObj.id, object_type: typeCode };
+
+      const currentValues = item.individual_field_values || {};
       if (masterObj.field_values) {
-        this.attorneys[index].individual_field_values = {
+        item.individual_field_values = {
           ...currentValues,
           ...masterObj.field_values
         };
@@ -573,19 +689,19 @@ export default {
         this.profileName = data.name;
         this.profileStatus = data.status || 'DRAFT';
         this.generalFieldValues = data.field_values || {};
-        this.people = data.people || [];
-        this.attorneys = data.attorneys || [];
-        this.assets = data.assets || [];
+
+        // MỚI: Load object_sections thay vì people/assets
+        this.objectSections = data.object_sections || {};
 
         // Cập nhật slug form từ hồ sơ (nếu có)
         if (data.form_view_slug) {
           this.currentFormSlug = data.form_view_slug;
-          // Sau khi có form slug mới load lại fields cho đúng layout
           await this.fetchFields();
         }
 
-        if (this.people.length === 0) this.addPerson();
-        if (this.assets.length === 0) this.addAsset();
+        if (!this.objectSections['PERSON'] || this.objectSections['PERSON'].length === 0) {
+          this.addEntity('PERSON');
+        }
 
       } catch (e) {
         console.error('Lỗi load hồ sơ:', e);
@@ -601,11 +717,6 @@ export default {
         return;
       }
 
-      // 1. Kiểm tra trùng lặp nội bộ (Deduplication Check)
-      if (!this.validateInternalDuplicates()) {
-        return; // Dừng nếu có trùng lặp
-      }
-
       if (!this.profileName) {
         this.showWarning('Vui lòng nhập tên hồ sơ!', 'Thiếu thông tin');
         return;
@@ -618,20 +729,22 @@ export default {
           targetId = createRes.data.id;
         }
 
-        // Filter out empty assets (no type selected)
-        const validAssets = this.assets.filter(asset => {
-          return asset.master_object && asset.master_object.object_type;
-        });
-
         const payload = {
           name: this.profileName,
           field_values: this.generalFieldValues,
-          people: this.people,
-          attorneys: this.attorneys,
-          assets: validAssets, // Use filtered assets
-          form_slug: this.$route.query.form || this.currentFormSlug // Gửi kèm slug form để lưu
+          object_sections: this.objectSections, // MỚI: Gửi object_sections
+          form_slug: this.$route.query.form || this.currentFormSlug
         };
-        await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
+        const response = await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
+
+        // Update local state with fresh data (contains IDs)
+        if (response.data && response.data.id) {
+          const data = response.data;
+          this.profileName = data.name;
+          this.profileStatus = data.status || 'DRAFT';
+          this.generalFieldValues = data.field_values || {};
+          this.objectSections = data.object_sections || {};
+        }
 
         // Cập nhật currentId nếu là hồ sơ mới tạo thành công
         if (!this.currentId) {
@@ -656,7 +769,8 @@ export default {
       const peopleIdentities = new Set();
       if (personType && personType.identity_field_key) {
         const idKey = personType.identity_field_key;
-        for (const p of this.people) {
+        const people = this.objectSections['PERSON'] || [];
+        for (const p of people) {
           const idValue = p.individual_field_values?.[idKey];
           if (idValue) {
             if (peopleIdentities.has(idValue)) {
@@ -670,15 +784,16 @@ export default {
 
       // B. Kiểm tra trùng lặp Tài sản (theo identity_field_key của từng loại)
       const assetIdentities = {}; // { object_type: Set(values) }
-      for (const a of this.assets) {
-        const typeCode = a.master_object?.object_type;
+      const assetList = this.getAssetList();
+      for (const a of assetList) {
+        const typeCode = a.master_object?.object_type || a._originalType;
         if (!typeCode) continue;
 
         const typeConfig = this.objectTypes.find(t => t.code === typeCode);
         if (!typeConfig || !typeConfig.identity_field_key) continue;
 
         const idKey = typeConfig.identity_field_key;
-        const idValue = a.asset_field_values?.[idKey];
+        const idValue = a.individual_field_values?.[idKey] || a.asset_field_values?.[idKey];
 
         if (idValue) {
           if (!assetIdentities[typeCode]) assetIdentities[typeCode] = new Set();
@@ -863,13 +978,18 @@ export default {
   font-size: 0.85em;
 }
 
-.attorney-card {
+.attorney-card,
+.generic-card {
   background: #fff;
   border: 1px solid #d1e9f9;
   border-radius: 6px;
   padding: 15px;
   margin-top: 15px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dedicated-section {
+  border-left: 5px solid #3498db;
 }
 
 .card-header-mini {

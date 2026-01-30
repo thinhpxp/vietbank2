@@ -297,6 +297,12 @@ export default {
         this.showWarning('Vui lòng chọn nhóm!', 'Thiếu thông tin');
         return;
       }
+      // Kiểm tra trùng Key ngay tại Frontend để báo lỗi thân thiện
+      const isDuplicate = this.fields.some(f => f.placeholder_key === this.newField.placeholder_key);
+      if (isDuplicate) {
+        this.showWarning(`Key '${this.newField.placeholder_key}' đã tồn tại. Vui lòng chọn key khác để tránh xung đột dữ liệu.`, 'Trùng Key');
+        return;
+      }
       try {
         await axios.post('http://127.0.0.1:8000/api/fields/', this.newField);
         this.fetchData();

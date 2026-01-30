@@ -139,6 +139,7 @@ class Role(models.Model):
 class DocumentTemplate(models.Model):
     name = models.CharField(max_length=255, verbose_name="Tên mẫu")
     file = models.FileField(upload_to='doc_templates/', verbose_name="File mẫu (.docx)")
+    department = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bộ phận")
     description = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tải lên")
 
@@ -179,11 +180,24 @@ class LoanProfile(models.Model):
 
 # 5.b Loại Đối tượng (Dynamic)
 class MasterObjectType(models.Model):
+    DISPLAY_MODE_CHOICES = [
+        ('ASSET_LIST', 'Gom trong danh sách Tài sản'),
+        ('DEDICATED_SECTION', 'Hiển thị khu vực riêng'),
+    ]
+    
     code = models.CharField(max_length=50, unique=True, verbose_name="Mã loại (VD: PERSON)")
     name = models.CharField(max_length=100, verbose_name="Tên hiển thị (VD: Cá nhân)")
     description = models.TextField(blank=True, null=True, verbose_name="Mô tả")
     is_system = models.BooleanField(default=False, verbose_name="Là hệ thống (Không xóa)")
     identity_field_key = models.CharField(max_length=100, blank=True, null=True, verbose_name="Trường định danh (key)", help_text="Placeholder key của trường dùng để làm tên định danh (VD: ho_ten, bien_so_xe)")
+    dynamic_summary_template = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mẫu hiển thị tóm tắt", help_text="Mẫu để hiển thị thông tin bổ sung (VD: CCCD: {cccd})")
+    form_display_mode = models.CharField(
+        max_length=30, 
+        choices=DISPLAY_MODE_CHOICES, 
+        default='ASSET_LIST',
+        verbose_name="Chế độ hiển thị Form",
+        help_text="Chọn cách đối tượng này hiển thị trong hồ sơ vay"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -207,12 +221,21 @@ class MasterObject(models.Model):
     last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người cập nhật")
 
     def __str__(self):
-        # Lấy tên hiển thị từ FieldValue nếu có
-        # Ưu tiên ho_ten cho PERSON, so_giay_chung_nhan cho các loại khác
-        key = 'ho_ten' if self.object_type == 'PERSON' else 'so_giay_chung_nhan'
-        fv = self.fieldvalue_set.filter(field__placeholder_key=key).first()
-        if fv:
-            return f"{self.object_type}: {fv.value}"
+        # Lấy cấu hình loại đối tượng để biết trường định danh là gì
+        try:
+            from .models import MasterObjectType
+            cfg = MasterObjectType.objects.filter(code=self.object_type).first()
+            id_key = cfg.identity_field_key if cfg else None
+        except:
+            id_key = None
+            
+        if not id_key:
+            # Fallback legacy
+            id_key = 'ho_ten' if self.object_type == 'PERSON' else 'chung_nhan_qsdd'
+            
+        fv = self.fieldvalue_set.filter(field__placeholder_key=id_key).first()
+        if fv and fv.value:
+            return f"{fv.value}"
         return f"{self.object_type} #{self.id}"
 
     @property

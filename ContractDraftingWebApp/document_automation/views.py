@@ -10,9 +10,10 @@ from rest_framework.views import APIView
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from docxtpl import DocxTemplate
-from datetime import datetime
+from datetime import datetime, date
 import os
 import io
+import zipfile
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.dispatch import receiver
 from num2words import num2words # Cần pip install num2words
@@ -574,6 +575,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                             )
 
                         processed_master_ids.append(master_obj.id)
+                        print(f"  DEBUG: Item {actual_type} -> Master:{master_obj.id} Ident:{fields_dict.get('chung_nhan_qsdd', 'N/A')}")
 
                         # 2. Update Link
                         LoanProfileObjectLink.objects.update_or_create(
@@ -604,9 +606,19 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                             except Field.DoesNotExist:
                                 continue
 
-                process_objects(data.get('people', []), 'PERSON')
-                process_objects(data.get('attorneys', []), 'ATTORNEY')
-                process_objects(data.get('assets', []), 'ASSET')
+                # New logic: Process object_sections if provided
+                object_sections = data.get('object_sections', {})
+                print(f"DEBUG: object_sections keys: {list(object_sections.keys())}")
+                print(f"DEBUG: Processing {len(object_sections)} sections")
+                if object_sections:
+                    for t_code, items in object_sections.items():
+                        print(f"DEBUG: type {t_code} has {len(items)} items")
+                        process_objects(items, t_code)
+                else:
+                    # Backward compatibility for existing payloads
+                    process_objects(data.get('people', []), 'PERSON')
+                    process_objects(data.get('attorneys', []), 'ATTORNEY')
+                    process_objects(data.get('assets', []), 'ASSET')
 
                 # D. Cleanup
                 LoanProfileObjectLink.objects.filter(loan_profile=loan_profile).exclude(
@@ -660,7 +672,8 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                     master_object__id__in=processed_master_ids
                 ).delete()
 
-            return Response({"status": "success", "message": "Lưu dữ liệu thành công!"}, status=status.HTTP_200_OK)
+            serializer = LoanProfileSerializer(loan_profile)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"status": "error", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -677,91 +690,133 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
     def generate_document(self, request, pk=None):
         """
         API sinh file Word từ Template và Dữ liệu hồ sơ.
-        Input: { "template_id": 1 }
-        Output: File .docx
+        Input: { "template_id": 1 } hoặc { "template_ids": [1, 2] }
+        Output: File .docx hoặc .zip
         """
         loan_profile = self.get_object()
-        template_id = request.data.get('template_id')
+        data = request.data
+        
+        template_id = data.get('template_id')
+        template_ids = data.get('template_ids', [])
 
-        if not template_id:
-            return Response({"error": "Vui lòng cung cấp template_id."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 1. Lấy file mẫu
-        document_template = get_object_or_404(DocumentTemplate, id=template_id)
-        template_path = document_template.file.path
-
-        if not os.path.exists(template_path):
-            return Response({"error": "File mẫu không tồn tại trên server."}, status=status.HTTP_404_NOT_FOUND)
+        if not template_id and not template_ids:
+            return Response({"error": "Vui lòng cung cấp template_id hoặc template_ids."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 2. CHUẨN BỊ CONTEXT (Dữ liệu để trộn)
+        # Refresh from DB to avoid any prefetched/cached data issues
+        loan_profile.refresh_from_db()
         context = {}
 
         # A. Thông tin cơ bản
         context['ten_ho_so'] = loan_profile.name
         
         # Xử lý Ngày lập hồ sơ (ngay_tao) ưu tiên lấy từ trường động 'ngay_lap_ho_so'
-        ngay_lap_fv = loan_profile.fieldvalue_set.filter(
+        ngay_lap_fv = FieldValue.objects.filter(
+            loan_profile=loan_profile,
             field__placeholder_key='ngay_lap_ho_so', 
             master_object__isnull=True
         ).first()
         
         if ngay_lap_fv:
-            # Nếu có dữ liệu (bao gồm cả chuỗi rỗng nếu người dùng muốn để trắng)
             context['ngay_tao'] = ngay_lap_fv.value if ngay_lap_fv.value else ""
         else:
-            # Fallback cho các hồ sơ cũ chưa có trường này
             context['ngay_tao'] = loan_profile.created_at
 
         # B. Các trường chung (FieldValues không gắn với MasterObject cụ thể)
-        # Biến đổi từ: {field: "so_tien", value: "100"} -> context["so_tien"] = "100"
-        general_fvs = loan_profile.fieldvalue_set.filter(master_object__isnull=True)
+        general_fvs = FieldValue.objects.filter(loan_profile=loan_profile, master_object__isnull=True)
         for fv in general_fvs:
             context[fv.field.placeholder_key] = fv.value
 
+        # Helper to fetch relations for Jinja context
+        def get_relations_for_object(mo_id):
+            relations = {
+                'related_assets': [],
+                'related_people': [],
+                'base_contracts': [],
+                'amending_contracts': [],
+                'secured_loan_contracts': [], # HĐ tín dụng mà bản thân HĐ này bảo đảm
+                'contracts_securing': [],     # HĐ thế chấp bảo đảm cho HĐ tín dụng này
+            }
+            rels_out = MasterObjectRelation.objects.filter(source_object_id=mo_id).select_related('target_object')
+            rels_in = MasterObjectRelation.objects.filter(target_object_id=mo_id).select_related('source_object')
+            
+            # Helper to get basic data for a related object
+            def get_mo_basic_data(mo, rel_type):
+                data = {'id': mo.id, 'object_type': mo.object_type, 'relation_type': rel_type}
+                # Thêm basic field values từ Master data (loan_profile=null)
+                fvs = {fv.field.placeholder_key: fv.value 
+                       for fv in FieldValue.objects.filter(master_object=mo, loan_profile__isnull=True)}
+                data.update(fvs)
+                return data
+
+            for r in rels_out:
+                target_data = get_mo_basic_data(r.target_object, r.relation_type)
+                relations['related_assets'].append(target_data) 
+                if r.relation_type == 'AMENDS': relations['base_contracts'].append(target_data)
+                if r.relation_type == 'SECURES': relations['secured_loan_contracts'].append(target_data)
+
+            for r in rels_in:
+                source_data = get_mo_basic_data(r.source_object, r.relation_type)
+                relations['related_people'].append(source_data)
+                if r.relation_type == 'AMENDS': relations['amending_contracts'].append(source_data)
+                if r.relation_type == 'SECURES': relations['contracts_securing'].append(source_data)
+            
+            return relations
+
         # C. Danh sách People (from Universal)
         people_list = []
-        person_links = loan_profile.object_links.filter(master_object__object_type='PERSON').select_related('master_object')
+        person_links = LoanProfileObjectLink.objects.filter(
+            loan_profile=loan_profile, 
+            master_object__object_type='PERSON'
+        ).select_related('master_object')
 
         for link in person_links:
             master = link.master_object
-            specific_fvs = loan_profile.fieldvalue_set.filter(master_object=master)
+            specific_fvs = FieldValue.objects.filter(loan_profile=loan_profile, master_object=master)
+            master_fvs = {fv.field.placeholder_key: fv.value 
+                          for fv in FieldValue.objects.filter(master_object=master, loan_profile__isnull=True)}
             
-            def get_val(key):
-                fv = next((x for x in specific_fvs if x.field.placeholder_key == key), None)
-                if fv: return fv.value
-                # Master fallback
-                master_fv = FieldValue.objects.filter(master_object=master, field__placeholder_key=key, loan_profile__isnull=True).first()
-                return master_fv.value if master_fv else ""
-
             p_data = {
-                'ho_ten': get_val('ho_ten'),
-                'cccd_so': get_val('cccd_so'),
+                'id': master.id,
                 'roles': link.roles,
             }
-            # Add all known values
+            p_data.update(master_fvs)
             for fv in specific_fvs:
                 p_data[fv.field.placeholder_key] = fv.value
             
+            # Inject relations
+            p_data.update(get_relations_for_object(master.id))
+            
+            if 'ho_ten' not in p_data: p_data['ho_ten'] = master_fvs.get('ho_ten', "")
+            if 'cccd_so' not in p_data: p_data['cccd_so'] = master_fvs.get('cccd_so', "")
             people_list.append(p_data)
 
         context['people'] = people_list
 
-        # D. Danh sách Assets (from Universal) - Lấy tất cả trừ PERSON và CONTRACT
+        # D. Danh sách Assets (từ Universal) - GIỜ BAO GỒM CẢ LOẠI CONTRACT
         assets_list = []
-        asset_links = loan_profile.object_links.exclude(
-            master_object__object_type__in=['PERSON', 'CONTRACT']
+        asset_links = LoanProfileObjectLink.objects.filter(
+            loan_profile=loan_profile
+        ).exclude(
+            master_object__object_type='PERSON'
         ).select_related('master_object')
 
         for link in asset_links:
             master = link.master_object
-            specific_fvs = loan_profile.fieldvalue_set.filter(master_object=master)
-            
+            specific_fvs = FieldValue.objects.filter(loan_profile=loan_profile, master_object=master)
+            master_fvs = {fv.field.placeholder_key: fv.value 
+                          for fv in FieldValue.objects.filter(master_object=master, loan_profile__isnull=True)}
+
             a_data = {
                 'id': master.id,
-                '_object_type': master.object_type # Lưu để phân loại sau
+                '_object_type': master.object_type 
             }
+            a_data.update(master_fvs)
             for fv in specific_fvs:
                 a_data[fv.field.placeholder_key] = fv.value
+            
+            # Chèn các quan hệ (dẫn chiếu chéo)
+            a_data.update(get_relations_for_object(master.id))
                 
             assets_list.append(a_data)
         
@@ -783,6 +838,24 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             if slug_key not in context:
                 context[slug_key] = []
             context[slug_key].append(a)
+
+        # F. SIÊU CẢI TIẾN: HỖ TRỢ TRUY XUẤT TRỰC TIẾP (Flattening cho Dedicated Sections)
+        # Giúp enduser dùng {{ ten_du_an }} thay vì {{ PROJECT.0.ten_du_an }}
+        dedicated_type_codes = list(MasterObjectType.objects.filter(form_display_mode='DEDICATED_SECTION').values_list('code', flat=True))
+        
+        # Danh sách các key hệ thống không được phép ghi đè
+        reserved_keys = ['ten_ho_so', 'ngay_tao', 'people', 'assets', 'tin_dung_list', 'bao_dam_list']
+        
+        for t_code in dedicated_type_codes:
+            items = context.get(t_code, [])
+            if items and len(items) > 0:
+                # Lấy đối tượng đầu tiên (duy nhất) trong section này
+                first_item = items[0]
+                for key, val in first_item.items():
+                    # Chỉ đưa ra ngoài nếu key không trùng với key hệ thống
+                    # ƯU TIÊN: Ghi đè các giá trị chung (thường là defaults) bằng giá trị thực từ Object đã chọn
+                    if key not in reserved_keys:
+                        context[key] = val
 
         # E. Tạo các danh sách lọc sẵn dựa trên VAI TRÒ (Gộp cả Slug động và Legacy)
         # 1. Lấy danh sách Role từ DB để làm bản đồ Mapping
@@ -839,47 +912,111 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         if 'ben_bao_dam_list' in context:
             context['bao_dam_list'] = context['ben_bao_dam_list'] # Alias phổ biến
 
+        # Helper function for safe filenames
+        import re
+        import unicodedata
+        def clean_filename(name):
+            if not name:
+                return "document"
+            # Loại bỏ dấu tiếng Việt
+            s = str(name)
+            s = re.sub(r'[àáạảãâầấậẩẫăằắặẳẵ]', 'a', s)
+            s = re.sub(r'[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]', 'A', s)
+            s = re.sub(r'[èéẹẻẽêềếệểễ]', 'e', s)
+            s = re.sub(r'[ÈÉẸẺẼÊỀẾỆỂỄ]', 'E', s)
+            s = re.sub(r'[òóọỏõôồốộổỗơờớợởỡ]', 'o', s)
+            s = re.sub(r'[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]', 'O', s)
+            s = re.sub(r'[ìíịỉĩ]', 'i', s)
+            s = re.sub(r'[ÌÍỊỈĨ]', 'I', s)
+            s = re.sub(r'[ùúụủũưừứựửữ]', 'u', s)
+            s = re.sub(r'[ÙÚỤỦŨƯỪỨỰỬỮ]', 'U', s)
+            s = re.sub(r'[ỳýỵỷỹ]', 'y', s)
+            s = re.sub(r'[ỲÝỴỶỸ]', 'Y', s)
+            s = re.sub(r'[đ]', 'd', s)
+            s = re.sub(r'[Đ]', 'D', s)
+            # Thay thế ký tự không hợp lệ bằng underscore
+            s = re.sub(r'[\\/*?:"<>|]', '_', s)
+            # Thay thế khoảng trắng bằng underscore và loại bỏ ký tự không phải ASCII
+            s = s.replace(" ", "_")
+            s = re.sub(r'[^\x00-\x7f]', r'', s) # Loại bỏ các ký tự non-ascii còn lại
+            return s
+
+        # Prepare Jinja environment
+        jinja_env = Environment()
+        jinja_env.filters['format_currency'] = format_currency_filter
+        jinja_env.filters['num2words'] = num2words_filter
+        jinja_env.filters['dateformat'] = dateformat_filter
+        jinja_env.filters['to_roman'] = to_roman_filter
+
+        context['today'] = date.today().strftime('%d/%m/%Y')
+
         # 3. XỬ LÝ TEMPLATE VÀ SINH FILE
+        template_ids = data.get('template_ids', [])
+        document_template_id = data.get('template_id')
+        
+        # Thu thập danh sách templates cần xử lý
+        if template_ids:
+            templates_to_process = DocumentTemplate.objects.filter(id__in=template_ids)
+        elif document_template_id:
+            templates_to_process = DocumentTemplate.objects.filter(id=document_template_id)
+        else:
+            return Response({"error": "No template selected"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not templates_to_process.exists():
+            return Response({"error": "Mẫu tài liệu không tồn tại"}, status=status.HTTP_404_NOT_FOUND)
+
+        results = []
         try:
-            doc = DocxTemplate(template_path)
+            for document_template in templates_to_process:
+                template_path = document_template.file.path
+                if not os.path.exists(template_path):
+                    continue
+                    
+                doc = DocxTemplate(template_path)
+                doc.render(context, jinja_env=jinja_env)
+                
+                file_stream = io.BytesIO()
+                doc.save(file_stream)
+                file_stream.seek(0)
+                
+                # Tạo tên file output an toàn
+                filename = f"{clean_filename(document_template.name)}.docx"
+                results.append((filename, file_stream))
 
-            # --- SỬA LỖI: CÁCH ĐĂNG KÝ FILTER CHUẨN ---
-            # 1. Tạo một môi trường Jinja2 mới
-            jinja_env = Environment()
+            if not results:
+                return Response({"error": "Không thể sinh bất kỳ file nào (File mẫu có thể bị thiếu trên server)."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # 2. Đăng ký các hàm filter của chúng ta vào môi trường này
-            jinja_env.filters['format_currency'] = format_currency_filter
-            jinja_env.filters['num2words'] = num2words_filter
-            jinja_env.filters['dateformat'] = dateformat_filter
-            jinja_env.filters['to_roman'] = to_roman_filter
+            # 4. TRẢ VỀ KẾT QUẢ (1 FILE HOẶC ZIP)
+            if len(results) == 1:
+                filename, file_stream = results[0]
+                # Encode filename properly for HTTP header
+                from django.utils.encoding import escape_uri_path
+                safe_filename = escape_uri_path(filename)
+                
+                response = FileResponse(file_stream, as_attachment=True, filename=filename)
+                response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+                response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+                return response
+            else:
+                # Sinh file ZIP
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                    for filename, file_stream in results:
+                        zip_file.writestr(filename, file_stream.getvalue())
+                
+                zip_buffer.seek(0)
+                zip_filename = f"{clean_filename(loan_profile.name)}.zip"
+                from django.utils.encoding import escape_uri_path
+                safe_zip_filename = escape_uri_path(zip_filename)
 
-            # 3. Truyền môi trường (jinja_env) vào hàm render
-            doc.render(context, jinja_env=jinja_env)
-            # ------------------------------------------
-
-            # Lưu vào bộ nhớ đệm (RAM) thay vì ghi ra đĩa cứng
-            file_stream = io.BytesIO()
-            doc.save(file_stream)
-            file_stream.seek(0)  # Đưa con trỏ về đầu file
-
-            # Tạo tên file output
-            # Lưu ý: Xử lý tên file để tránh lỗi encoding khi download
-            safe_filename = f"HopDong_{loan_profile.id}_{document_template.name}".encode('utf-8', 'ignore').decode(
-                'utf-8')
-            safe_filename = safe_filename.replace(" ", "_") + ".docx"
-
-            # Trả về file cho trình duyệt tải xuống
-            response = FileResponse(file_stream, as_attachment=True, filename=safe_filename)
-
-            # Cấu hình header bổ sung để đảm bảo Frontend đọc được tên file
-            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
-            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-
-            return response
+                response = FileResponse(zip_buffer, as_attachment=True, filename=zip_filename)
+                response['Content-Type'] = 'application/zip'
+                response['Content-Disposition'] = f'attachment; filename="{safe_zip_filename}"'
+                response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+                return response
 
         except Exception as e:
             print(f"Lỗi sinh file: {e}")
-            # In chi tiết lỗi ra console server để debug nếu cần
             import traceback
             traceback.print_exc()
             return Response({"error": f"Lỗi sinh file: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -935,16 +1072,20 @@ def find_existing_master_object(object_type, field_values):
             return None
             
         id_key = obj_type_config.identity_field_key
-        id_value = field_values.get(id_key)
+        id_value = str(field_values.get(id_key, '')).strip()
         
-        if not id_value:
+        # CHỈ KHỬ TRÙNG nếu mã định danh có giá trị thực sự (không rỗng, không quá ngắn, không phải placeholder)
+        forbidden_identifiers = ['n/a', 'none', 'không có', 'khong co', 'chưa có', 'chua co', '_____']
+        is_placeholder = any(f in id_value.lower() for f in forbidden_identifiers)
+        
+        if not id_value or len(id_value) < 3 or is_placeholder:
             return None
             
         # 2. Tìm kiếm FieldValue khớp với key và value (ở mức Master, loan_profile=None)
         matching_fv = FieldValue.objects.filter(
             master_object__object_type=object_type,
             field__placeholder_key=id_key,
-            value=str(id_value),
+            value=id_value,
             loan_profile__isnull=True
         ).first()
         
@@ -961,7 +1102,7 @@ def find_existing_master_object(object_type, field_values):
 class MasterObjectRelationViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectRelation.objects.all().order_by('-created_at')
     serializer_class = MasterObjectRelationSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=['post'])
     def create_relation(self, request):
@@ -992,14 +1133,38 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('code')
     serializer_class = MasterObjectTypeSerializer
-    permission_classes = [permissions.DjangoModelPermissions] 
+    permission_classes = [IsAuthenticated] 
     # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
 
 
 class MasterObjectViewSet(viewsets.ModelViewSet):
     queryset = MasterObject.objects.all().order_by('-id')
     serializer_class = MasterObjectSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    def bulk_delete(self, request):
+        """
+        Xóa hàng loạt đối tượng Master. Chỉ ROOT (superuser) mới có quyền này.
+        """
+        if not request.user.is_superuser:
+            return Response({"error": "Bạn không có quyền thực hiện hành động này."}, status=status.HTTP_403_FORBIDDEN)
+        
+        ids = request.data.get('ids', [])
+        if not ids:
+            return Response({"error": "Danh sách ID không hợp lệ."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            with transaction.atomic():
+                # Xóa các đối tượng
+                deleted_count, _ = MasterObject.objects.filter(id__in=ids).delete()
+                
+                # Log hành động
+                log_action(request.user, 'DELETE', 'MasterObject:BULK', 0, f"Xóa hàng loạt {deleted_count} đối tượng: {ids}")
+                
+                return Response({"status": "success", "message": f"Đã xóa {deleted_count} đối tượng thành công."})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_queryset(self):
         """Filter by object_type (can be comma-separated) if provided in query params"""
@@ -1057,7 +1222,7 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
             return Response({
                 "exists": True,
                 "id": existing.id,
-                "display_name": existing.get_display_name(existing) # Note: the serializer method is accessible via instance but better use a helper or re-implement
+                "display_name": existing.display_name
             })
         
         return Response({"exists": False})

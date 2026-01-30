@@ -19,7 +19,20 @@ export function formatError(error) {
         const data = error.response.data;
 
         // Message chính
-        message = data?.message || data?.error || `Lỗi ${status}: ${error.response.statusText}`;
+        if (data && typeof data === 'object' && !data.message && !data.error) {
+            // DRF field-specific errors: {"field": ["error message"]}
+            const firstKey = Object.keys(data)[0];
+            const firstError = data[firstKey];
+            if (Array.isArray(firstError)) {
+                message = firstError[0];
+            } else if (typeof firstError === 'string') {
+                message = firstError;
+            } else {
+                message = `Lỗi ${status}: ${error.response.statusText}`;
+            }
+        } else {
+            message = data?.message || data?.error || `Lỗi ${status}: ${error.response.statusText}`;
+        }
 
         // Error code
         errorCode = data?.code || `HTTP_${status}`;

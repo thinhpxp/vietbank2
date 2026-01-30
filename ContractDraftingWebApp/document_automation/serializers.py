@@ -91,6 +91,13 @@ class FieldSerializer(serializers.ModelSerializer):
             'is_active', 'is_protected', 'use_digit_grouping', 'show_amount_in_words', 'default_value', 'note', 'is_model_field', 
             'order', 'width_cols', 'css_class', 'allowed_forms', 'allowed_object_types'
         ]
+        extra_kwargs = {
+            'placeholder_key': {
+                'error_messages': {
+                    'unique': 'Key định danh này đã tồn tại trong hệ thống. Vui lòng chọn một mã khác.'
+                }
+            }
+        }
 
 
 # 2.1 Serializer cho User (Nâng cấp)
@@ -241,7 +248,7 @@ class LoanProfileSerializer(serializers.ModelSerializer):
         model = LoanProfile
         fields = [
             'id', 'name', 'status', 'created_at', 'updated_at', 'created_by_user_name', 
-            'field_values', 'people', 'attorneys', 'assets', 'form_view_slug', 'form_view_name'
+            'field_values', 'people', 'attorneys', 'assets', 'object_sections', 'form_view_slug', 'form_view_name'
         ]
         read_only_fields = ['created_at', 'updated_at']
 
@@ -251,64 +258,71 @@ class LoanProfileSerializer(serializers.ModelSerializer):
         fvs = obj.fieldvalue_set.filter(master_object__isnull=True)
         return {fv.field.placeholder_key: fv.value for fv in fvs}
 
-    # Logic 2: Gom danh sách People (Universal filtered by PERSON)
+    # --- UNIVERSAL OBJECT SECTIONS (UOS) ---
+    object_sections = serializers.SerializerMethodField()
+
+    def get_object_sections(self, obj):
+        """
+        Gom nhóm các đối tượng theo object_type và cấu hình display_mode.
+        Cấu trúc trả về: { "TYPE_CODE": [ { id, roles, individual_field_values }, ... ] }
+        """
+        sections = {}
+        # Lấy tất cả các loại đối tượng để biết mode
+        type_configs = {t.code: t.form_display_mode for t in MasterObjectType.objects.all()}
+        
+        links = obj.object_links.all().select_related('master_object')
+        
+        for link in links:
+            master = link.master_object
+            t_code = master.object_type
+            
+            # Fetch values
+            specific_fvs = FieldValue.objects.filter(loan_profile=obj, master_object=master)
+            fv_dict = {fv.field.placeholder_key: fv.value for fv in specific_fvs}
+            
+            item_data = {
+                "id": master.id,
+                "roles": link.roles,
+                "individual_field_values": fv_dict,
+                "master_object": { "id": master.id, "object_type": t_code }
+            }
+            
+            if t_code not in sections:
+                sections[t_code] = []
+            sections[t_code].append(item_data)
+            
+        return sections
+
+    # Logic 2: Gom danh sách People (Duy trì cho Frontend cũ nếu cần)
     def get_people(self, obj):
-        result = []
-        # Filter Universal Links
-        links = obj.object_links.filter(master_object__object_type='PERSON').select_related('master_object')
-        
-        for link in links:
-            master = link.master_object
-            # Get specific values for this profile
-            specific_fvs = FieldValue.objects.filter(loan_profile=obj, master_object=master)
-            fv_dict = {fv.field.placeholder_key: fv.value for fv in specific_fvs}
-            
-            # Standardize output for Frontend
-            result.append({
-                "id": master.id, 
-                "roles": link.roles,
-                "individual_field_values": fv_dict 
-            })
-        return result
+        sections = self.get_object_sections(obj)
+        return sections.get('PERSON', [])
 
-    # Logic 2.5: Gom danh sách Attorneys (Đại diện ngân hàng)
+    # Logic 2.5: Gom danh sách Attorneys (Duy trì cho Frontend cũ nếu cần)
     def get_attorneys(self, obj):
-        result = []
-        links = obj.object_links.filter(master_object__object_type='ATTORNEY').select_related('master_object')
-        
-        for link in links:
-            master = link.master_object
-            specific_fvs = FieldValue.objects.filter(loan_profile=obj, master_object=master)
-            fv_dict = {fv.field.placeholder_key: fv.value for fv in specific_fvs}
-            
-            result.append({
-                "id": master.id,
-                "roles": link.roles,
-                "individual_field_values": fv_dict
-            })
-        return result
+        sections = self.get_object_sections(obj)
+        return sections.get('ATTORNEY', [])
 
-    # Logic 3: Gom danh sách Assets (Tất cả đối tượng CÓ gán object_type và KHÔNG phải PERSON/ATTORNEY)
+    # Logic 3: Gom danh sách Assets (Dành cho các loại có mode ASSET_LIST)
     def get_assets(self, obj):
-        result = []
-        links = obj.object_links.exclude(
-            master_object__object_type__in=['PERSON', 'ATTORNEY', 'CONTRACT']
-        ).select_related('master_object')
+        # Lấy các loại được đánh dấu là ASSET_LIST
+        asset_types = list(MasterObjectType.objects.filter(form_display_mode='ASSET_LIST').values_list('code', flat=True))
+        # Loại trừ PERSON và ATTORNEY khỏi danh sách Assets mặc định nếu chúng chưa được gán mode
+        if 'PERSON' in asset_types: asset_types.remove('PERSON')
+        if 'ATTORNEY' in asset_types: asset_types.remove('ATTORNEY')
         
-        for link in links:
-            master = link.master_object
-            # Get specific values
-            specific_fvs = FieldValue.objects.filter(loan_profile=obj, master_object=master)
-            asset_fv_dict = {fv.field.placeholder_key: fv.value for fv in specific_fvs}
-
-            result.append({
-                "id": master.id,
-                "master_object": {
-                    "object_type": master.object_type
-                },
-                "asset_field_values": asset_fv_dict,
-                "roles": link.roles
-            })
+        sections = self.get_object_sections(obj)
+        result = []
+        for t_code, items in sections.items():
+            if t_code in asset_types:
+                # Format lại cho đúng cấu trúc asset cũ mà Frontend đang dùng
+                for item in items:
+                    result.append({
+                        "id": item["id"],
+                        "master_object": item["master_object"],
+                        "asset_field_values": item["individual_field_values"], # Frontend cũ dùng key này
+                        "roles": item["roles"]
+                    })
         return result
 
 # LoanProfileAssetSerializer removed
@@ -322,7 +336,14 @@ class LoanProfileSerializer(serializers.ModelSerializer):
 class MasterObjectTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MasterObjectType
-        fields = '__all__'
+        fields = ['id', 'code', 'name', 'description', 'is_system', 'identity_field_key', 'form_display_mode', 'dynamic_summary_template']
+        extra_kwargs = {
+            'code': {
+                'error_messages': {
+                    'unique': 'Mã loại đối tượng này đã tồn tại. Vui lòng chọn một mã khác.'
+                }
+            }
+        }
 
 class MasterObjectSerializer(serializers.ModelSerializer):
     """Universal serializer for all entity types (Person, Asset, Savings, etc.)"""
@@ -337,24 +358,22 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'object_type', 'object_type_display', 'display_name', 
             'created_at', 'updated_at', 'last_updated_by_name', 
-            'created_at', 'updated_at', 'last_updated_by_name', 
-            'profiles_count', 'field_values', 'related_assets', 'owners'
+            'profiles_count', 'field_values', 
+            'relations_out', 'relations_in'
         ]
     
     # New fields for Relations
-    related_assets = serializers.SerializerMethodField()
-    owners = serializers.SerializerMethodField()
+    relations_out = serializers.SerializerMethodField()
+    relations_in = serializers.SerializerMethodField()
 
-    def get_related_assets(self, obj):
-        """Lấy danh sách tài sản mà đối tượng này sở hữu (relation_type=OWNER)"""
-        # relations where source = obj
-        rels = obj.relations_as_source.filter(relation_type='OWNER')
+    def get_relations_out(self, obj):
+        """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source)"""
+        rels = obj.relations_as_source.all()
         return MasterObjectRelationSerializer(rels, many=True).data
 
-    def get_owners(self, obj):
-        """Lấy danh sách chủ sở hữu của tài sản này"""
-        # relations where target = obj
-        rels = obj.relations_as_target.filter(relation_type='OWNER')
+    def get_relations_in(self, obj):
+        """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target)"""
+        rels = obj.relations_as_target.all()
         return MasterObjectRelationSerializer(rels, many=True).data
 
     def get_display_name(self, obj):

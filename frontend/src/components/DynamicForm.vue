@@ -2,11 +2,12 @@
   <div class="dynamic-inputs">
     <div v-for="field in sortedFields" :key="field.id" class="form-field"
       :style="{ gridColumn: `span ${field.width_cols || 12}` }" :class="field.css_class">
-      <label :for="field.placeholder_key">{{ field.label }}</label>
+      <!-- Unique label for each instance -->
+      <label :for="idPrefix + field.placeholder_key">{{ field.label }}</label>
 
       <!-- Text Input -->
       <div v-if="field.data_type === 'TEXT'" class="input-with-tools">
-        <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
+        <input type="text" :id="idPrefix + field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
           :disabled="disabled" />
@@ -21,7 +22,7 @@
 
       <!-- Textarea Input (MỚI) -->
       <div v-else-if="field.data_type === 'TEXTAREA'" class="input-with-tools">
-        <textarea :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
+        <textarea :id="idPrefix + field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control custom-textarea"
           :class="inputClass" rows="3" :disabled="disabled"></textarea>
@@ -37,13 +38,13 @@
       <!-- Number Input -->
       <template v-else-if="field.data_type === 'NUMBER'">
         <!-- Nếu bật phân tách hàng nghìn: Dùng text input để format linh hoạt -->
-        <input v-if="field.use_digit_grouping" type="text" :id="field.placeholder_key"
+        <input v-if="field.use_digit_grouping" type="text" :id="idPrefix + field.placeholder_key"
           :value="formatNumber(modelValue[field.placeholder_key])"
           @input="handleNumberInput(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
           placeholder="0" :disabled="disabled" />
         <!-- Nếu không: Dùng number input truyền thống -->
-        <input v-else type="number" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
+        <input v-else type="number" :id="idPrefix + field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
           :disabled="disabled" />
@@ -56,7 +57,7 @@
 
       <!-- Date Input (Option 2: Hybrid Text + Date Picker) -->
       <div v-else-if="field.data_type === 'DATE'" class="date-input-wrapper">
-        <input type="text" :id="field.placeholder_key" :value="modelValue[field.placeholder_key]"
+        <input type="text" :id="idPrefix + field.placeholder_key" :value="modelValue[field.placeholder_key]"
           @input="updateValue(field.placeholder_key, $event.target.value)" class="input-control hybrid-text"
           :class="inputClass" placeholder="Ngày/Tháng/Năm" :disabled="disabled" />
         <div class="calendar-trigger" :class="{ 'disabled': disabled }"
@@ -75,7 +76,7 @@
 
       <!-- Checkbox -->
       <div v-else-if="field.data_type === 'CHECKBOX'">
-        <input type="checkbox" :id="field.placeholder_key"
+        <input type="checkbox" :id="idPrefix + field.placeholder_key"
           :checked="modelValue[field.placeholder_key] === 'true' || modelValue[field.placeholder_key] === true"
           @change="updateValue(field.placeholder_key, $event.target.checked)" :disabled="disabled" />
       </div>
@@ -87,6 +88,7 @@
 export default {
   name: 'DynamicForm',
   props: {
+    idPrefix: { type: String, default: 'fld-' }, // Prefix để đảm bảo ID không trùng lặp khi có nhiều form
     fields: { type: Array, required: true },
     modelValue: { type: Object, required: true },
     inputClass: { type: String, default: '' },

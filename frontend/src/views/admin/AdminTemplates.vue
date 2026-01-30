@@ -3,6 +3,7 @@
     <h2>Quản lý Mẫu Hợp đồng</h2>
     <div class="admin-panel admin-row items-center">
       <input class="admin-input" type="text" v-model="newName" placeholder="Tên hiển thị">
+      <input class="admin-input" type="text" v-model="newDept" placeholder="Bộ phận (VD: Tín dụng)">
       <input class="admin-input" type="text" v-model="newDesc" placeholder="Ghi chú mẫu này">
 
       <div class="admin-file-upload">
@@ -24,6 +25,7 @@
           <tr>
             <th>ID</th>
             <th>Tên Mẫu</th>
+            <th>Bộ phận</th>
             <th>Ghi chú</th>
             <th>Thời điểm</th>
             <th>Hành động</th>
@@ -35,6 +37,10 @@
             <td>
               <input v-if="editingId === tpl.id" v-model="tpl.name" class="admin-input-small">
               <span v-else>{{ tpl.name }}</span>
+            </td>
+            <td>
+              <input v-if="editingId === tpl.id" v-model="tpl.department" class="admin-input-small">
+              <span v-else>{{ tpl.department }}</span>
             </td>
             <td>
               <input v-if="editingId === tpl.id" v-model="tpl.description" class="admin-input-small">
@@ -84,6 +90,7 @@ export default {
     return {
       templates: [],
       newName: '',
+      newDept: '',
       newDesc: '',
       selectedFile: null,
       editingId: null,
@@ -119,6 +126,7 @@ export default {
 
       const formData = new FormData();
       formData.append('name', this.newName);
+      formData.append('department', this.newDept);
       formData.append('description', this.newDesc);
       formData.append('file', this.selectedFile);
 
@@ -126,7 +134,7 @@ export default {
         await axios.post('http://127.0.0.1:8000/api/document-templates/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        this.newName = ''; this.newDesc = ''; this.selectedFile = null; this.$refs.fileInput.value = '';
+        this.newName = ''; this.newDept = ''; this.newDesc = ''; this.selectedFile = null; this.$refs.fileInput.value = '';
         this.fetchTemplates();
         this.showSuccess('Upload thành công!');
       } catch (e) {
@@ -151,6 +159,7 @@ export default {
       try {
         await axios.patch(`http://127.0.0.1:8000/api/document-templates/${tpl.id}/`, {
           name: tpl.name,
+          department: tpl.department,
           description: tpl.description
         });
         this.editingId = null;

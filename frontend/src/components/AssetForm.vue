@@ -23,11 +23,19 @@
         </select>
       </div>
 
-      <DynamicForm :fields="filteredAssetFields" :modelValue="asset.asset_field_values" :disabled="disabled"
-        @update:modelValue="onUpdateValues" @field-blur="handleFieldBlur" />
+      <DynamicForm :fields="filteredAssetFields" :modelValue="localAsset.individual_field_values" :disabled="disabled"
+        :idPrefix="`asset-${index}-`" @update:modelValue="onUpdateValues" @field-blur="handleFieldBlur" />
       <div v-if="duplicateWarning" class="alert-warning">
         <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
       </div>
+
+      <!-- Quản lý liên kết (Relations) -->
+      <RelationManager 
+        v-if="localAsset.master_object && localAsset.master_object.id"
+        :masterObjectId="localAsset.master_object.id"
+        :profileObjects="profileObjects"
+        :disabled="disabled"
+      />
     </div>
 
     <ObjectSelectModal :isOpen="isModalOpen" type="asset" @close="isModalOpen = false" @select="onAssetSelect" />
@@ -38,21 +46,27 @@
 import axios from 'axios';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
+import RelationManager from './RelationManager.vue';
 
 export default {
   name: 'AssetForm',
-  components: { DynamicForm, ObjectSelectModal },
+  components: { DynamicForm, ObjectSelectModal, RelationManager },
   props: {
     index: { type: Number, required: true },
     asset: { type: Object, required: true },
     assetFields: { type: Array, default: () => [] },
     availableTypes: { type: Array, default: () => [] },
+    profileObjects: { type: Array, default: () => [] },
     disabled: { type: Boolean, default: false }
   },
   emits: ['update:asset', 'remove'],
   data() {
     return {
-      localAssetData: { ...this.asset },
+      localAsset: {
+        ...JSON.parse(JSON.stringify(this.asset)),
+        individual_field_values: this.asset.individual_field_values || this.asset.asset_field_values || {},
+        roles: this.asset.roles || []
+      },
       isCollapsed: false,
       isModalOpen: false,
       assetTypes: [],
@@ -63,15 +77,13 @@ export default {
   computed: {
     // Hiển thị một thông tin tóm tắt khi collapse
     displayInfo() {
-      const fv = this.localAssetData.asset_field_values || {};
+      const fv = this.localAsset.individual_field_values || {};
       const type = this.assetTypes.find(t => t.code === this.selectedType);
 
-      // Nếu có cấu hình identity_field_key, dùng nó làm info chính
       if (type && type.identity_field_key) {
         return fv[type.identity_field_key] || '';
       }
 
-      // Fallback
       return fv.ten_tai_san || fv.loai_tai_san || '';
     },
     // Filter fields based on selected Object Type
@@ -89,8 +101,7 @@ export default {
       const type = this.assetTypes.find(t => t.code === this.selectedType);
       if (!type) return 'Đối tượng';
 
-      const fv = this.localAssetData.asset_field_values || {};
-      // Nếu có giá trị của trường định danh, hiển thị "Loại: Giá trị"
+      const fv = this.localAsset.individual_field_values || {};
       if (type.identity_field_key && fv[type.identity_field_key]) {
         return `${type.name}: ${fv[type.identity_field_key]}`;
       }
@@ -107,25 +118,32 @@ export default {
   watch: {
     asset: {
       handler(newVal) {
-        this.localAssetData = { ...newVal };
+        this.localAsset = {
+          ...JSON.parse(JSON.stringify(newVal)),
+          individual_field_values: newVal.individual_field_values || newVal.asset_field_values || {}
+        };
       },
       deep: true
     }
   },
   async mounted() {
-    await this.fetchAssetTypes();
+    // We use the availableTypes prop which should be passed from LoanProfileForm
+    if (this.availableTypes && this.availableTypes.length > 0) {
+      this.assetTypes = this.availableTypes.filter(t => t.code !== 'PERSON');
+    } else {
+      await this.fetchAssetTypes();
+    }
   },
   methods: {
     getObjectTypeId(code) {
-      // Helper to find ID from Code. We need access to master types.
-      // pass master types as props or fetch?
-      // Simplest: The asset object should have the ID if possible, but currently we rely on code.
-      // Let's assume we pass availableTypes as prop or store.
-      // Quick fix: Map code to ID using availableTypes prop
       const type = this.availableTypes.find(t => t.code === code);
       return type ? type.id : null;
     },
     async fetchAssetTypes() {
+      if (this.availableTypes && this.availableTypes.length > 0) {
+        this.assetTypes = this.availableTypes.filter(t => t.code !== 'PERSON');
+        return;
+      }
       try {
         const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
         // Filter only asset-related types (exclude PERSON)
@@ -135,37 +153,34 @@ export default {
       }
     },
     onTypeChange() {
-      // Update the asset object structure
-      this.localAssetData.master_object = {
+      this.localAsset.master_object = {
         object_type: this.selectedType
       };
-      this.$emit('update:asset', this.localAssetData);
+      this.$emit('update:asset', this.localAsset);
     },
     onUpdateValues(newValues) {
-      this.localAssetData.asset_field_values = newValues;
-      this.$emit('update:asset', this.localAssetData);
+      this.localAsset.individual_field_values = newValues;
+      this.$emit('update:asset', this.localAsset);
     },
     onAssetSelect(asset) {
-      // 1. Link to Master Object & Type
-      this.localAssetData.master_object = {
+      this.localAsset.master_object = {
         id: asset.id,
         object_type: asset.object_type
       };
       this.selectedType = asset.object_type;
 
-      // 2. Auto-fill all field values
-      if (!this.localAssetData.asset_field_values) {
-        this.localAssetData.asset_field_values = {};
+      if (!this.localAsset.individual_field_values) {
+        this.localAsset.individual_field_values = {};
       }
 
       if (asset.field_values) {
-        this.localAssetData.asset_field_values = {
-          ...this.localAssetData.asset_field_values,
+        this.localAsset.individual_field_values = {
+          ...this.localAsset.individual_field_values,
           ...asset.field_values
         };
       }
 
-      this.$emit('update:asset', this.localAssetData);
+      this.$emit('update:asset', this.localAsset);
       this.$toast.success(`Đã chọn tài sản: ${asset.display_name}`);
     },
     async handleFieldBlur({ key, value }) {
@@ -186,8 +201,7 @@ export default {
         const url = `http://127.0.0.1:8000/api/master-objects/check_identity/?object_type=${this.selectedType}&key=${key}&value=${encodeURIComponent(value)}`;
         const res = await axios.get(url);
         if (res.data.exists) {
-          // Nếu đã tồn tại nhưng chính là vật này thì bỏ qua
-          if (this.localAssetData.master_object?.id === res.data.id) {
+          if (this.localAsset.master_object?.id === res.data.id) {
             this.duplicateWarning = null;
             return;
           }

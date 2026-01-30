@@ -26,11 +26,19 @@
       <div class="dynamic-section" v-if="personFields.length > 0">
         <hr>
         <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values" :disabled="disabled"
-          @field-blur="handleFieldBlur" />
+          :idPrefix="`person-${index}-`" @field-blur="handleFieldBlur" />
         <div v-if="duplicateWarning" class="alert-warning">
           <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
         </div>
       </div>
+
+      <!-- 4. Quản lý liên kết (Relations) -->
+      <RelationManager 
+        v-if="localPerson.master_object && localPerson.master_object.id"
+        :masterObjectId="localPerson.master_object.id"
+        :profileObjects="profileObjects"
+        :disabled="disabled"
+      />
     </div>
 
     <ObjectSelectModal :isOpen="isModalOpen" type="person" @close="isModalOpen = false" @select="onPersonSelect" />
@@ -41,16 +49,18 @@
 import axios from 'axios';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
+import RelationManager from './RelationManager.vue';
 
 export default {
   name: 'PersonForm',
-  components: { DynamicForm, ObjectSelectModal },
+  components: { DynamicForm, ObjectSelectModal, RelationManager },
   props: {
     index: Number,
     person: Object,
     personFields: Array,
     availableRoles: { type: Array, default: () => [] },
     availableTypes: { type: Array, default: () => [] },
+    profileObjects: { type: Array, default: () => [] },
     disabled: { type: Boolean, default: false }
   },
   emits: ['update:person', 'remove'],

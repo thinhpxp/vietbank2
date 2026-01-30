@@ -3,6 +3,10 @@
         <div class="page-header">
             <h2>Quản lý Dữ liệu gốc (Master Data)</h2>
             <div class="flex gap-2">
+                <button v-if="auth.isSuperuser && selectedIds.length > 0" class="btn-action btn-danger"
+                    @click="confirmBulkDelete">
+                    <SvgIcon name="trash" size="sm" /> Xóa hàng loạt ({{ selectedIds.length }})
+                </button>
                 <button class="btn-action btn-secondary" @click="fetchData" :disabled="loading">
                     <span v-if="loading">⏳...</span>
                     <span v-else>🔄 Làm mới</span>
@@ -25,6 +29,9 @@
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th v-if="auth.isSuperuser" width="40">
+                                <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
+                            </th>
                             <th>ID</th>
                             <!-- Dynamic Headers based on Type could be improved later, for now Generic -->
                             <th>Tên / Số hiệu</th>
@@ -35,7 +42,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="item in items" :key="item.id">
+                        <tr v-for="item in items" :key="item.id"
+                            :class="{ 'row-selected': selectedIds.includes(item.id) }">
+                            <td v-if="auth.isSuperuser">
+                                <input type="checkbox" :checked="selectedIds.includes(item.id)"
+                                    @change="toggleSelect(item.id)" />
+                            </td>
                             <td>
                                 {{ item.id }}
                                 <div v-if="item.profiles_count === 0"
@@ -47,13 +59,7 @@
                                 {{ item.ho_ten || item.so_giay_chung_nhan || item.display_name || '---' }}
                             </td>
                             <td>
-                                <!-- Hiển thị CCCD hoặc Chủ sở hữu -->
-                                <span v-if="activeTab === 'PERSON'">CCCD: {{ item.cccd }}</span>
-                                <span v-else-if="activeTab === 'VEHICLE'">Hãng: {{ item.nhan_hieu_xe }}</span>
-                                <span v-else-if="activeTab === 'REALESTATE'">Số vào sổ: {{ item.so_vao_so }}</span>
-                                <span v-else-if="activeTab === 'BOND'">Kỳ hạn: {{ item.ky_han_trai_phieu }}</span>
-                                <span v-else-if="activeTab === 'SAVINGS'">Số tiền: {{ item.so_tien_goi }}</span>
-                                <span v-else>{{ item.owner_name }}</span>
+                                <span>{{ getDynamicSummary(item, activeTab) }}</span>
                             </td>
                             <td>{{ formatDate(item.created_at) }}</td>
                             <td>
@@ -168,6 +174,11 @@
             :message="`Bạn có chắc muốn xóa đối tượng này? Thao tác này sẽ gỡ liên kết khỏi các hồ sơ cũ nhưng không xóa dữ liệu trong hồ sơ.`"
             confirmText="Xóa" @confirm="executeDelete" @cancel="showDeleteModal = false" />
 
+        <!-- Bulk Delete Modal -->
+        <ConfirmModal :visible="showBulkDeleteModal" type="warning" title="Xóa hàng loạt"
+            :message="`Bạn có chắc chắn muốn xóa ${selectedIds.length} đối tượng đã chọn? Hành động này sẽ gỡ liên kết khỏi các hồ sơ cũ nhưng không xóa dữ liệu thực tế trong hồ sơ.`"
+            confirmText="Xác nhận xóa" @confirm="executeBulkDelete" @cancel="showBulkDeleteModal = false" />
+
         <!-- Generic Modals -->
         <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
             :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
@@ -188,6 +199,8 @@
 
 <script>
 import axios from 'axios';
+import auth from '@/store/auth';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import MasterCreateModal from '../../components/MasterCreateModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
@@ -195,7 +208,7 @@ import { errorHandlingMixin } from '../../utils/errorHandler';
 
 export default {
     name: 'MasterData',
-    components: { ConfirmModal, MasterCreateModal },
+    components: { ConfirmModal, MasterCreateModal, SvgIcon },
     mixins: [errorHandlingMixin],
     data() {
         return {
@@ -203,6 +216,8 @@ export default {
             activeTab: '', // Code of active type
             loading: false,
             items: [], // Unified list for the current tab
+            selectedIds: [], // Selected IDs for bulk actions
+            auth, // Auth store for role checking
 
             // Related Modal
             showRelatedModal: false,
@@ -218,6 +233,7 @@ export default {
 
             // Delete
             showDeleteModal: false,
+            showBulkDeleteModal: false,
             deleteTarget: null,
             // deleteTargetType: '', // Không cần nữa, dùng activeTab code
 
@@ -239,6 +255,9 @@ export default {
         currentTypeName() {
             const t = this.objectTypes.find(type => type.code === this.activeTab);
             return t ? t.name : 'Đối tượng';
+        },
+        isAllSelected() {
+            return this.items.length > 0 && this.selectedIds.length === this.items.length;
         }
     },
     watch: {
@@ -253,6 +272,27 @@ export default {
         this.initResizable();
     },
     methods: {
+        getDynamicSummary(item, typeCode) {
+            const typeDef = this.objectTypes.find(t => t.code === typeCode);
+            if (!typeDef || !typeDef.dynamic_summary_template) {
+                // Fallback cũ nếu không có cấu hình template
+                if (typeCode === 'PERSON') return item.cccd ? `CCCD: ${item.cccd}` : '---';
+                if (typeCode === 'ATTORNEY') return item.nguoi_dai_dien || '---';
+                return item.owner_name || '---';
+            }
+
+            let result = typeDef.dynamic_summary_template;
+            // Thay thế các placeholder {key} bằng giá trị thực
+            const placeholders = result.match(/{([^}]+)}/g);
+            if (placeholders) {
+                placeholders.forEach(ph => {
+                    const key = ph.slice(1, -1);
+                    const val = item[key] !== undefined ? item[key] : '...';
+                    result = result.replace(ph, val);
+                });
+            }
+            return result;
+        },
         async fetchObjectTypes() {
             try {
                 const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
@@ -267,6 +307,7 @@ export default {
         async fetchData() {
             if (!this.activeTab) return;
             this.loading = true;
+            this.selectedIds = []; // Clear selection when fetching/changing tab
             try {
                 const response = await axios.get(`http://127.0.0.1:8000/api/master-objects/?object_type=${this.activeTab}`);
 
@@ -336,6 +377,41 @@ export default {
                 this.showSuccess('Đã xóa thành công!');
             } catch (error) {
                 this.showError(error, 'Lỗi khi xóa');
+            }
+        },
+        // Bulk Selection Logic
+        toggleSelect(id) {
+            const index = this.selectedIds.indexOf(id);
+            if (index === -1) {
+                this.selectedIds.push(id);
+            } else {
+                this.selectedIds.splice(index, 1);
+            }
+        },
+        toggleSelectAll() {
+            if (this.isAllSelected) {
+                this.selectedIds = [];
+            } else {
+                this.selectedIds = this.items.map(item => item.id);
+            }
+        },
+        confirmBulkDelete() {
+            this.showBulkDeleteModal = true;
+        },
+        async executeBulkDelete() {
+            try {
+                this.loading = true;
+                await axios.post('http://127.0.0.1:8000/api/master-objects/bulk-delete/', {
+                    ids: this.selectedIds
+                });
+                this.showBulkDeleteModal = false;
+                this.selectedIds = [];
+                await this.fetchData();
+                this.showSuccess('Đã xóa hàng loạt thành công!');
+            } catch (error) {
+                this.showError(error, 'Lỗi khi xóa hàng loạt');
+            } finally {
+                this.loading = false;
             }
         },
         openCreateModal(objToEdit = null) {

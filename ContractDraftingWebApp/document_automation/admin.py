@@ -2,7 +2,8 @@ from django.contrib import admin
 # Import thêm FieldGroup, MasterObject, LoanProfileObjectLink
 from .models import (
     Field, LoanProfile, FieldValue, 
-    DocumentTemplate, FieldGroup, Role, MasterObject, LoanProfileObjectLink
+    DocumentTemplate, FieldGroup, Role, MasterObject, LoanProfileObjectLink,
+    MasterObjectType
 )
 
 # --- 1. ĐĂNG KÝ MODEL MỚI: FIELD GROUP ---
@@ -16,6 +17,12 @@ class FieldGroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'entity_type', 'order')
     list_filter = ('entity_type',)
     ordering = ('order',)
+
+@admin.register(MasterObjectType)
+class MasterObjectTypeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name', 'form_display_mode', 'identity_field_key', 'is_system')
+    search_fields = ('code', 'name')
+    list_filter = ('form_display_mode', 'is_system')
 
 # --- UNIVERSAL ENTITY MODELS ---
 @admin.register(MasterObject)

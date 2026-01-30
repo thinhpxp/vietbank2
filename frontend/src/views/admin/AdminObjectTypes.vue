@@ -20,9 +20,21 @@
                     <label class="text-xs text-gray-500 block mb-1">Trường định danh (key)</label>
                     <input v-model="newType.identity_field_key" placeholder="VD: ho_ten" class="admin-input w-full" />
                 </div>
-                <div class="flex-[2]">
+                <div class="flex-1">
+                    <label class="text-xs text-gray-500 block mb-1">Cấu hình hiển thị</label>
+                    <select v-model="newType.form_display_mode" class="admin-input w-full h-[38px] p-2">
+                        <option value="ASSET_LIST">Gom vào Tài sản</option>
+                        <option value="DEDICATED_SECTION">Khu vực riêng</option>
+                    </select>
+                </div>
+                <div class="flex-2">
+                    <label class="text-xs text-gray-500 block mb-1">Mẫu hiển thị tóm tắt</label>
+                    <input v-model="newType.dynamic_summary_template" placeholder="VD: CCCD: {cccd}"
+                        class="admin-input w-full" />
+                </div>
+                <div class="flex-1">
                     <label class="text-xs text-gray-500 block mb-1">Mô tả</label>
-                    <input v-model="newType.description" placeholder="Mô tả ngắn gọn..." class="admin-input w-full" />
+                    <input v-model="newType.description" placeholder="Mô tả..." class="admin-input w-full" />
                 </div>
                 <button @click="addType" class="btn-action btn-create h-[38px]">Thêm Loại</button>
             </div>
@@ -35,6 +47,8 @@
                         <th style="width: 150px">Mã (Code)</th>
                         <th style="width: 200px">Tên hiển thị</th>
                         <th style="width: 180px">Trường định danh</th>
+                        <th style="width: 150px">Gom nhóm</th>
+                        <th style="width: 200px">Mẫu hiển thị</th>
                         <th>Mô tả</th>
                         <th style="width: 100px">Hệ thống</th>
                         <th style="width: 150px">Hành động</th>
@@ -53,6 +67,22 @@
                             <input v-if="editingId === type.id" v-model="editingData.identity_field_key"
                                 class="admin-input w-full" />
                             <code v-else>{{ type.identity_field_key || '---' }}</code>
+                        </td>
+                        <td>
+                            <select v-if="editingId === type.id" v-model="editingData.form_display_mode"
+                                class="admin-input w-full p-1">
+                                <option value="ASSET_LIST">Tài sản</option>
+                                <option value="DEDICATED_SECTION">Riêng</option>
+                            </select>
+                            <span v-else class="badge"
+                                :class="type.form_display_mode === 'DEDICATED_SECTION' ? 'badge-primary' : 'badge-secondary'">
+                                {{ getDisplayModeLabel(type.form_display_mode) }}
+                            </span>
+                        </td>
+                        <td>
+                            <input v-if="editingId === type.id" v-model="editingData.dynamic_summary_template"
+                                class="admin-input w-full" />
+                            <span v-else>{{ type.dynamic_summary_template || '---' }}</span>
                         </td>
                         <td>
                             <input v-if="editingId === type.id" v-model="editingData.description"
@@ -115,7 +145,7 @@ export default {
     data() {
         return {
             types: [],
-            newType: { code: '', name: '', description: '', identity_field_key: '' },
+            newType: { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', dynamic_summary_template: '' },
             editingId: null,
             editingData: null,
             showDeleteModal: false,
@@ -142,6 +172,9 @@ export default {
                 makeTableResizable(table, 'admin-object-types');
             }
         },
+        getDisplayModeLabel(mode) {
+            return mode === 'DEDICATED_SECTION' ? '📍 Khu vực riêng' : '📦 Nhóm tài sản';
+        },
         async addType() {
             if (!this.newType.code || !this.newType.name) {
                 this.showWarning('Vui lòng nhập Mã và Tên', 'Thiếu thông tin');
@@ -149,7 +182,7 @@ export default {
             }
             try {
                 await axios.post('http://127.0.0.1:8000/api/object-types/', this.newType);
-                this.newType = { code: '', name: '', description: '', identity_field_key: '' };
+                this.newType = { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', dynamic_summary_template: '' };
                 this.fetchTypes();
             } catch (e) {
                 this.showError(e, 'Lỗi khi thêm loại đối tượng');

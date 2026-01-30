@@ -1,0 +1,7 @@
+﻿19 objects imported automatically (use -v 2 for details).
+
+Ctrl click to launch VS Code Native REPL
+>>> >>> --- PROFILE 30 REALESTATE LINKS ---
+>>> >>> >>> ... ... ... ... ... >>> 
+--- ALL REALESTATE MASTER OBJECTS ---
+>>> >>> ... ... ... ... 

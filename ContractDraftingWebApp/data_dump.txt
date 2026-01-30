@@ -1,0 +1,77 @@
+# MASTER OBJECT TYPES
+- INSURANCE (Bảo hiểm) - Display: ASSET_LIST
+- CONTRACT (Hợp đồng) - Display: ASSET_LIST
+- ATTORNEY (Đại diện Ngân Hàng) - Display: DEDICATED_SECTION
+- BOND (Trái phiếu) - Display: ASSET_LIST
+- PERSON (Cá nhân) - Display: ASSET_LIST
+- REALESTATE (Bất động sản) - Display: ASSET_LIST
+- SAVINGS (Sổ tiết kiệm) - Display: ASSET_LIST
+- VEHICLE (Phương tiện) - Display: ASSET_LIST
+
+# SECTIONS AND FIELDS
+
+## Entity: Hồ sơ (PROFILE)
+### Group: Thông tin Khoản vay
+| hdtc | HĐTC | ALL |
+| hdtd | HĐTD | ALL |
+| ngay_hop_dong | Ngày xác lập | ALL |
+| so_tien_vay | Số tiền vay | ALL |
+| tong_gia_tri_tai_san | Tổng giá trị tài sản | ALL |
+### Group: Thông tin Khách hàng
+| ho_ten | Họ Tên | ALL |
+| cccd | CCCD/CC/Hộ Chiếu | ALL |
+| noi_cap_cccd | Nơi cấp CCCD | ALL |
+| ngay_cap_cccd | Ngày cấp CC | ALL |
+| nam_sinh | Năm sinh | ALL |
+| dia_chi_thuong_tru | Địa chỉ Thường trú | ALL |
+| dien_thoai | Số Điện Thoại | ALL |
+### Group: Thông tin Tài sản
+| stk | Số STK | ALL |
+| ma_trai_phieu | Mã trái phiếu | ALL |
+| dang_ky_xe | Số đăng ký | ALL |
+| chung_nhan_qsdd | Giấy CN QSDĐ | ALL |
+| menh_gia_trai_phieu | Mệnh giá | ALL |
+| nhan_hieu_xe | Nhãn hiệu | ALL |
+| so_tien_goi | Số tiền gởi | ALL |
+| so_vao_so | Số vào sổ | ALL |
+| ngay_goi_stk | Ngày gởi | ALL |
+| so_may | Số máy | ALL |
+| ky_han_trai_phieu | Kỳ hạn | ALL |
+| to_ban_do | Tờ bản đồ | ALL |
+| ngay_den_han_stk | ngày đến hạn | ALL |
+| so_khung | Số khung | ALL |
+| thua_dat_so | Thửa đất số | ALL |
+| ngay_cap_gcn | ngày cấp GCN | ALL |
+| co_quan_cap | Cơ quan cấp | ALL |
+| dien_tich_thua_dat | Diện tích | ALL |
+| hinh_thuc_sd | Hình thức SD chung/riêng | ALL |
+| muc_dich_sdd | Loại đất/Mục đích SD | ALL |
+| thoi_han_sdd | Thời hạn SDĐ | ALL |
+| dia_chi_thua_dat | Địa chỉ Thửa đất | ALL |
+| nguon_goc_sdd | Nguồn gốc SDĐ | ALL |
+| tai_san_bao_dam | Tài sản bảo đảm | ALL |
+| loai_tai_san_glvd | Loại TS GLVĐ | ALL |
+| dia_chi_tai_san_glvd | Địa chỉ TS GLVĐ | ALL |
+| dien_tich_xd_tsglvd | Diện tích XD | ALL |
+| dien_tich_sd_tsglvd | Tổng DT sử dụng | ALL |
+| ket_cau_tsglvd | Kết cấu nhà | ALL |
+| so_tang_tsglvd | Số tầng | ALL |
+| thay_doi_phap_ly | Thay đổi pháp lý (nếu có) | ALL |
+| dinh_gia | Định giá | ALL |
+### Group: Đại diện ngân hàng
+| nguoi_dai_dien | Người đại diện | ALL |
+| cccd_bank | Số CCCD | ALL |
+| chuc_vu | Chức vụ | ALL |
+| uy_quyen | Số ủy quyền | ALL |
+
+## Entity: Cá nhân (PERSON)
+
+## Entity: Tài sản (ASSET)
+
+## Entity: Sổ tiết kiệm (SAVINGS)
+
+# FIELDS WITHOUT GROUPS (CORE?)
+
+# ROLES
+- Bên Thế Chấp (Slug: ben_the_chap)
+- Bên được cấp Tín Dụng (Slug: ben_duoc_cap_td)

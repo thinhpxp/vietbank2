@@ -126,18 +126,23 @@ export default {
             this.loading = true;
             try {
                 let types = '';
-                if (this.type === 'person') {
+
+                // NEW: Use the specific type if provided (DEDICATED_SECTION cases)
+                // BUT if type is person/attorney/asset we handle as before for now
+                if (this.type && !['person', 'attorney', 'asset'].includes(this.type)) {
+                    types = this.type;
+                } else if (this.type === 'person') {
                     types = 'PERSON';
                 } else if (this.type === 'attorney') {
                     types = 'ATTORNEY';
                 } else {
-                    // Fetch all non-PERSON and non-ATTORNEY types
+                    // Fetch all non-PERSON and non-ATTORNEY types (General Asset search)
                     types = this.objectTypes
-                        .filter(t => t.code !== 'PERSON' && t.code !== 'ATTORNEY')
+                        .filter(t => t.form_display_mode === 'ASSET_LIST' && t.code !== 'PERSON')
                         .map(t => t.code)
                         .join(',');
 
-                    // Fallback if objectTypes not yet loaded
+                    // Fallback
                     if (!types) types = 'ASSET,VEHICLE,REALESTATE,SAVINGS,CONTRACT';
                 }
 
@@ -166,6 +171,21 @@ export default {
             return '---';
         },
         getAdditionalInfo(item) {
+            const typeConfig = this.objectTypes.find(t => t.code === item.object_type);
+            if (typeConfig && typeConfig.dynamic_summary_template) {
+                let result = typeConfig.dynamic_summary_template;
+                const placeholders = result.match(/{([^}]+)}/g);
+                if (placeholders) {
+                    placeholders.forEach(ph => {
+                        const key = ph.slice(1, -1);
+                        const val = item[key] !== undefined ? item[key] : '...';
+                        result = result.replace(ph, val);
+                    });
+                }
+                return result;
+            }
+
+            // Fallback
             if (item.object_type === 'PERSON') {
                 return item.cccd ? `CCCD: ${item.cccd}` : '---';
             } else if (item.object_type === 'VEHICLE') {
@@ -177,7 +197,7 @@ export default {
             } else if (item.object_type === 'SAVINGS') {
                 return item.so_tien_goi ? `Số tiền: ${item.so_tien_goi}` : '---';
             } else if (item.object_type === 'ATTORNEY') {
-                return item.nguoi_dai_dien ? `${item.nguoi_dai_dien}` : '---';
+                return item.nguoi_dai_dien ? `Họ tên: ${item.nguoi_dai_dien}` : '---';
             }
             return item.owner_name || '---';
         },
