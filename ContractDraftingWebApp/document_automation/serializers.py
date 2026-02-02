@@ -360,7 +360,7 @@ class LoanProfileSerializer(serializers.ModelSerializer):
 class MasterObjectTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MasterObjectType
-        fields = ['id', 'code', 'name', 'description', 'is_system', 'identity_field_key', 'form_display_mode', 'dynamic_summary_template', 'order', 'layout_position']
+        fields = ['id', 'code', 'name', 'description', 'is_system', 'identity_field_key', 'form_display_mode', 'dynamic_summary_template', 'allow_relations', 'order', 'layout_position']
         extra_kwargs = {
             'code': {
                 'error_messages': {
@@ -408,13 +408,23 @@ class MasterObjectSerializer(serializers.ModelSerializer):
 
 
     def get_relations_out(self, obj):
-        """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source)"""
-        rels = obj.relations_as_source.all()
+        """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source), trừ các loại bị tắt allow_relations"""
+        # 1. Lấy danh sách các loại đối tượng KHÔNG cho phép liên kết
+        disallowed_types = MasterObjectType.objects.filter(allow_relations=False).values_list('code', flat=True)
+        
+        # 2. Lọc bỏ các quan hệ mà đối tượng ĐÍCH thuộc về loại bị cấm
+        rels = obj.relations_as_source.exclude(target_object__object_type__in=disallowed_types)
+        
         return MasterObjectRelationSerializer(rels, many=True).data
 
     def get_relations_in(self, obj):
-        """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target)"""
-        rels = obj.relations_as_target.all()
+        """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target), trừ các loại bị tắt allow_relations"""
+        # 1. Lấy danh sách các loại đối tượng KHÔNG cho phép liên kết
+        disallowed_types = MasterObjectType.objects.filter(allow_relations=False).values_list('code', flat=True)
+        
+        # 2. Lọc bỏ các quan hệ mà đối tượng NGUỒN thuộc về loại bị cấm
+        rels = obj.relations_as_target.exclude(source_object__object_type__in=disallowed_types)
+        
         return MasterObjectRelationSerializer(rels, many=True).data
 
     def get_display_name(self, obj):

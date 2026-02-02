@@ -71,7 +71,7 @@
                 :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
 
               <RelationManager v-if="item.master_object && item.master_object.id"
-                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :disabled="isReadOnly" />
+                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :disabled="isReadOnly" />
             </div>
           </div>
 
@@ -84,7 +84,7 @@
             <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
             <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
               <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
+                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" @update:asset="updateAssetList(index, $event)"
                 @remove="removeAssetList(index)" />
             </div>
           </div>
@@ -100,7 +100,7 @@
             </div>
             <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
               <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                 @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
             </div>
           </div>
@@ -148,7 +148,7 @@
                 :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
 
               <RelationManager v-if="item.master_object && item.master_object.id"
-                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :disabled="isReadOnly" />
+                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :disabled="isReadOnly" />
             </div>
           </div>
 
@@ -161,7 +161,7 @@
             <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
             <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
               <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
+                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" @update:asset="updateAssetList(index, $event)"
                 @remove="removeAssetList(index)" />
             </div>
           </div>
@@ -177,7 +177,7 @@
             </div>
             <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
               <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                 @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
             </div>
           </div>
@@ -281,7 +281,10 @@ export default {
       // Password Input Modals
       showLockPasswordModal: false,
       showUnlockPasswordModal: false,
-
+      relationRefreshTrigger: 0,
+      
+      // Auto-save timer
+      autoSaveTimer: null,
       // Profile Status
       profileStatus: 'DRAFT',
 
@@ -414,8 +417,9 @@ export default {
             list.push({
               id: item.master_object.id,
               object_type: typeName,
+              origin_type_code: typeCode,
+              allow_relations: typeConfig ? (typeConfig.allow_relations !== false) : true,
               display_name: `[${this.$t(typeName)}] ${displayName}`
-
             });
           }
         });
@@ -608,7 +612,7 @@ export default {
         this.objectSections[typeCode][index] = updated;
       }
     },
-    addEntity(typeCode) {
+    async addEntity(typeCode) {
       let targetType = typeCode;
 
       // Nếu không có typeCode -> Cho vào ngăn chứa chung 'ASSET' nhưng object_type = null để bắt buộc người dùng chọn
@@ -629,6 +633,17 @@ export default {
         individual_field_values: { ...defaults },
         roles: targetType === 'ATTORNEY' ? ['đại diện'] : []
       });
+
+      // Auto-save if profile exists
+      if (this.currentId) {
+        await this.saveProfile();
+      } else {
+        // For new profiles, just refresh the list which will update IDs
+        // No specific action needed as saveProfile handles navigation or data refresh
+      }
+
+      // Trigger generic refresh for relations
+      this.relationRefreshTrigger++;
     },
     removeEntity(typeCode, index) {
       const item = this.objectSections[typeCode][index];
@@ -824,6 +839,9 @@ export default {
         this.$toast.success('Lưu thành công!');
         // KHÔNG chuyển trang nữa theo yêu cầu của User
         // this.$router.push('/');
+        
+        // Refresh relations to ensure latest links are shown
+        this.relationRefreshTrigger++;
       } catch (error) {
         console.error(error);
         this.$toast.error('Lỗi khi lưu: ' + (error.response?.data?.message || error.message));

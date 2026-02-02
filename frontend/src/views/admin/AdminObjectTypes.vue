@@ -34,6 +34,10 @@
                         <option value="RIGHT">Phải</option>
                     </select>
                 </div>
+                <div class="flex-1 text-center" style="max-width: 100px">
+                    <label class="text-xs text-gray-500 block mb-1">Cho phép LK</label>
+                    <input type="checkbox" v-model="newType.allow_relations" class="w-5 h-5 mt-2" />
+                </div>
                 <div class="flex-2">
                     <label class="text-xs text-gray-500 block mb-1">Mẫu hiển thị tóm tắt</label>
                     <input v-model="newType.dynamic_summary_template" placeholder="VD: CCCD: {cccd}"
@@ -60,6 +64,7 @@
                         <th style="width: 180px">Trường định danh</th>
                         <th style="width: 150px">Kiểu hiển thị</th>
                         <th style="width: 100px">Vị trí</th>
+                        <th style="width: 120px">Cho phép LK</th>
                         <th style="width: 200px">Mẫu hiển thị</th>
                         <th>Mô tả</th>
                         <th style="width: 100px">Hệ thống</th>
@@ -101,6 +106,14 @@
                             <span v-else class="badge"
                                 :class="type.layout_position === 'RIGHT' ? 'badge-primary' : 'badge-secondary'">
                                 {{ type.layout_position === 'RIGHT' ? '👉 Phải' : '👈 Trái' }}
+                            </span>
+                        </td>
+                        <td>
+                            <input v-if="editingId === type.id" v-model="editingData.allow_relations" type="checkbox"
+                                class="w-5 h-5" />
+                            <span v-else class="badge"
+                                :class="type.allow_relations ? 'badge-success' : 'badge-secondary'">
+                                {{ type.allow_relations ? '✓ Có' : '✗ Không' }}
                             </span>
                         </td>
                         <td>
@@ -174,7 +187,7 @@ export default {
     data() {
         return {
             types: [],
-            newType: { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', layout_position: 'LEFT', dynamic_summary_template: '', order: 0 },
+            newType: { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', layout_position: 'LEFT', dynamic_summary_template: '', allow_relations: true, order: 0 },
             editingId: null,
             editingData: null,
             showDeleteModal: false,

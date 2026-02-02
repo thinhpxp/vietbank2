@@ -34,6 +34,9 @@
         v-if="localAsset.master_object && localAsset.master_object.id"
         :masterObjectId="localAsset.master_object.id"
         :profileObjects="profileObjects"
+        :currentObjectType="selectedType"
+        :refreshTrigger="refreshTrigger"
+        :allFields="allFields"
         :disabled="disabled"
       />
     </div>
@@ -57,7 +60,10 @@ export default {
     assetFields: { type: Array, default: () => [] },
     availableTypes: { type: Array, default: () => [] },
     profileObjects: { type: Array, default: () => [] },
-    disabled: { type: Boolean, default: false }
+    // Full field definitions for detail modal
+    allFields: { type: Array, default: () => [] },
+    disabled: { type: Boolean, default: false },
+    refreshTrigger: { type: Number, default: 0 }
   },
   emits: ['update:asset', 'remove'],
   data() {

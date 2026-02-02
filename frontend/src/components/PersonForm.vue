@@ -37,6 +37,9 @@
         v-if="localPerson.master_object && localPerson.master_object.id"
         :masterObjectId="localPerson.master_object.id"
         :profileObjects="profileObjects"
+        :currentObjectType="'PERSON'"
+        :refreshTrigger="refreshTrigger"
+        :allFields="allFields"
         :disabled="disabled"
       />
     </div>
@@ -61,7 +64,10 @@ export default {
     availableRoles: { type: Array, default: () => [] },
     availableTypes: { type: Array, default: () => [] },
     profileObjects: { type: Array, default: () => [] },
-    disabled: { type: Boolean, default: false }
+    // Full field definitions
+    allFields: { type: Array, default: () => [] },
+    disabled: { type: Boolean, default: false },
+    refreshTrigger: { type: Number, default: 0 }
   },
   emits: ['update:person', 'remove'],
   data() {

@@ -44,6 +44,21 @@ const dictionary = {
     'LOAN_CONTRACT_CREDIT_LINE': 'HĐTD Hạn mức',
     'REAL_ESTATE': 'Bất động sản',
     'MORTGAGE_CONTRACT': 'Hợp đồng Thế chấp',
+
+    // Modal UI Labels
+    'CHI_TIET_DOI_TUONG': 'Chi tiết đối tượng',
+    'THONG_TIN_CHUNG': 'Thông tin chung',
+    'LOAI_DOI_TUONG': 'Loại đối tượng',
+    'TEN_HIEN_THI': 'Tên hiển thị',
+    'THUO_TINH_CHI_TIET': 'Thuộc tính chi tiết',
+    'TRUONG_DU_LIEU': 'Trường dữ liệu',
+    'GIA_TRI': 'Giá trị',
+    'KHONG_CO_DU_LIEU_CHI_TIET': 'Không có dữ liệu chi tiết',
+    'LOI_TAI_DU_LIEU': 'Lỗi tải dữ liệu',
+    'DONG': 'Đóng',
+
+    // Specific Field Fallbacks
+    'so_hop_dong': 'Số hợp đồng',
 };
 
 /**

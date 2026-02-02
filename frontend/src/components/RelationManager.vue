@@ -1,5 +1,5 @@
 <template>
-  <div class="relation-manager">
+  <div class="relation-manager" v-if="currentTypeAllowsRelations">
     <div class="relation-header">
       <span class="relation-title">🔗 Các liên kết liên quan</span>
       <button v-if="!disabled" class="btn-add-rel" @click="showAddModal = true" title="Thêm liên kết">
@@ -17,8 +17,16 @@
           <span class="rel-type-badge">{{ $t(rel.relation_type) }}</span>
 
           <span class="rel-target">
-            {{ isSource(rel) ? 'đến' : 'từ' }}
-            <strong>{{ isSource(rel) ? rel.target_name : rel.source_name }}</strong>
+            {{ isSource(rel) ? 'đối với' : 'là' }}
+            
+            <!-- Logic hiển thị: Nếu trong hồ sơ thì text thường, ngoài hồ sơ thì link -->
+            <strong v-if="isObjectInProfile(isSource(rel) ? rel.target_object : rel.source_object)">
+              {{ isSource(rel) ? rel.target_name : rel.source_name }}
+            </strong>
+            <strong v-else class="external-link" @click="viewObjectDetail(isSource(rel) ? rel.target_object : rel.source_object)" title="Xem chi tiết đối tượng">
+              {{ isSource(rel) ? rel.target_name : rel.source_name }}
+            </strong>
+
             <small>({{ $t(isSource(rel) ? rel.target_type : rel.source_type) }})</small>
 
           </span>
@@ -27,6 +35,13 @@
           title="Xóa liên kết">&times;</button>
       </div>
     </div>
+    
+            <!-- Modal xem chi tiết -->
+    <ObjectDetailModal 
+      :objectId="viewingObjectId" 
+      :fieldDefinitions="allFields"
+      @close="viewingObjectId = null" 
+    />
 
     <!-- Modal chọn đối tượng để liên kết -->
     <BaseModal :isOpen="showAddModal" title="Gán mối quan hệ mới" @close="closeModal">
@@ -71,13 +86,18 @@
 <script>
 import axios from 'axios';
 import BaseModal from './BaseModal.vue';
+import ObjectDetailModal from './ObjectDetailModal.vue';
 
 export default {
   name: 'RelationManager',
-  components: { BaseModal },
+  components: { BaseModal, ObjectDetailModal },
   props: {
     masterObjectId: { type: Number, required: true },
-    profileObjects: { type: Array, default: () => [] }, // Danh sách các object trong profile hiện tại
+    profileObjects: { type: Array, default: () => [] },
+    // Fields definitions for Object Detail Modal
+    allFields: { type: Array, default: () => [] },
+    currentObjectType: { type: String, default: '' },
+    refreshTrigger: { type: Number, default: 0 },
     disabled: { type: Boolean, default: false }
   },
   data() {
@@ -86,13 +106,25 @@ export default {
       showAddModal: false,
       newRelType: 'SECURES',
       selectedTargetId: null,
-      loading: false
+      loading: false,
+      // Quick View state
+      viewingObjectId: null
     };
   },
   computed: {
     filteredPossibleTargets() {
-      // Chỉ hiện các object KHÁC với object hiện tại
-      return this.profileObjects.filter(obj => obj.id !== this.masterObjectId);
+      // Chỉ hiện các object KHÁC với object hiện tại VÀ cho phép gán liên kết
+      return this.profileObjects.filter(obj => {
+        if (obj.id === this.masterObjectId) return false;
+        if (obj.allow_relations === false) return false;
+        return true;
+      });
+    },
+    currentTypeAllowsRelations() {
+      // Tìm xem object hiện tại có bị cấm gán quan hệ không
+      // profileObjects chứa tất cả object, bao gồm cả object hiện tại
+      const currentObj = this.profileObjects.find(obj => obj.id === this.masterObjectId);
+      return currentObj ? (currentObj.allow_relations !== false) : true;
     }
   },
   watch: {
@@ -101,6 +133,10 @@ export default {
       handler() {
         this.fetchRelations();
       }
+    },
+    refreshTrigger() {
+      // Refresh relations when notified by parent
+      this.fetchRelations();
     }
   },
   methods: {
@@ -148,6 +184,13 @@ export default {
       } catch (e) {
         this.$toast.error('Lỗi khi xóa liên kết');
       }
+    },
+    // Kiểm tra xem một ID object có nằm trong hồ sơ hiện tại không
+    isObjectInProfile(objectId) {
+      return this.profileObjects.some(obj => obj.id === objectId);
+    },
+    viewObjectDetail(objectId) {
+      this.viewingObjectId = objectId;
     }
   }
 };
@@ -294,5 +337,18 @@ export default {
   color: #999;
   padding: 20px;
   text-align: center;
+}
+
+/* Style cho link external */
+.external-link {
+  margin-left: 4px;
+  color: #b7950b !important; /* Màu vàng đậm (Dark Gold) cho dễ đọc trên nền trắng */
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.external-link:hover {
+  color: #9a7d0a;
+  text-decoration: underline;
 }
 </style>

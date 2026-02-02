@@ -204,8 +204,14 @@ class MasterObjectType(models.Model):
         default='LEFT',
         verbose_name="Vị trí hiển thị"
     )
+    allow_relations = models.BooleanField(
+        default=True,
+        verbose_name="Cho phép gán liên kết",
+        help_text="Nếu tắt, đối tượng này sẽ không xuất hiện trong danh sách gán quan hệ và không hiển thị khu vực 'Các liên kết liên quan'"
+    )
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
     created_at = models.DateTimeField(auto_now_add=True)
+
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
