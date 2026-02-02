@@ -14,43 +14,41 @@
     <div v-else class="relation-list">
       <div v-for="rel in relations" :key="rel.id" class="relation-item">
         <div class="rel-info">
-          <span class="rel-type-badge">{{ rel.relation_type_display || rel.relation_type }}</span>
+          <span class="rel-type-badge">{{ $t(rel.relation_type) }}</span>
+
           <span class="rel-target">
-            {{ isSource(rel) ? 'đến' : 'từ' }} 
+            {{ isSource(rel) ? 'đến' : 'từ' }}
             <strong>{{ isSource(rel) ? rel.target_name : rel.source_name }}</strong>
-            <small>({{ isSource(rel) ? rel.target_type : rel.source_type }})</small>
+            <small>({{ $t(isSource(rel) ? rel.target_type : rel.source_type) }})</small>
+
           </span>
         </div>
-        <button v-if="!disabled" class="btn-remove-rel" @click="removeRelation(rel.id)" title="Xóa liên kết">&times;</button>
+        <button v-if="!disabled" class="btn-remove-rel" @click="removeRelation(rel.id)"
+          title="Xóa liên kết">&times;</button>
       </div>
     </div>
 
     <!-- Modal chọn đối tượng để liên kết -->
-    <div v-if="showAddModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Gán mối quan hệ mới</h3>
-        <p class="modal-subtitle">Chọn đối tượng trong hồ sơ này để thiết lập dẫn chiếu</p>
-        
+    <BaseModal :isOpen="showAddModal" title="Gán mối quan hệ mới" @close="closeModal">
+      <p class="modal-subtitle">Chọn đối tượng trong hồ sơ này để thiết lập dẫn chiếu</p>
+
+      <div class="admin-form-section">
+        <h4>Cấu hình liên kết</h4>
         <div class="form-group">
           <label>Loại quan hệ:</label>
-          <select v-model="newRelType" class="form-select">
-            <option value="OWNER">SỞ HỮU (Owner)</option>
-            <option value="SECURES">BẢO ĐẢM CHO (Secures)</option>
-            <option value="AMENDS">SỬA ĐỔI CHO (Amends)</option>
-            <option value="REFERENCES">DẪN CHIẾU ĐẾN (References)</option>
+          <select v-model="newRelType" class="admin-form-control">
+            <option value="OWNER">{{ $t('OWNER') }}</option>
+            <option value="SECURES">{{ $t('SECURES') }}</option>
+            <option value="AMENDS">{{ $t('AMENDS') }}</option>
+            <option value="REFERENCES">{{ $t('REFERENCES') }}</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Đối tượng liên kết:</label>
           <div class="object-selector-list">
-            <div 
-              v-for="obj in filteredPossibleTargets" 
-              :key="obj.id" 
-              class="selectable-object"
-              :class="{ selected: selectedTargetId === obj.id }"
-              @click="selectedTargetId = obj.id"
-            >
+            <div v-for="obj in filteredPossibleTargets" :key="obj.id" class="selectable-object"
+              :class="{ selected: selectedTargetId === obj.id }" @click="selectedTargetId = obj.id">
               <div class="obj-name">{{ obj.display_name }}</div>
             </div>
           </div>
@@ -58,21 +56,25 @@
             Không tìm thấy đối tượng nào khác trong hồ sơ này để liên kết.
           </div>
         </div>
-
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="closeModal">Hủy</button>
-          <button class="btn-confirm" @click="confirmAddRelation" :disabled="!selectedTargetId">Xác nhận gán</button>
-        </div>
       </div>
-    </div>
+
+      <template #footer>
+        <button class="btn-action btn-secondary" @click="closeModal">Hủy</button>
+        <button class="btn-action btn-primary" @click="confirmAddRelation" :disabled="!selectedTargetId">
+          Xác nhận gán
+        </button>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import BaseModal from './BaseModal.vue';
 
 export default {
   name: 'RelationManager',
+  components: { BaseModal },
   props: {
     masterObjectId: { type: Number, required: true },
     profileObjects: { type: Array, default: () => [] }, // Danh sách các object trong profile hiện tại
@@ -157,17 +159,20 @@ export default {
   padding-top: 15px;
   border-top: 1px dashed #ccc;
 }
+
 .relation-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
+
 .relation-title {
   font-weight: 600;
   font-size: 0.9em;
   color: #555;
 }
+
 .btn-add-rel {
   background: #f0f4f8;
   border: 1px solid #d1d9e0;
@@ -177,7 +182,10 @@ export default {
   font-size: 0.8em;
   cursor: pointer;
 }
-.btn-add-rel:hover { background: #e2e8f0; }
+
+.btn-add-rel:hover {
+  background: #e2e8f0;
+}
 
 .no-relations {
   font-size: 0.8em;
@@ -223,9 +231,9 @@ export default {
   color: #2980b9;
 }
 
-.rel-target small { 
-  color: #999; 
-  margin-left: 4px; 
+.rel-target small {
+  color: #999;
+  margin-left: 4px;
   font-style: italic;
 }
 
@@ -239,26 +247,21 @@ export default {
   line-height: 1;
 }
 
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center; justify-content: center;
-  z-index: 1000;
+.modal-subtitle {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 20px;
 }
-.modal-content {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
+
+.form-group {
+  margin-bottom: 15px;
 }
-.modal-subtitle { font-size: 0.9em; color: #666; margin-bottom: 20px; }
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; font-weight: 600; margin-bottom: 5px; }
-.form-select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
 
 .object-selector-list {
   max-height: 200px;
@@ -266,25 +269,30 @@ export default {
   border: 1px solid #eee;
   border-radius: 4px;
 }
+
 .selectable-object {
   padding: 8px 12px;
   border-bottom: 1px solid #f5f5f5;
   cursor: pointer;
 }
-.selectable-object:hover { background: #f0f7ff; }
-.selectable-object.selected { background: #e3f2fd; border-left: 4px solid #2196f3; }
-.obj-type { font-size: 0.7em; color: #999; text-transform: uppercase; font-weight: bold; }
-.obj-name { font-weight: 500; }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+.selectable-object:hover {
+  background: #f0f7ff;
 }
-.btn-cancel { padding: 8px 16px; border: none; background: #eee; border-radius: 4px; }
-.btn-confirm { padding: 8px 16px; border: none; background: #3498db; color: white; border-radius: 4px; }
-.btn-confirm:disabled { opacity: 0.5; }
 
-.empty-list { font-size: 0.9em; color: #999; padding: 20px; text-align: center; }
+.selectable-object.selected {
+  background: #e3f2fd;
+  border-left: 4px solid #2196f3;
+}
+
+.obj-name {
+  font-weight: 500;
+}
+
+.empty-list {
+  font-size: 0.9em;
+  color: #999;
+  padding: 20px;
+  text-align: center;
+}
 </style>

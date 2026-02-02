@@ -2,14 +2,16 @@
   <div class="page-container">
     <header class="page-header">
       <div class="header-title">
+        <div class="profile-id-badge">#{{ currentId || id || 'NEW' }}</div>
         <label class="profile-name-label">Tên hồ sơ:</label>
         <div class="profile-name-input-wrapper">
           <input v-model="profileName" class="profile-name-input" placeholder="Nhập tên hồ sơ..."
             :disabled="isReadOnly" />
         </div>
         <div v-if="profileStatus" class="status-badge" :class="profileStatus.toLowerCase()">
-          {{ profileStatus === 'FINALIZED' ? '🔒 ĐÃ KHÓA' : '✍️ NHÁP' }}
+          {{ $t(profileStatus) }}
         </div>
+
         <div v-if="currentFormName" class="form-type-badge">
           <span class="badge-label">Mẫu:</span>
           <span class="badge-value">{{ currentFormName }}</span>
@@ -33,80 +35,76 @@
 
     <div v-else class="form-layout" ref="formLayout" @mousemove="onMouseMove" @mouseup="stopResize"
       @mouseleave="stopResize">
-      <!-- CỘT TRÁI: THÔNG TIN CHUNG + NGƯỜI (Default) + Asset (Nếu config Left) -->
+      <!-- CỘT TRÁI: THÔNG TIN DỰA TRÊN SEGMENTS -->
       <div class="left-panel" :style="{ width: (showRightPanel ? leftPanelWidth : 100) + '%' }">
-        <div v-for="(group, slug) in leftPanelGroups" :key="slug" class="panel-section">
-          <h3>{{ group.name }}</h3>
-          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly"
-            :idPrefix="`gen-l-${slug}-`" />
-        </div>
+        <template v-for="segment in leftPanelSegments" :key="segment.id">
+          <!-- Type: GROUP (Thông tin chung - Trường mồ côi) -->
+          <div v-if="segment.type === 'GROUP'" class="panel-section orphan-group">
+            <h3>{{ segment.name }}</h3>
+            <DynamicForm :fields="segment.fields" v-model="generalFieldValues" :disabled="isReadOnly"
+              :idPrefix="`gen-l-${segment.id}-`" />
+          </div>
 
-
-
-        <!-- DEDICATED SECTIONS (Render Động) -->
-        <template v-for="section in dedicatedSections" :key="'sec-' + section.code">
-          <div v-if="getFieldsForType(section.code).length > 0 && section.code !== 'PERSON'"
-            class="panel-section dedicated-section">
+          <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
+          <div v-if="segment.type === 'DEDICATED'" class="panel-section dedicated-section">
             <div class="panel-header">
-              <h3>{{ section.name }}</h3>
+              <h3>{{ segment.name }}</h3>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(section.code)">🔍 Tìm &
+                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">🔍 Tìm &
                   Chọn</button>
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity(section.code)">+ Thêm mới</button>
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">+ Thêm mới</button>
               </div>
             </div>
 
-            <div v-if="!objectSections[section.code] || objectSections[section.code].length === 0" class="empty-state">
-              Chưa có thông tin {{ section.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
+            <!-- Trường hợp: Các đối tượng (Asset List/Dedicated List) -->
+            <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0" class="empty-state">
+              Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
             </div>
 
-            <div v-for="(item, index) in objectSections[section.code]" :key="section.code + '-' + index"
+            <div v-for="(item, index) in objectSections[segment.code]" :key="segment.code + '-' + index"
               class="master-card generic-card">
               <div class="card-header-mini">
-                <strong>{{ section.name }} #{{ index + 1 }}</strong>
-                <button class="btn-remove-mini" @click="removeEntity(section.code, index)">&times;</button>
+                <strong>{{ segment.name }} #{{ index + 1 }}</strong>
+                <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">&times;</button>
               </div>
-              <DynamicForm :fields="getFieldsForType(section.code)" v-model="item.individual_field_values"
-                :disabled="isReadOnly" :idPrefix="`ded-${section.code.toLowerCase()}-${index}-`" />
+              <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
+                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
 
-              <!-- Relation Manager cho các phần Dedicated (Ví dụ: Hợp đồng) -->
               <RelationManager v-if="item.master_object && item.master_object.id"
                 :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :disabled="isReadOnly" />
             </div>
           </div>
+
+          <!-- Type: ASSET_LIST (Danh sách Tài sản) -->
+          <div v-else-if="segment.type === 'ASSET_LIST'">
+            <div class="panel-header">
+              <h3>Danh sách Tài sản</h3>
+              <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
+            </div>
+            <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
+            <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
+              <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
+                :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
+                @remove="removeAssetList(index)" />
+            </div>
+          </div>
+
+          <!-- Type: PERSON_LIST (Danh sách Người liên quan) -->
+          <div v-else-if="segment.type === 'PERSON_LIST'">
+            <div class="panel-header">
+              <h3>Danh sách Người liên quan</h3>
+              <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
+            </div>
+            <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
+              Chưa có người nào.
+            </div>
+            <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
+              <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
+            </div>
+          </div>
         </template>
-
-        <!-- Asset List (Nếu config Left) -->
-        <div v-if="!isAssetRight && assetListTypes.length > 0">
-          <div class="panel-header">
-            <h3>Danh sách Tài sản</h3>
-            <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
-          </div>
-          <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
-          <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
-            <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-              :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
-              @remove="removeAssetList(index)" />
-          </div>
-        </div>
-
-        <!-- DANH SÁCH NGƯỜI (CỘT TRÁI - Moved to Bottom) -->
-        <div v-if="!isPersonRight && getFieldsForType('PERSON').length > 0">
-          <div class="panel-header">
-            <h3>Danh sách Người liên quan</h3>
-            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
-          </div>
-
-          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
-            Chưa có người nào. Hãy thêm Bên vay hoặc Bên bảo đảm.
-          </div>
-
-          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
-            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-              :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
-              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
-          </div>
-        </div>
       </div>
 
       <!-- THANH KÉO (DRAG HANDLE) -->
@@ -114,48 +112,76 @@
         <div class="handle-icon">||</div>
       </div>
 
-      <!-- CỘT PHẢI: DANH SÁCH TÀI SẢN -->
-      <!-- CỘT PHẢI: GROUP PHẢI + NGƯỜI (NẾU CÓ) + TÀI SẢN (NẾU CÓ) -->
+      <!-- CỘT PHẢI: THÔNG TIN DỰA TRÊN SEGMENTS -->
       <div class="right-panel" :style="{ width: (100 - leftPanelWidth) + '%' }" v-if="showRightPanel">
-
-        <!-- Các nhóm Generic bên phải -->
-        <div v-for="(group, slug) in rightPanelGroups" :key="'right-' + slug" class="panel-section">
-          <h3>{{ group.name }}</h3>
-          <DynamicForm :fields="group.fields" v-model="generalFieldValues" :disabled="isReadOnly"
-            :idPrefix="`gen-r-${slug}-`" />
-        </div>
-
-
-
-        <!-- Asset List (Default Right, unless config Left) -->
-        <div v-if="isAssetRight && assetListTypes.length > 0">
-          <div class="panel-header">
-            <h3>Danh sách Tài sản</h3>
-            <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
+        <template v-for="segment in rightPanelSegments" :key="segment.id">
+          <!-- Type: GROUP (Thông tin chung - Trường mồ côi) -->
+          <div v-if="segment.type === 'GROUP'" class="panel-section orphan-group">
+            <h3>{{ segment.name }}</h3>
+            <DynamicForm :fields="segment.fields" v-model="generalFieldValues" :disabled="isReadOnly"
+              :idPrefix="`gen-r-${segment.id}-`" />
           </div>
-          <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
-          <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
-            <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-              :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
-              @remove="removeAssetList(index)" />
-          </div>
-        </div>
 
-        <!-- DANH SÁCH NGƯỜI (CỘT PHẢI - Moved to Bottom) -->
-        <div v-if="isPersonRight && getFieldsForType('PERSON').length > 0">
-          <div class="panel-header">
-            <h3>Danh sách Người liên quan</h3>
-            <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
+          <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
+          <div v-if="segment.type === 'DEDICATED'" class="panel-section dedicated-section">
+            <div class="panel-header">
+              <h3>{{ segment.name }}</h3>
+              <div class="header-actions">
+                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">🔍 Tìm &
+                  Chọn</button>
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">+ Thêm mới</button>
+              </div>
+            </div>
+
+            <!-- Trường hợp: Các đối tượng -->
+            <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0" class="empty-state">
+              Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
+            </div>
+
+            <div v-for="(item, index) in objectSections[segment.code]" :key="segment.code + '-' + index"
+              class="master-card generic-card">
+              <div class="card-header-mini">
+                <strong>{{ segment.name }} #{{ index + 1 }}</strong>
+                <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">&times;</button>
+              </div>
+              <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
+                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
+
+              <RelationManager v-if="item.master_object && item.master_object.id"
+                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :disabled="isReadOnly" />
+            </div>
           </div>
-          <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">Chưa có
-            người
-            nào.</div>
-          <div v-for="(person, index) in objectSections['PERSON']" :key="'person-r-' + index">
-            <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-              :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
-              @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
+
+          <!-- Type: ASSET_LIST (Danh sách Tài sản) -->
+          <div v-else-if="segment.type === 'ASSET_LIST'">
+            <div class="panel-header">
+              <h3>Danh sách Tài sản</h3>
+              <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
+            </div>
+            <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
+            <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
+              <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
+                :profileObjects="allSavedObjects" @update:asset="updateAssetList(index, $event)"
+                @remove="removeAssetList(index)" />
+            </div>
           </div>
-        </div>
+
+          <!-- Type: PERSON_LIST (Danh sách Người liên quan) -->
+          <div v-else-if="segment.type === 'PERSON_LIST'">
+            <div class="panel-header">
+              <h3>Danh sách Người liên quan</h3>
+              <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
+            </div>
+            <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
+              Chưa có người nào.
+            </div>
+            <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
+              <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -268,47 +294,97 @@ export default {
     isReadOnly() {
       return this.profileStatus === 'FINALIZED';
     },
-    getGroupsByPosition() {
+    getSegmentsByPosition() {
       return (position) => {
-        return this.allFields.reduce((groups, field) => {
-          const gName = field.group_name || 'Khác';
+        let segments = [];
+
+        // 1. Nhóm các Trường mồ côi (Field Groups not linked to Object Types)
+        const groups = this.allFields.reduce((acc, field) => {
           const gSlug = field.group_slug || 'other';
-          const gPos = field.group_layout_position || 'LEFT'; // Mặc định Trái
+          const gPos = field.group_layout_position || 'LEFT';
+          if (gPos !== position) return acc;
 
-          // Nếu lọc theo vị trí mà không khớp -> bỏ qua
-          if (gPos !== position) return groups;
-
-          // Lọc bỏ các nhóm đặc biệt (PERSON/ASSET/ATTORNEY) khỏi luồng hiển thị Generic
-          // Chúng sẽ được hiển thị qua PersonForm, AssetForm hoặc Attorney section
+          // Chỉ lấy các trường "Mồ côi" (không gắn với Object Type nào)
           const specialTypes = field.group_allowed_object_types || [];
-          if (specialTypes.length > 0 && !specialTypes.includes('CONTRACT')) {
-            return groups;
-          }
+          if (specialTypes.length > 0) return acc;
 
-          if (!groups[gSlug]) groups[gSlug] = { name: gName, fields: [] };
-          groups[gSlug].fields.push(field);
-          return groups;
+          if (!acc[gSlug]) {
+            acc[gSlug] = {
+              id: `group-${gSlug}`,
+              type: 'GROUP',
+              name: field.group_name || 'Thông tin chung',
+              order: field.group_order || 0,
+              fields: []
+            };
+          }
+          acc[gSlug].fields.push(field);
+          return acc;
         }, {});
+        segments.push(...Object.values(groups));
+
+        // 2. Các Dedicated Sections (Bao gồm cả Hồ sơ Gốc)
+        const dedicated = this.objectTypes.filter(t =>
+          t.form_display_mode === 'DEDICATED_SECTION' &&
+          t.code !== 'PERSON' &&
+          (t.layout_position || 'LEFT') === position &&
+          this.getFieldsForType(t.code).length > 0
+        ).map(t => ({
+          id: `dedicated-${t.code}`,
+          type: 'DEDICATED',
+          name: t.name,
+          order: t.order || 0,
+          code: t.code
+        }));
+        segments.push(...dedicated);
+
+        // 3. Danh sách Tài sản (Asset List)
+        // Tìm cấu hình Asset List (mặc định LEFT nếu không tìm thấy field nào setup)
+        const hasAssetFields = this.assetListTypes.length > 0;
+        if (hasAssetFields) {
+          const assetFields = this.getAssetFields();
+          const assetPos = assetFields.length > 0 ? (assetFields[0].group_layout_position || 'LEFT') : 'LEFT';
+          if (assetPos === position) {
+            // Lấy order từ loại đối tượng đầu tiên trong asset list types (hoặc config riêng nếu có)
+            // Ở đây ta dùng cái đầu tiên làm đại diện cho cả "Danh sách tài sản"
+            const firstType = this.objectTypes.find(t => this.assetListTypes.includes(t.code));
+            segments.push({
+              id: 'asset-list',
+              type: 'ASSET_LIST',
+              name: 'Danh sách Tài sản',
+              order: firstType ? (firstType.order || 0) : 0
+            });
+          }
+        }
+
+        // 4. Danh sách Người (PERSON)
+        const personFields = this.getFieldsForType('PERSON');
+        if (personFields.length > 0) {
+          const personType = this.objectTypes.find(t => t.code === 'PERSON');
+          const personPos = personType ? (personType.layout_position || 'LEFT') : 'LEFT';
+          if (personPos === position) {
+            segments.push({
+              id: 'person-list',
+              type: 'PERSON_LIST',
+              name: 'Danh sách Người liên quan',
+              order: personType ? (personType.order || 0) : 0
+            });
+          }
+        }
+
+        return segments.sort((a, b) => a.order - b.order);
       };
     },
-    leftPanelGroups() {
-      return this.getGroupsByPosition('LEFT');
+    leftPanelSegments() {
+      return this.getSegmentsByPosition('LEFT');
     },
-    rightPanelGroups() {
-      return this.getGroupsByPosition('RIGHT');
+    rightPanelSegments() {
+      return this.getSegmentsByPosition('RIGHT');
     },
-    isAssetRight() {
-      // Default Assets to Right unless explicitly set to Left
-      const assetListFields = this.getAssetFields();
-      if (assetListFields.length === 0) return true;
-      return assetListFields.some(f => f.group_layout_position === 'RIGHT');
-    },
-    isPersonRight() {
-      // Check if PERSON fields are set to RIGHT
-      const personFields = this.getFieldsForType('PERSON');
-      if (personFields.length === 0) return false;
-      return personFields.some(f => f.group_layout_position === 'RIGHT');
-    },
+    // Keep legacy computed for backward compatibility if needed, but we will use segments
+    leftPanelGroups() { return {}; },
+    rightPanelGroups() { return {}; },
+    isAssetRight() { return false; },
+    isPersonRight() { return false; },
     // Danh sách tất cả các đối tượng đã lưu (có ID) trong hồ sơ hiện tại
     allSavedObjects() {
       const list = [];
@@ -338,7 +414,8 @@ export default {
             list.push({
               id: item.master_object.id,
               object_type: typeName,
-              display_name: `[${typeName}] ${displayName}`
+              display_name: `[${this.$t(typeName)}] ${displayName}`
+
             });
           }
         });
@@ -367,16 +444,13 @@ export default {
       }
     },
     showRightPanel() {
-      const hasRightAsset = this.assetListTypes.length > 0 && this.isAssetRight;
-      const hasRightPerson = this.getFieldsForType('PERSON').length > 0 && this.isPersonRight;
-      return hasRightAsset || hasRightPerson || Object.keys(this.rightPanelGroups).length > 0;
+      return this.rightPanelSegments.length > 0;
     },
     coreFields() {
-      // Thông tin CHUNG = Không có object_type đặc biệt hoặc thuộc về CONTRACT
+      // Thông tin CỐT LÕI (CORE) = Các trường không thuộc bất kỳ object_type nào (General Profile)
       return this.allFields.filter(f => {
         const specialTypes = f.group_allowed_object_types || [];
-        // Nếu không có types -> là Core. Nếu có CONTRACT -> cũng coi là Core.
-        return specialTypes.length === 0 || specialTypes.includes('CONTRACT');
+        return specialTypes.length === 0;
       }).sort((a, b) => a.order - b.order);
     },
   },
@@ -489,9 +563,7 @@ export default {
       const currentValues = { ...this.generalFieldValues };
       this.allFields.forEach(field => {
         const specialTypes = field.group_allowed_object_types || [];
-        const isCore = specialTypes.length === 0 || specialTypes.includes('CONTRACT');
-
-        if (isCore) {
+        if (specialTypes.length === 0) {
           if (field.default_value && (currentValues[field.placeholder_key] === undefined || currentValues[field.placeholder_key] === null || currentValues[field.placeholder_key] === '')) {
             currentValues[field.placeholder_key] = field.default_value;
           }
@@ -529,7 +601,8 @@ export default {
         }
         this.objectSections[newType].push(updated);
 
-        this.$toast.info(`Đã chuyển loại sang: ${newType}`);
+        this.$toast.info(`Đã chuyển loại sang: ${this.$t(newType)}`);
+
       } else {
         // Cập nhật giá trị bình thường trong cùng một mảng
         this.objectSections[typeCode][index] = updated;
@@ -697,9 +770,8 @@ export default {
           await this.fetchFields();
         }
 
-        if (!this.objectSections['PERSON'] || this.objectSections['PERSON'].length === 0) {
-          this.addEntity('PERSON');
-        }
+        // Orphan fields and object sections are now correctly loaded.
+        // Removed auto-entity creation to avoid garbage data as requested.
 
       } catch (e) {
         console.error('Lỗi load hồ sơ:', e);
@@ -854,6 +926,17 @@ export default {
   align-items: center;
   gap: 15px;
   flex: 3;
+}
+
+.profile-id-badge {
+  background: #34495e;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 1.1rem;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .profile-name-label {

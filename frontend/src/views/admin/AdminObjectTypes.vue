@@ -21,10 +21,17 @@
                     <input v-model="newType.identity_field_key" placeholder="VD: ho_ten" class="admin-input w-full" />
                 </div>
                 <div class="flex-1">
-                    <label class="text-xs text-gray-500 block mb-1">Cấu hình hiển thị</label>
+                    <label class="text-xs text-gray-500 block mb-1">Kiểu hiển thị</label>
                     <select v-model="newType.form_display_mode" class="admin-input w-full h-[38px] p-2">
                         <option value="ASSET_LIST">Gom vào Tài sản</option>
                         <option value="DEDICATED_SECTION">Khu vực riêng</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="text-xs text-gray-500 block mb-1">Vị trí (Cột)</label>
+                    <select v-model="newType.layout_position" class="admin-input w-full h-[38px] p-2">
+                        <option value="LEFT">Trái</option>
+                        <option value="RIGHT">Phải</option>
                     </select>
                 </div>
                 <div class="flex-2">
@@ -35,6 +42,10 @@
                 <div class="flex-1">
                     <label class="text-xs text-gray-500 block mb-1">Mô tả</label>
                     <input v-model="newType.description" placeholder="Mô tả..." class="admin-input w-full" />
+                </div>
+                <div class="flex-1" style="max-width: 60px">
+                    <label class="text-xs text-gray-500 block mb-1">Thứ tự</label>
+                    <input v-model.number="newType.order" type="number" class="admin-input w-full" />
                 </div>
                 <button @click="addType" class="btn-action btn-create h-[38px]">Thêm Loại</button>
             </div>
@@ -47,10 +58,12 @@
                         <th style="width: 150px">Mã (Code)</th>
                         <th style="width: 200px">Tên hiển thị</th>
                         <th style="width: 180px">Trường định danh</th>
-                        <th style="width: 150px">Gom nhóm</th>
+                        <th style="width: 150px">Kiểu hiển thị</th>
+                        <th style="width: 100px">Vị trí</th>
                         <th style="width: 200px">Mẫu hiển thị</th>
                         <th>Mô tả</th>
                         <th style="width: 100px">Hệ thống</th>
+                        <th style="width: 70px">Thứ tự</th>
                         <th style="width: 150px">Hành động</th>
                     </tr>
                 </thead>
@@ -80,6 +93,17 @@
                             </span>
                         </td>
                         <td>
+                            <select v-if="editingId === type.id" v-model="editingData.layout_position"
+                                class="admin-input w-full p-1">
+                                <option value="LEFT">Trái</option>
+                                <option value="RIGHT">Phải</option>
+                            </select>
+                            <span v-else class="badge"
+                                :class="type.layout_position === 'RIGHT' ? 'badge-primary' : 'badge-secondary'">
+                                {{ type.layout_position === 'RIGHT' ? '👉 Phải' : '👈 Trái' }}
+                            </span>
+                        </td>
+                        <td>
                             <input v-if="editingId === type.id" v-model="editingData.dynamic_summary_template"
                                 class="admin-input w-full" />
                             <span v-else>{{ type.dynamic_summary_template || '---' }}</span>
@@ -92,6 +116,11 @@
                         <td>
                             <span v-if="type.is_system" class="badge badge-system">System</span>
                             <span v-else class="badge badge-custom">Custom</span>
+                        </td>
+                        <td>
+                            <input v-if="editingId === type.id" v-model.number="editingData.order" type="number"
+                                class="admin-input w-full" style="width: 50px" />
+                            <span v-else>{{ type.order }}</span>
                         </td>
                         <td>
                             <div class="flex gap-2">
@@ -145,7 +174,7 @@ export default {
     data() {
         return {
             types: [],
-            newType: { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', dynamic_summary_template: '' },
+            newType: { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', layout_position: 'LEFT', dynamic_summary_template: '', order: 0 },
             editingId: null,
             editingData: null,
             showDeleteModal: false,
@@ -182,7 +211,7 @@ export default {
             }
             try {
                 await axios.post('http://127.0.0.1:8000/api/object-types/', this.newType);
-                this.newType = { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', dynamic_summary_template: '' };
+                this.newType = { code: '', name: '', description: '', identity_field_key: '', form_display_mode: 'ASSET_LIST', layout_position: 'LEFT', dynamic_summary_template: '', order: 0 };
                 this.fetchTypes();
             } catch (e) {
                 this.showError(e, 'Lỗi khi thêm loại đối tượng');

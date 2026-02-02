@@ -289,6 +289,11 @@
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
+.modal-content .btn-cancel {
+    background: #4a4444;
+    color: white;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -302,6 +307,7 @@
     justify-content: center;
     gap: 15px;
 }
+
 
 /* 8. Additional Button Variants */
 .btn-lock {
@@ -325,12 +331,12 @@
 }
 
 .btn-cancel {
-    background: #95a5a5;
+    background: #4a4444;
     color: white;
 }
 
 .btn-cancel:hover {
-    background: #7f8c8d;
+    background: #131313;
 }
 
 /* 9. Specialized Component Buttons */

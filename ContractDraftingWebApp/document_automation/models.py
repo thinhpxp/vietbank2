@@ -198,6 +198,13 @@ class MasterObjectType(models.Model):
         verbose_name="Chế độ hiển thị Form",
         help_text="Chọn cách đối tượng này hiển thị trong hồ sơ vay"
     )
+    layout_position = models.CharField(
+        max_length=10,
+        choices=[('LEFT', 'Cột Trái'), ('RIGHT', 'Cột Phải')],
+        default='LEFT',
+        verbose_name="Vị trí hiển thị"
+    )
+    order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -221,26 +228,47 @@ class MasterObject(models.Model):
     last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người cập nhật")
 
     def __str__(self):
-        # Lấy cấu hình loại đối tượng để biết trường định danh là gì
-        try:
-            from .models import MasterObjectType
-            cfg = MasterObjectType.objects.filter(code=self.object_type).first()
-            id_key = cfg.identity_field_key if cfg else None
-        except:
-            id_key = None
-            
-        if not id_key:
-            # Fallback legacy
-            id_key = 'ho_ten' if self.object_type == 'PERSON' else 'chung_nhan_qsdd'
-            
-        fv = self.fieldvalue_set.filter(field__placeholder_key=id_key).first()
-        if fv and fv.value:
-            return f"{fv.value}"
-        return f"{self.object_type} #{self.id}"
+        # Fallback string representation
+        return self.display_name
 
     @property
     def display_name(self):
-        return str(self)
+        """Ưu tiên trả về Tên (Mã định danh) để hiển thị thân thiện trên toàn hệ thống"""
+        try:
+            # 1. Tìm các trường tiềm năng là "Tên"
+            name_keys = ['ho_ten', 'ten_tai_san', 'ten_doi_tuong', 'ten_khach_hang', 'name', 'full_name']
+            name_fv = self.fieldvalue_set.filter(
+                field__placeholder_key__in=name_keys, 
+                loan_profile__isnull=True
+            ).first()
+            name_val = name_fv.value if name_fv else ""
+            
+            # 2. Lấy giá trị định danh từ cấu hình identity_field_key của loại
+            from .models import MasterObjectType
+            cfg = MasterObjectType.objects.filter(code=self.object_type).first()
+            id_key = cfg.identity_field_key if cfg else None
+            
+            id_val = ""
+            if id_key:
+                id_fv = self.fieldvalue_set.filter(
+                    field__placeholder_key=id_key, 
+                    loan_profile__isnull=True
+                ).first()
+                id_val = id_fv.value if id_fv else ""
+                
+            # 3. Kết hợp kết quả: Tên (Mã)
+            if name_val and id_val and name_val != id_val:
+                return f"{name_val} ({id_val})"
+            if name_val:
+                return name_val
+            if id_val:
+                return id_val
+            
+            # 4. Fallback cuối cùng
+            return f"{self.object_type} #{self.id}"
+        except Exception:
+            return f"Object #{self.id}"
+
 
     class Meta:
         verbose_name = "Đối tượng"

@@ -7,15 +7,15 @@
         </div>
         <div v-if="loadingFields" class="loading-state">Đang tải cấu hình trường...</div>
         <div v-else>
-            <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="section-container">
-                <h4 class="section-title">{{ groupName }}</h4>
+            <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="admin-form-section">
+                <h4>{{ groupName }}</h4>
                 <DynamicForm :fields="fields" v-model="formData" inputClass="admin-input" />
             </div>
         </div>
 
         <template #footer>
-            <button class="btn-cancel" @click="close">Hủy</button>
-            <button class="btn-save" @click="handleSave" :disabled="isSaving">
+            <button class="btn-action btn-secondary" @click="close">Hủy</button>
+            <button class="btn-action btn-primary" @click="handleSave" :disabled="isSaving">
                 {{ isSaving ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Tạo mới') }}
             </button>
         </template>
@@ -64,18 +64,42 @@ export default {
         }
     },
     watch: {
-        isOpen(val) {
-            if (val) {
-                this.fetchFields();
-                if (this.isEdit) {
-                    this.formData = { ...this.editObject.field_values };
-                } else {
-                    this.formData = {};
+        isOpen: {
+            handler(val) {
+                if (val) {
+                    this.initModal();
+                }
+            },
+            immediate: true
+        },
+
+        editObject: {
+            handler() {
+                if (this.isOpen) {
+                    this.initModal();
+                }
+            },
+            deep: true
+        },
+
+        type: {
+            handler() {
+                if (this.isOpen) {
+                    this.initModal();
                 }
             }
         }
+
     },
     methods: {
+        initModal() {
+            if (this.isEdit) {
+                this.formData = { ...this.editObject.field_values };
+            } else {
+                this.formData = {};
+            }
+            this.fetchFields();
+        },
         async fetchFields() {
             this.loadingFields = true;
             try {
@@ -83,8 +107,6 @@ export default {
                 const res = await axios.get(`http://127.0.0.1:8000/api/fields/active_fields_grouped/?entity_type=${this.type}`);
 
                 // Flatten the grouped result from API into a simple array for DynamicForm if needed
-                // OR adapt to how MasterData wants it. 
-                // views.py returns: { "Group Name": [field1, field2] }
                 const flatFields = [];
                 Object.keys(res.data).forEach(groupName => {
                     res.data[groupName].forEach(field => {
@@ -111,7 +133,7 @@ export default {
             this.isSaving = true;
             try {
                 const payload = {
-                    object_type: this.type, // PERSON, ASSET, etc.
+                    object_type: this.type,
                     field_values: this.formData
                 };
 
@@ -138,6 +160,7 @@ export default {
                 this.isSaving = false;
             }
         },
+
         close() {
             this.$emit('close');
         }
@@ -162,59 +185,6 @@ export default {
 
 .sync-note .icon {
     font-size: 1.2rem;
-}
-
-.section-container {
-    margin-bottom: 30px;
-}
-
-.section-title {
-    margin-bottom: 15px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #3498db;
-    color: #34495e;
-    font-size: 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.btn-cancel {
-    padding: 10px 20px;
-    background: white;
-    border: 1px solid #dcdfe6;
-    border-radius: 6px;
-    cursor: pointer;
-    color: #606266;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.btn-cancel:hover {
-    background: #f5f7fa;
-    border-color: #c0c4cc;
-}
-
-.btn-save {
-    padding: 10px 30px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s;
-    box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);
-}
-
-.btn-save:hover {
-    background: #2980b9;
-}
-
-.btn-save:disabled {
-    background: #bdc3c7;
-    cursor: not-allowed;
-    box-shadow: none;
 }
 
 .loading-state {

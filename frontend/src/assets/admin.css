@@ -802,6 +802,133 @@ body.is-resizing * {
     cursor: col-resize !important;
 }
 
+/* Side Modal Content Components */
+.side-content-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.side-section {
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 1rem;
+}
+
+.side-section:last-child {
+    border-bottom: none;
+}
+
+.side-section .section-title {
+    font-size: 0.825rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.side-compact-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f8fafc;
+    transition: background 0.2s;
+    border-radius: 6px;
+}
+
+.side-compact-card:last-child {
+    border-bottom: none;
+}
+
+.side-compact-card:hover {
+    background: #fbfcfe;
+}
+
+.clickable-card {
+    cursor: pointer;
+}
+
+.card-main {
+    flex: 1;
+}
+
+.empty-mini {
+    padding: 12px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Admin Specific Badges */
+.badge-role {
+    font-size: 10px;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 400;
+    text-transform: uppercase;
+}
+
+.badge-relation {
+    font-size: 10px;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 400;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.highlight-section {
+    background: #f8fbff;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #e3efff;
+}
+
+.highlight-section .side-compact-card:hover {
+    background: #f0f7ff;
+}
+
+.btn-icon-only {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-only:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+/* Profiles/Objects Count Indicator */
+.indicator-tag {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.indicator-warning {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+}
+
 body.is-resizing .ui-sortable,
 body.is-resizing .admin-sortable {
     pointer-events: none;

@@ -4,8 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.db import transaction
-from django.db.models import Prefetch
 from rest_framework.views import APIView
+from django.db.models import Q, Prefetch
 # --- CÁC IMPORT MỚI CHO CHỨC NĂNG XUẤT WORD ---
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
@@ -393,9 +393,35 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 # 4. ViewSet cho LoanProfile (Logic chính)
 class LoanProfileViewSet(viewsets.ModelViewSet):
-    queryset = LoanProfile.objects.all()
+    queryset = LoanProfile.objects.all().order_by('-created_at')
     serializer_class = LoanProfileSerializer
     permission_classes = [permissions.DjangoModelPermissions]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search_query = self.request.query_params.get('search', None)
+        
+        if search_query:
+            # Tìm kiếm theo tên hồ sơ HOẶC theo giá trị của các MasterObject liên kết
+            # (VD: Tìm theo số hiệu HĐTC nằm trong MasterObject)
+            
+            # 1. Tìm IDs của MasterObjects có giá trị khớp search_query
+            matching_mo_ids = FieldValue.objects.filter(
+                value__icontains=search_query,
+                master_object__isnull=False
+            ).values_list('master_object_id', flat=True)
+            
+            # 2. Tìm IDs của LoanProfiles có liên kết với các MasterObjects này
+            linked_profile_ids = LoanProfileObjectLink.objects.filter(
+                master_object_id__in=matching_mo_ids
+            ).values_list('loan_profile_id', flat=True)
+            
+            # 3. Kết hợp tìm kiếm theo tên hồ sơ và danh sách profile IDs vừa tìm được
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) | Q(id__in=linked_profile_ids)
+            ).distinct()
+            
+        return queryset
 
     def perform_create(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None

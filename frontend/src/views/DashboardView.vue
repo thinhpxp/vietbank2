@@ -48,6 +48,7 @@
               getSortIcon('form_view_name') }}</th>
             <th @click="toggleSort('status')" :class="getSortableClass('status')">Trạng thái {{ getSortIcon('status') }}
             </th>
+            <th>Mã định danh (Số HĐ)</th>
             <th>Hành động</th>
           </tr>
         </thead>
@@ -63,8 +64,15 @@
             </td>
             <td>
               <div class="status-badge-container">
-                <span v-if="profile.status === 'FINALIZED'" class="status-badge finalized">🔒 ĐÃ KHÓA</span>
-                <span v-else class="status-badge draft">✍️ NHÁP</span>
+                <span class="status-badge" :class="profile.status.toLowerCase()">
+                  {{ $t(profile.status) }}
+                </span>
+              </div>
+            </td>
+
+            <td>
+              <div v-if="profile.search_identifiers && profile.search_identifiers.length > 0">
+                <span v-for="id in profile.search_identifiers" :key="id" class="badge-identifier">{{ id }}</span>
               </div>
             </td>
             <td>
@@ -162,10 +170,21 @@ export default {
     this.fetchProfiles();
     this.fetchForms();
   },
+  watch: {
+    'filters.search': {
+      handler(newVal) {
+        // Debounce search
+        clearTimeout(this.searchTimer);
+        this.searchTimer = setTimeout(() => {
+          this.fetchProfiles(newVal);
+        }, 500);
+      }
+    }
+  },
   computed: {
     sortedProfiles() {
       const filtered = this.filterArray(this.profiles, this.filters, {
-        search: { type: 'text', fields: ['name', 'created_by_user_name'] },
+        search: { type: 'text', fields: ['name', 'created_by_user_name', 'search_identifiers'] },
         status: { type: 'exact' },
         createdDate: { type: 'date', field: 'created_at' },
         creator: { type: 'text', field: 'created_by_user_name' }
@@ -174,9 +193,11 @@ export default {
     }
   },
   methods: {
-    async fetchProfiles() {
+    async fetchProfiles(search = '') {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/loan-profiles/');
+        const params = {};
+        if (search) params.search = search;
+        const response = await axios.get('http://127.0.0.1:8000/api/loan-profiles/', { params });
         this.profiles = response.data;
       } catch (error) {
         console.error(error);
@@ -329,5 +350,16 @@ export default {
   font-size: 0.9em;
   color: #7f8c8d;
   margin-top: 4px;
+}
+
+.badge-identifier {
+  display: inline-block;
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  margin-right: 4px;
+  border: 1px solid #bbdefb;
 }
 </style>

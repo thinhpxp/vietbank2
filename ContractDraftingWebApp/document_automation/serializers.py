@@ -74,6 +74,7 @@ class FieldSerializer(serializers.ModelSerializer):
     group_name = serializers.CharField(source='group.name', read_only=True)
     group_slug = serializers.CharField(source='group.slug', read_only=True)
     group_layout_position = serializers.CharField(source='group.layout_position', read_only=True)
+    group_order = serializers.IntegerField(source='group.order', read_only=True)
     # MỚI: Trả về danh sách object types mà group này áp dụng (thay thế group_object_type cũ)
     group_allowed_object_types = serializers.SerializerMethodField()
     # Đánh dấu đây có phải là field dựng sẵn từ model (không phải record trong bảng Field)
@@ -87,7 +88,7 @@ class FieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = Field
         fields = [
-            'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'group_slug', 'group_layout_position', 'group_allowed_object_types',
+            'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'group_slug', 'group_layout_position', 'group_order', 'group_allowed_object_types',
             'is_active', 'is_protected', 'use_digit_grouping', 'show_amount_in_words', 'default_value', 'note', 'is_model_field', 
             'order', 'width_cols', 'css_class', 'allowed_forms', 'allowed_object_types'
         ]
@@ -243,12 +244,16 @@ class LoanProfileSerializer(serializers.ModelSerializer):
 
     # Hiển thị tên người tạo thay vì ID
     created_by_user_name = serializers.CharField(source='created_by_user.username', read_only=True)
+    
+    # MỚI: Tóm tắt các mã định danh để hiển thị ở danh sách (VD: Số HĐTC)
+    search_identifiers = serializers.SerializerMethodField()
 
     class Meta:
         model = LoanProfile
         fields = [
             'id', 'name', 'status', 'created_at', 'updated_at', 'created_by_user_name', 
-            'field_values', 'people', 'attorneys', 'assets', 'object_sections', 'form_view_slug', 'form_view_name'
+            'field_values', 'people', 'attorneys', 'assets', 'object_sections', 'form_view_slug', 'form_view_name',
+            'search_identifiers'
         ]
         read_only_fields = ['created_at', 'updated_at']
 
@@ -257,6 +262,25 @@ class LoanProfileSerializer(serializers.ModelSerializer):
         # Lấy tất cả giá trị trường của hồ sơ này mà master_object là Null
         fvs = obj.fieldvalue_set.filter(master_object__isnull=True)
         return {fv.field.placeholder_key: fv.value for fv in fvs}
+
+    def get_search_identifiers(self, obj):
+        """
+        Lấy các mã định danh quan trọng từ các đối tượng liên kết 
+        dựa trên cấu hình identity_field_key của từng loại đối tượng.
+        """
+        # 1. Lấy tất cả identity_field_key đang được cấu hình trong DB
+        identity_keys = list(MasterObjectType.objects.exclude(identity_field_key__isnull=True).exclude(identity_field_key='').values_list('identity_field_key', flat=True))
+        
+        if not identity_keys:
+            return []
+            
+        # 2. Lấy giá trị của các trường này từ các MasterObject liên kết trực tiếp với Profile
+        fvs = obj.fieldvalue_set.filter(
+            field__placeholder_key__in=identity_keys,
+            master_object__isnull=False
+        ).values_list('value', flat=True)
+        
+        return list(set(filter(None, fvs)))
 
     # --- UNIVERSAL OBJECT SECTIONS (UOS) ---
     object_sections = serializers.SerializerMethodField()
@@ -336,7 +360,7 @@ class LoanProfileSerializer(serializers.ModelSerializer):
 class MasterObjectTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MasterObjectType
-        fields = ['id', 'code', 'name', 'description', 'is_system', 'identity_field_key', 'form_display_mode', 'dynamic_summary_template']
+        fields = ['id', 'code', 'name', 'description', 'is_system', 'identity_field_key', 'form_display_mode', 'dynamic_summary_template', 'order', 'layout_position']
         extra_kwargs = {
             'code': {
                 'error_messages': {
@@ -358,13 +382,30 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'object_type', 'object_type_display', 'display_name', 
             'created_at', 'updated_at', 'last_updated_by_name', 
-            'profiles_count', 'field_values', 
+            'profiles_count', 'related_profiles', 'field_values', 
             'relations_out', 'relations_in'
         ]
     
-    # New fields for Relations
+    # New fields for Relations and Profiles
     relations_out = serializers.SerializerMethodField()
     relations_in = serializers.SerializerMethodField()
+    related_profiles = serializers.SerializerMethodField()
+
+    def get_related_profiles(self, obj):
+        """Lấy danh sách các hồ sơ vay mà đối tượng này tham gia"""
+        links = obj.profile_links.all().select_related('loan_profile', 'loan_profile__form_view')
+        return [
+            {
+                "id": link.loan_profile.id,
+                "name": link.loan_profile.name,
+                "form_name": link.loan_profile.form_view.name if link.loan_profile.form_view else "N/A",
+                "status": link.loan_profile.status,
+                "created_at": link.loan_profile.created_at,
+                "roles": link.roles
+            }
+            for link in links
+        ]
+
 
     def get_relations_out(self, obj):
         """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source)"""
@@ -377,31 +418,10 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         return MasterObjectRelationSerializer(rels, many=True).data
 
     def get_display_name(self, obj):
-        """Ưu tiên lấy giá trị của trường định danh (identity_field_key)"""
-        try:
-            from .models import MasterObjectType, FieldValue
-            # 1. Lấy cấu hình identity_field_key của loại đối tượng này
-            obj_type = MasterObjectType.objects.filter(code=obj.object_type).first()
-            id_key = obj_type.identity_field_key if obj_type else None
-            
-            # 2. Nếu có cấu hình id_key, tìm giá trị của nó
-            if id_key:
-                # Tìm trong Master data (loan_profile=null)
-                fv = FieldValue.objects.filter(master_object=obj, field__placeholder_key=id_key, loan_profile__isnull=True).first()
-                if fv and fv.value:
-                    return fv.value
-            
-            # 3. Fallback logic cũ nếu không có cấu hình hoặc cấu hình không có giá trị
-            key = 'ho_ten' if obj.object_type == 'PERSON' else 'so_giay_chung_nhan'
-            fv = FieldValue.objects.filter(master_object=obj, field__placeholder_key=key, loan_profile__isnull=True).first()
-            if fv and fv.value:
-                return fv.value
-            
-            # 4. Fallback cuối cùng nếu không có bất cứ data nào: Tên loại #ID
-            stype = self.get_object_type_display(obj)
-            return f"{stype} #{obj.id}"
-        except Exception:
-            return f"Object #{obj.id}"
+        """Sử dụng thuộc tính display_name đã được định nghĩa trong Model"""
+        return obj.display_name
+
+
     
     def get_object_type_display(self, obj):
         """Get display name for object type from MasterObjectType"""

@@ -50,14 +50,14 @@
                             </td>
                             <td>
                                 {{ item.id }}
-                                <div v-if="item.profiles_count === 0"
-                                    class="inline-block px-1 py-0.5 rounded text-xs bg-orange-100 text-orange-600 border border-orange-200 mt-1 font-bold">
+                                <div v-if="item.profiles_count === 0" class="indicator-tag indicator-warning mt-1">
                                     Chưa liên kết</div>
                             </td>
                             <td class="font-bold">
-                                <!-- Hiển thị tên hoặc số GCN tùy loại, hoặc fallback display_name -->
-                                {{ item.ho_ten || item.so_giay_chung_nhan || item.display_name || '---' }}
+                                <!-- Hiển thị tên hoặc số GCN tùy loại, hoặc fallback display_name (Smart translated) -->
+                                {{ item.ho_ten || item.so_giay_chung_nhan || $t(item.display_name) || '---' }}
                             </td>
+
                             <td>
                                 <span>{{ getDynamicSummary(item, activeTab) }}</span>
                             </td>
@@ -65,12 +65,13 @@
                             <td>
                                 <div class="text-sm">
                                     <div>{{ formatDate(item.updated_at) }}</div>
-                                    <small class="inline-block px-1 bg-gray-100 text-gray-600 rounded bg-gray-100"
+                                    <small class="badge bg-gray-100 text-gray-600 mt-1"
                                         v-if="item.last_updated_by_name">
                                         👤 {{ item.last_updated_by_name }}
                                     </small>
                                 </div>
                             </td>
+
                             <td>
                                 <div class="flex gap-2">
                                     <button class="btn-action btn-secondary" @click="viewRelated(item)">Liên
@@ -96,7 +97,8 @@
                     <button class="side-modal-close" @click="showRelatedModal = false">&times;</button>
                 </div>
 
-                <div class="side-modal-tabs">
+                <!-- REMOVAL OF TABS: GOING UNIFIED -->
+                <!-- <div class="side-modal-tabs">
                     <button class="side-modal-tab-btn" :class="{ active: relatedTab === 'profiles' }"
                         @click="relatedTab = 'profiles'">
                         Hồ sơ ({{ relatedProfiles.length }})
@@ -109,63 +111,97 @@
                         :class="{ active: relatedTab === 'owners' }" @click="relatedTab = 'owners'">
                         Chủ sở hữu ({{ owners.length }})
                     </button>
-                </div>
+                </div> -->
 
-                <div class="side-modal-body">
+
+                <div class="side-modal-body unified-side-body">
                     <div v-if="relatedLoading" class="text-center p-8 text-gray-500">
-                        <span class="inline-block animate-spin mr-2">⏳</span> Đang tải...
+                        <span class="inline-block animate-spin mr-2">⏳</span> Đвязаt tải...
                     </div>
-                    <div v-else>
-                        <!-- CONTENT: PROFILES -->
-                        <div v-if="relatedTab === 'profiles'">
-                            <div v-for="item in relatedProfiles" :key="item.id" class="side-detail-item">
-                                <div class="font-bold mb-1 text-slate-700">📄 {{ item.name }}</div>
-                                <div class="text-sm text-gray-500 mb-3">
-                                    <span>Loại: {{ item.form_name }}</span> |
-                                    <span>Ngày: {{ formatDate(item.created_at) }}</span>
+                    <div v-else class="side-content-sections">
+                        <!-- SECTION 1: PROFILES -->
+                        <div class="side-section">
+                            <h4 class="section-title">
+                                <SvgIcon name="file-text" size="xs" /> Hồ sơ liên quan ({{
+                                    relatedProfiles.length }})
+                            </h4>
+                            <div v-if="relatedProfiles.length === 0" class="empty-mini">Chưa có hồ sơ liên quan.</div>
+                            <div v-for="item in relatedProfiles" :key="'p-' + item.id"
+                                class="side-compact-card clickable-card" @click="goToProfile(item.id)">
+                                <div class="card-main">
+                                    <div class="font-bold text-slate-700">📄 {{ item.name }}</div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ item.form_name }} | {{ $t(item.status) }} | {{ formatDate(item.created_at) }}
+                                    </div>
+
                                 </div>
-                                <button class="btn-action btn-secondary w-full" @click="goToProfile(item.id)">Mở Hồ
-                                    sơ</button>
                             </div>
-                            <div v-if="relatedProfiles.length === 0" class="text-center text-gray-400 p-8">
-                                Chưa có hồ sơ liên quan.
+
+
+                        </div>
+
+                        <!-- SECTION 2: OWNERSHIP (Highlighted) -->
+                        <div class="side-section highlight-section" v-if="ownershipRelations.length > 0">
+                            <h4 class="section-title">
+                                <SvgIcon name="shield" size="xs" /> Thông tin Sở hữu ({{
+                                    ownershipRelations.length }})
+                            </h4>
+                            <div v-for="rel in ownershipRelations" :key="'own-' + rel.id"
+                                class="side-compact-card clickable-card"
+                                @click="viewChildDetails(rel.isSource ? rel.target_object : rel.source_object)">
+                                <div class="card-main">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-800">
+                                            {{ rel.isSource ? (rel.target_type === 'PERSON' ? '👤 ' : '🏠 ') +
+                                                $t(rel.target_name) : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
+                                                $t(rel.source_name) }}
+                                        </span>
+
+                                        <span class="badge-role">CHỦ SỞ HỮU</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ rel.isSource ? 'Liên kết tới' : 'Cung cấp bởi' }} | {{ $t(rel.isSource ?
+                                            rel.target_type : rel.source_type) }}
+                                    </div>
+
+                                </div>
                             </div>
                         </div>
 
-                        <!-- CONTENT: ASSETS (For Person) -->
-                        <div v-if="relatedTab === 'assets'">
-                            <div v-for="rel in relatedAssets" :key="rel.id" class="side-detail-item">
-                                <div class="font-bold mb-1 text-slate-700">🏠 {{ rel.target_name }}</div>
-                                <div class="text-sm text-gray-500 mb-3">
-                                    <span>Loại: {{ rel.target_type }}</span> |
-                                    <span>Quan hệ: {{ rel.relation_type }}</span>
-                                </div>
-                                <button class="btn-action btn-secondary w-full"
-                                    @click="viewChildDetails(rel.target_object)">Xem chi
-                                    tiết</button>
+
+                        <!-- SECTION 3: OTHER RELATIONS -->
+                        <div class="side-section">
+                            <h4 class="section-title">
+                                <SvgIcon name="share-2" size="xs" /> Các liên kết khác ({{
+                                    otherRelations.length }})
+                            </h4>
+                            <div v-if="otherRelations.length === 0 && ownershipRelations.length === 0"
+                                class="empty-mini">
+                                Không có liên kết đối tượng.
                             </div>
-                            <div v-if="relatedAssets.length === 0" class="text-center text-gray-400 p-8">
-                                Chưa sở hữu tài sản nào.
+                            <div v-for="rel in otherRelations" :key="'other-' + rel.id"
+                                class="side-compact-card clickable-card"
+                                @click="viewChildDetails(rel.isSource ? rel.target_object : rel.source_object)">
+                                <div class="card-main">
+                                    <div class="font-bold text-slate-700">
+                                        {{ rel.isSource ? (rel.target_type === 'PERSON' ? '👤 ' : '🏠 ') +
+                                            $t(rel.target_name) : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
+                                            $t(rel.source_name) }}
+                                    </div>
+
+                                    <div class="text-xs text-gray-500 flex items-center gap-1">
+                                        <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
+                                        <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
+                                            }}</span>
+                                    </div>
+
+                                </div>
                             </div>
                         </div>
 
-                        <!-- CONTENT: OWNERS (For Assets) -->
-                        <div v-if="relatedTab === 'owners'">
-                            <div v-for="rel in owners" :key="rel.id" class="side-detail-item">
-                                <div class="font-bold mb-1 text-slate-700">👤 {{ rel.source_name }}</div>
-                                <div class="text-sm text-gray-500 mb-3">
-                                    <span>Quan hệ: {{ rel.relation_type }}</span>
-                                </div>
-                                <button class="btn-action btn-secondary w-full"
-                                    @click="viewChildDetails(rel.source_object)">Xem chi
-                                    tiết</button>
-                            </div>
-                            <div v-if="owners.length === 0" class="text-center text-gray-400 p-8">
-                                Chưa xác định chủ sở hữu.
-                            </div>
-                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -193,7 +229,8 @@
         <!-- CREATE/EDIT MODAL -->
         <MasterCreateModal :isOpen="showCreateModal" :type="tempOverrideType || activeTab"
             :typeName="tempOverrideTypeName || currentTypeName" :editObject="targetEditObject"
-            @close="showCreateModal = false" @success="fetchData" />
+            :key="targetEditObject ? targetEditObject.id : 'new'" @close="showCreateModal = false"
+            @success="fetchData" />
     </div>
 </template>
 
@@ -223,11 +260,11 @@ export default {
             showRelatedModal: false,
             relatedType: '', // PERSON or other
             relatedTitle: '',
-            relatedTab: 'profiles', // profiles, assets, owners
-            // Data buckets
+            // Data buckets (Unified)
             relatedProfiles: [],
-            relatedAssets: [],
-            owners: [],
+            ownershipRelations: [],
+            otherRelations: [],
+
 
             relatedLoading: false,
 
@@ -340,22 +377,44 @@ export default {
             this.relatedTab = 'profiles'; // Reset tab
 
             try {
-                // 1. Fetch Profile Links (Legacy)
-                const resProfiles = await axios.get(`http://127.0.0.1:8000/api/master-objects/${obj.id}/related_profiles/`);
-                this.relatedProfiles = resProfiles.data;
-
-                // 2. Fetch Direct Relations (New)
-                // We re-fetch the object to get updated 'related_assets' and 'owners' injected by serializer
+                // 2. Fetch Master Relations (Categorized & Deduplicated)
                 const resDetail = await axios.get(`http://127.0.0.1:8000/api/master-objects/${obj.id}/`);
                 const detail = resDetail.data;
-                this.relatedAssets = detail.related_assets || [];
-                this.owners = detail.owners || [];
+
+                const allRelsRaw = [];
+                // Add relations where this object is Source (out)
+                if (detail.relations_out) {
+                    detail.relations_out.forEach(r => allRelsRaw.push({ ...r, isSource: true }));
+                }
+                // Add relations where this object is Target (in)
+                if (detail.relations_in) {
+                    detail.relations_in.forEach(r => allRelsRaw.push({ ...r, isSource: false }));
+                }
+
+                // Deduplicate by ID to avoid overlapping or redundant entries
+                const uniqueRelsMap = new Map();
+                allRelsRaw.forEach(r => {
+                    if (!uniqueRelsMap.has(r.id)) {
+                        uniqueRelsMap.set(r.id, r);
+                    }
+                });
+                const allRels = Array.from(uniqueRelsMap.values());
+
+                // Categorize by OWNER type or others
+                this.ownershipRelations = allRels.filter(r => r.relation_type === 'OWNER');
+                this.otherRelations = allRels.filter(r => r.relation_type !== 'OWNER');
+
+                // New: Get related profiles directly from the detail
+                this.relatedProfiles = detail.related_profiles || [];
+
+
 
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu liên quan:', error);
             } finally {
                 this.relatedLoading = false;
             }
+
         },
         formatDate(dateString) {
             if (!dateString) return '---';
@@ -518,20 +577,24 @@ export default {
 </script>
 
 <style scoped>
-/* Resizer Handle specific style since it's interaction-heavy */
-.resizer-handle {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    cursor: col-resize;
-    z-index: 10;
-    transition: background 0.2s;
+.tab-content {
+    margin-top: 10px;
 }
 
-.resizer-handle:hover {
-    background: rgba(59, 130, 246, 0.2);
-    /* color-primary with opacity */
+.row-selected {
+    background-color: #eff6ff !important;
+}
+
+/* Custom override for unified side body */
+.unified-side-body {
+    padding: 0;
+    background: #f8fafc;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 60px;
+    color: #94a3b8;
+    font-style: italic;
 }
 </style>
