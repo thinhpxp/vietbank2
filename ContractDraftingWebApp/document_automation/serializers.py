@@ -472,9 +472,18 @@ class LoanProfileObjectLinkSerializer(serializers.ModelSerializer):
         fields = ['id', 'loan_profile', 'master_object_id', 'object', 'roles']
 
 # 9. Serializer cho Audit Log (MỚI)
+class SimpleUserSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='profile.full_name', read_only=True)
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'full_name']
+
 class AuditLogSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
     user_full_name = serializers.CharField(source='user.profile.full_name', read_only=True)
+    # Use SimpleUserSerializer to avoid performance overhead of full UserSerializer
+    user_details = SimpleUserSerializer(source='user', read_only=True)
 
     class Meta:
         model = AuditLog

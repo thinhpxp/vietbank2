@@ -48,7 +48,6 @@
               getSortIcon('form_view_name') }}</th>
             <th @click="toggleSort('status')" :class="getSortableClass('status')">Trạng thái {{ getSortIcon('status') }}
             </th>
-            <th>Mã định danh (Số HĐ)</th>
             <th>Hành động</th>
           </tr>
         </thead>
@@ -67,12 +66,6 @@
                 <span class="status-badge" :class="profile.status.toLowerCase()">
                   {{ $t(profile.status) }}
                 </span>
-              </div>
-            </td>
-
-            <td>
-              <div v-if="profile.search_identifiers && profile.search_identifiers.length > 0">
-                <span v-for="id in profile.search_identifiers" :key="id" class="badge-identifier">{{ id }}</span>
               </div>
             </td>
             <td>

@@ -8,6 +8,14 @@
  * @param {Error|Object} error - Error object từ catch block
  * @returns {Object} - { message, errorCode, details }
  */
+import { translate } from './i18n';
+import eventBus, { EVENTS } from './eventBus';
+
+/**
+ * Format error object thành message string có cấu trúc
+ * @param {Error|Object} error - Error object từ catch block
+ * @returns {Object} - { message, errorCode, details }
+ */
 export function formatError(error) {
     let message = 'Đã xảy ra lỗi không xác định';
     let errorCode = '';
@@ -31,8 +39,11 @@ export function formatError(error) {
                 message = `Lỗi ${status}: ${error.response.statusText}`;
             }
         } else {
-            message = data?.message || data?.error || `Lỗi ${status}: ${error.response.statusText}`;
+            message = data?.detail || data?.message || data?.error || `Lỗi ${status}: ${error.response.statusText}`;
         }
+
+        // Tự động dịch message nếu có trong từ điển
+        message = translate(message);
 
         // Error code
         errorCode = data?.code || `HTTP_${status}`;
@@ -74,7 +85,7 @@ export function formatError(error) {
 
 /**
  * Hiển thị error dialog với thông tin chi tiết
- * Sử dụng trong component có ConfirmModal
+ * Sử dụng trong component có ConfirmModal HOẶC Global Event Bus
  * 
  * @param {Object} vm - Vue component instance (this)
  * @param {Error|Object|String} error - Error object
@@ -87,14 +98,19 @@ export function formatError(error) {
  * }
  */
 export function showErrorDialog(vm, error, title = 'Lỗi') {
-    const { message, errorCode, details } = formatError(error);
+    // 1. Emit to Global Event Bus (Priority)
+    // This allows App.vue to show the modal even if the local component doesn't have one
+    eventBus.emit(EVENTS.SHOW_GLOBAL_ERROR, error);
 
-    // Set data cho ConfirmModal
-    vm.errorModalTitle = title;
-    vm.errorModalMessage = message;
-    vm.errorModalCode = errorCode;
-    vm.errorModalDetails = details;
-    vm.showErrorModal = true;
+    // 2. Fallback: Set local data (Legacy support for components with local modal)
+    const { message, errorCode, details } = formatError(error);
+    if (vm) {
+        if (vm.errorModalTitle !== undefined) vm.errorModalTitle = title;
+        if (vm.errorModalMessage !== undefined) vm.errorModalMessage = message;
+        if (vm.errorModalCode !== undefined) vm.errorModalCode = errorCode;
+        if (vm.errorModalDetails !== undefined) vm.errorModalDetails = details;
+        if (vm.showErrorModal !== undefined) vm.showErrorModal = true;
+    }
 }
 
 /**

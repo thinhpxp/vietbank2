@@ -13,6 +13,7 @@ import AdminRoles from '../views/admin/AdminRoles.vue';
 import AdminForms from '../views/admin/AdminForms.vue';
 import AdminObjectTypes from '../views/admin/AdminObjectTypes.vue';
 import MasterData from '../views/admin/MasterData.vue';
+import AdminAuditLog from '../views/admin/AdminAuditLog.vue'; // ADDED
 import Login from '../views/Login.vue';
 import Register from '../views/Register.vue';
 import auth from '@/store/auth';
@@ -72,6 +73,7 @@ const routes = [
       { path: 'forms', component: AdminForms },
       { path: 'object-types', component: AdminObjectTypes },
       { path: 'master-data', component: MasterData },
+      { path: 'audit-logs', component: AdminAuditLog }, // ADDED
       { path: '', redirect: '/admin/groups' }
     ]
   }

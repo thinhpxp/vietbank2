@@ -346,11 +346,11 @@ class AuditLog(models.Model):
         ('DELETE', 'Xóa'),
     ]
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người thực hiện")
-    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="Hành động")
-    target_model = models.CharField(max_length=100, verbose_name="Đối tượng tác động")
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="Hành động", db_index=True)
+    target_model = models.CharField(max_length=100, verbose_name="Đối tượng tác động", db_index=True)
     target_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="ID đối tượng")
     details = models.TextField(blank=True, null=True, verbose_name="Chi tiết thay đổi")
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian", db_index=True)
 
     class Meta:
         verbose_name = "Nhật ký tác động"

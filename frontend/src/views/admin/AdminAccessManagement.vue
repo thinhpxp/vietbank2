@@ -9,8 +9,6 @@
                     dùng</button>
                 <button :class="{ active: activeMainTab === 'groups' }" @click="activeMainTab = 'groups'">🔑 Nhóm &
                     Quyền</button>
-                <button :class="{ active: activeMainTab === 'audit' }" @click="activeMainTab = 'audit'">📜 Nhật
-                    ký</button>
             </div>
             <div class="admin-role-legend">
                 <span class="admin-legend-item" title="Toàn quyền hệ thống, bỏ qua RBAC"><span
@@ -49,7 +47,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="user in filteredUsers" :key="user.id">
+                            <tr v-for="user in filteredUsers" :key="user.id" @click="selectUser(user)"
+                                :class="{ active: selectedUser && selectedUser.id === user.id }" class="cursor-pointer">
                                 <td><strong>{{ user.username }}</strong></td>
                                 <td>{{ user.first_name }} {{ user.last_name }}</td>
                                 <td>{{ user.email }}</td>
@@ -64,7 +63,8 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn-action btn-edit" @click="editUser(user)">Sửa / Quyền</button>
+                                    <button class="btn-action btn-edit" @click.stop="editUser(user)">Sửa /
+                                        Quyền</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -107,11 +107,13 @@
                                     <label class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_active" /> Hoạt động
                                     </label>
+                                    <!--
                                     <label class="admin-checkbox-label"
                                         :class="{ disabled: selectedUser.is_superuser && !auth.isSuperuser }">
                                         <input type="checkbox" v-model="selectedUser.is_staff"
                                             :disabled="selectedUser.is_superuser && !auth.isSuperuser" /> Quyền Admin
                                     </label>
+                                    -->
                                     <label v-if="auth.isSuperuser" class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_superuser" /> Quyền Root
                                     </label>
@@ -283,38 +285,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: AUDIT LOG -->
-        <div v-if="activeMainTab === 'audit'" class="audit-view pane">
-            <div class="pane-header admin-row">
-                <h3 class="flex-1">Nhật ký hệ thống</h3>
-                <div class="audit-filters">
-                    <input type="text" v-model="auditSearch" placeholder="Tìm theo username, hành động..."
-                        class="admin-form-control" />
-                </div>
-            </div>
-            <div class="table-container scrollable ui-table-wrapper">
-                <table class="data-table audit-table">
-                    <thead>
-                        <tr>
-                            <th>Thời gian</th>
-                            <th>User</th>
-                            <th>Hành động</th>
-                            <th>Đối tượng</th>
-                            <th>Ghi chú</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="log in filteredLogs" :key="log.id">
-                            <td class="time">{{ formatTime(log.timestamp) }}</td>
-                            <td><strong>{{ log.user_name }}</strong></td>
-                            <td><span :class="['tag', 'tag-' + log.action]">{{ log.action }}</span></td>
-                            <td>{{ log.target_model }}</td>
-                            <td class="details">{{ log.details }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <!-- TAB 3: AUDIT LOG - REMOVED -->
 
         <!-- MODAL RESET PASSWORD -->
         <div v-if="showResetModal" class="modal-overlay">
@@ -378,7 +349,6 @@ export default {
             users: [],
             groups: [],
             permissions: [],
-            auditLogs: [],
 
             // Selection
             selectedUser: null,
@@ -388,7 +358,6 @@ export default {
             userSearch: '',
             groupSearch: '',
             permSearch: '',
-            auditSearch: '',
 
             // UI States
             isSaving: false,
@@ -436,15 +405,6 @@ export default {
             });
             return grouped;
         },
-        filteredLogs() {
-            if (!this.auditSearch) return this.auditLogs;
-            const q = this.auditSearch.toLowerCase();
-            return this.auditLogs.filter(l =>
-                l.user_name.toLowerCase().includes(q) ||
-                l.action.toLowerCase().includes(q) ||
-                l.details?.toLowerCase().includes(q)
-            );
-        }
     },
     async created() {
         await this.loadAllData();
@@ -458,16 +418,14 @@ export default {
     methods: {
         async loadAllData() {
             try {
-                const [uRes, gRes, pRes, aRes] = await Promise.all([
+                const [uRes, gRes, pRes] = await Promise.all([
                     axios.get(`${API_BASE}/users/`),
                     axios.get(`${API_BASE}/user-groups/`),
-                    axios.get(`${API_BASE}/user-permissions/`),
-                    axios.get(`${API_BASE}/audit-logs/`)
+                    axios.get(`${API_BASE}/user-permissions/`)
                 ]);
                 this.users = uRes.data;
                 this.groups = gRes.data;
                 this.permissions = pRes.data;
-                this.auditLogs = aRes.data;
             } catch (e) {
                 this.$toast.error('Lỗi tải dữ liệu hệ thống.');
             }
@@ -476,6 +434,9 @@ export default {
         // User Methods
         selectUser(u) {
             this.selectedUser = JSON.parse(JSON.stringify(u));
+        },
+        editUser(u) {
+            this.selectUser(u);
         },
         createNewUser() {
             this.$router.push('/register'); // Redirect to existing register page for now or create inline
@@ -609,9 +570,6 @@ export default {
             } else if (this.activeMainTab === 'groups') {
                 table = this.$el.querySelector('.pane-left .data-table');
                 id = 'admin-access-groups';
-            } else if (this.activeMainTab === 'audit') {
-                table = this.$el.querySelector('.audit-table');
-                id = 'admin-access-audit';
             }
 
             if (table && id) {

@@ -24,6 +24,7 @@
         <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock" @click="unlockProfile">🔓 Mở
           khóa</button>
         <button v-if="id || currentId" class="btn-action btn-doc" @click="openDownloadModal">Xuất HĐ</button>
+        <button v-if="id || currentId" class="btn-action btn-secondary" @click="showHistoryDrawer = true">🕒 Nhật ký</button>
         <button v-if="id || currentId" class="btn-action btn-copy" @click="openDuplicateModal">Nhân bản</button>
         <button class="btn-action btn-primary" @click="saveProfile" :disabled="isSaving">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
@@ -224,6 +225,23 @@
     <!-- Modal tìm kiếm vạn năng -->
     <ObjectSelectModal :isOpen="showUniversalSelect" :type="currentSelectType" @select="handleUniversalSelect"
       @close="showUniversalSelect = false" />
+    <!-- Modal tìm kiếm vạn năng -->
+    <ObjectSelectModal :isOpen="showUniversalSelect" :type="currentSelectType" @select="handleUniversalSelect"
+      @close="showUniversalSelect = false" />
+
+    <!-- HISTORY DRAWER (Slide-over) -->
+    <Teleport to="body">
+      <div class="drawer-overlay" v-if="showHistoryDrawer" @click="showHistoryDrawer = false"></div>
+      <div class="drawer-panel" :class="{ 'is-open': showHistoryDrawer }">
+        <div class="drawer-header">
+          <h3>Nhật ký Hồ sơ</h3>
+          <button class="btn-close-drawer" @click="showHistoryDrawer = false">&times;</button>
+        </div>
+        <div class="drawer-body">
+          <HistoryTimeline v-if="showHistoryDrawer" :apiUrl="historyApiUrl" />
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -237,6 +255,7 @@ import InputModal from '../components/InputModal.vue';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ObjectSelectModal from '../components/ObjectSelectModal.vue';
 import RelationManager from '../components/RelationManager.vue';
+import HistoryTimeline from '../components/HistoryTimeline.vue';
 import { errorHandlingMixin } from '../utils/errorHandler';
 
 export default {
@@ -244,7 +263,7 @@ export default {
   components: {
     DynamicForm, PersonForm, AssetForm, ConfirmModal,
     InputModal, ContractDownloader, ObjectSelectModal,
-    RelationManager
+    RelationManager, HistoryTimeline
   },
   mixins: [errorHandlingMixin],
   props: ['id'],
@@ -291,11 +310,19 @@ export default {
       // UOS Universal Selection
       showUniversalSelect: false,
       currentSelectType: 'PERSON',
+
+      // History Drawer
+      showHistoryDrawer: false,
     };
   },
   computed: {
     isReadOnly() {
       return this.profileStatus === 'FINALIZED';
+    },
+    historyApiUrl() {
+        const pid = this.currentId || this.id;
+        const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
+        return pid ? `${API_URL}/loan-profiles/${pid}/history/` : '';
     },
     getSegmentsByPosition() {
       return (position) => {
@@ -1114,5 +1141,69 @@ export default {
 .btn-remove-mini:hover {
   color: #c0392b;
   transform: scale(1.2);
+}
+
+/* --- History Drawer Styles --- */
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 2000;
+}
+
+.drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  background: white;
+  z-index: 2001;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-panel.is-open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.btn-close-drawer {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #999;
+}
+
+.btn-close-drawer:hover {
+  color: #333;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
 }
 </style>

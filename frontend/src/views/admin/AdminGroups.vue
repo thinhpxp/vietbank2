@@ -111,9 +111,11 @@
 import axios from 'axios';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
+import { errorHandlingMixin } from '@/utils/errorHandler';
 
 export default {
   components: { ConfirmModal },
+  mixins: [errorHandlingMixin],
   data() {
     return {
       groups: [],
@@ -145,7 +147,9 @@ export default {
         const groupsRes = await axios.get('http://127.0.0.1:8000/api/groups/');
         this.groups = groupsRes.data.sort((a, b) => a.order - b.order);
         this.$nextTick(() => this.initResizable());
-      } catch (e) { console.error('Lỗi tải nhóm:', e); }
+      } catch (e) {
+        this.showError(e, 'Lỗi tải danh sách nhóm');
+      }
     },
     initResizable() {
       const table = this.$el.querySelector('.data-table');
@@ -157,26 +161,33 @@ export default {
       try {
         const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
         this.allForms = res.data;
-      } catch (e) { console.error('Lỗi tải form views:', e); }
+      } catch (e) {
+        this.showError(e, 'Lỗi tải danh sách Form');
+      }
     },
     async fetchObjectTypes() {
       try {
         const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
         this.objectTypes = res.data;
       } catch (e) {
-        console.error('Lỗi tải object types:', e);
+        this.showError(e, 'Lỗi tải loại đối tượng');
       }
     },
     async addGroup() {
       if (!this.newGroup.name) return;
-      await axios.post('http://127.0.0.1:8000/api/groups/', this.newGroup);
-      this.newGroup.name = '';
-      this.newGroup.slug = '';
-      this.newGroup.order = 0;
-      this.newGroup.allowed_object_types = [];
-      this.newGroup.layout_position = 'LEFT';
-      this.newGroup.object_type = null;
-      this.fetchGroups();
+      try {
+        await axios.post('http://127.0.0.1:8000/api/groups/', this.newGroup);
+        this.newGroup.name = '';
+        this.newGroup.slug = '';
+        this.newGroup.order = 0;
+        this.newGroup.allowed_object_types = [];
+        this.newGroup.layout_position = 'LEFT';
+        this.newGroup.object_type = null;
+        this.fetchGroups();
+        this.showSuccess('Đã thêm nhóm mới thành công!');
+      } catch (e) {
+        this.showError(e, 'Lỗi thêm nhóm mới');
+      }
     },
     deleteGroup(id) {
       const grp = this.groups.find(g => g.id === id);
@@ -186,15 +197,26 @@ export default {
     },
     async confirmDelete() {
       if (this.deleteTargetId) {
-        await axios.delete(`http://127.0.0.1:8000/api/groups/${this.deleteTargetId}/`);
-        this.showDeleteModal = false;
-        this.deleteTargetId = null;
-        this.fetchGroups();
+        try {
+          await axios.delete(`http://127.0.0.1:8000/api/groups/${this.deleteTargetId}/`);
+          this.showDeleteModal = false;
+          this.deleteTargetId = null;
+          this.fetchGroups();
+          this.showSuccess('Đã xóa nhóm thành công!');
+        } catch (e) {
+          this.showDeleteModal = false; // Đóng confirm modal trước khi hiện lỗi
+          this.showError(e, 'Lỗi xóa nhóm');
+        }
       }
     },
     async updateGroup(grp) {
-      await axios.put(`http://127.0.0.1:8000/api/groups/${grp.id}/`, grp);
-      this.editingId = null;
+      try {
+        await axios.put(`http://127.0.0.1:8000/api/groups/${grp.id}/`, grp);
+        this.editingId = null;
+        this.showSuccess('Cập nhật nhóm thành công!');
+      } catch (e) {
+        this.showError(e, 'Lỗi cập nhật nhóm');
+      }
     }
   }
 }

@@ -16,6 +16,7 @@
         <router-link to="/admin/forms">📑 Khung nhập liệu</router-link>
         <router-link to="/admin/object-types">🏷️ Loại Đối tượng</router-link>
         <router-link to="/admin/master-data">🗂️ Dữ liệu gốc</router-link>
+        <router-link to="/admin/audit-logs">📜 Nhật ký hệ thống</router-link>
         <router-link to="/admin/users">🛡️ Quản lý Truy cập</router-link>
         <hr />
         <router-link to="/">🏠 Dashboard</router-link>

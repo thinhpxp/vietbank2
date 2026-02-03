@@ -3,8 +3,14 @@ from django.contrib.auth.models import User, Group, Permission
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from django.db import transaction
+from .permissions import IsAdminOrManager # IMPORT CUSTOM PERMISSION
 from rest_framework.views import APIView
+
+# ... (rest of imports)
+
+# ... (omitted code)
+
+
 from django.db.models import Q, Prefetch
 # --- CÁC IMPORT MỚI CHO CHỨC NĂNG XUẤT WORD ---
 from django.http import FileResponse
@@ -186,7 +192,7 @@ def log_user_logout(sender, request, user, **kwargs):
 class FieldGroupViewSet(viewsets.ModelViewSet):
     queryset = FieldGroup.objects.all().order_by('order')
     serializer_class = FieldGroupSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrManager]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -200,19 +206,19 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
 class FormViewViewSet(viewsets.ModelViewSet):
     queryset = FormView.objects.all()
     serializer_class = FormViewSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrManager]
 
 # 1.3 ViewSet cho Role
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrManager]
 
 # 1.2 ViewSet cho Field
 class FieldViewSet(viewsets.ModelViewSet):
     queryset = Field.objects.all()
     serializer_class = FieldSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrManager]
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related('group')
@@ -291,13 +297,13 @@ class FieldViewSet(viewsets.ModelViewSet):
 class DocumentTemplateViewSet(viewsets.ModelViewSet):
     queryset = DocumentTemplate.objects.all()
     serializer_class = DocumentTemplateSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrManager]
 
 # 3.2 ViewSet cho User (Nâng cấp)
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().select_related('profile').prefetch_related('groups').order_by('username')
     serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrManager]
 
     @action(detail=True, methods=['post'], url_path='reset-password')
     def reset_password(self, request, pk=None):
@@ -317,7 +323,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all().prefetch_related('permissions').order_by('name')
     serializer_class = GroupSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrManager]
 
 class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     # Lọc bỏ các quyền kỹ thuật/hệ thống không cần thiết cho Admin nghiệp vụ
@@ -325,7 +331,7 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
         content_type__app_label__in=['sessions', 'contenttypes', 'admin']
     ).select_related('content_type').order_by('content_type__model', 'codename')
     serializer_class = PermissionSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrManager]
     pagination_class = None # Đảm bảo không bị phân trang làm mất quyền
 
     def get_queryset(self):
@@ -379,17 +385,30 @@ class ChangePasswordView(APIView):
             return Response({"status": "success", "message": "Đổi mật khẩu thành công!"})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+import django_filters
+
+class AuditLogFilter(django_filters.FilterSet):
+    timestamp_gte = django_filters.DateTimeFilter(field_name="timestamp", lookup_expr='gte')
+    timestamp_lte = django_filters.DateTimeFilter(field_name="timestamp", lookup_expr='lte')
+    username = django_filters.CharFilter(field_name='user__username', lookup_expr='icontains')
+
+    class Meta:
+        model = AuditLog
+        fields = ['action', 'username', 'target_model', 'timestamp_gte', 'timestamp_lte']
+
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrManager]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = AuditLogFilter
+    search_fields = ['details', 'target_id', 'target_model']
+    ordering_fields = ['timestamp', 'action']
+    ordering = ['-timestamp']
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        user_id = self.request.query_params.get('user_id')
-        if user_id:
-            queryset = queryset.filter(user_id=user_id)
-        return queryset
+    # Removed custom get_queryset as filter_backends handles it better
 
 # 4. ViewSet cho LoanProfile (Logic chính)
 class LoanProfileViewSet(viewsets.ModelViewSet):
@@ -437,6 +456,23 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         p_name = instance.name
         instance.delete()
         log_action(self.request.user, 'DELETE', 'LoanProfile', p_id, f"Xóa hồ sơ: {p_name}")
+
+    @action(detail=True, methods=['get'])
+    def history(self, request, pk=None):
+        """
+        Lấy lịch sử tác động (Audit Log) của hồ sơ này.
+        """
+        try:
+            # Lấy tất cả log có target_model='LoanProfile' và target_id=pk
+            logs = AuditLog.objects.filter(
+                target_model='LoanProfile',
+                target_id=str(pk)
+            ).select_related('user').order_by('-timestamp')
+            
+            serializer = AuditLogSerializer(logs, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def duplicate(self, request, pk=None):
@@ -1159,7 +1195,7 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('code')
     serializer_class = MasterObjectTypeSerializer
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAdminOrManager] 
     # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
 
 

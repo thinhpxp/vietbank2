@@ -28,18 +28,37 @@
 
     <!-- Nơi nội dung của từng trang sẽ hiển thị -->
     <router-view />
+
     <!-- Thông báo góc màn hình -->
     <AppToast />
+
+    <!-- Global Error Modal -->
+    <ConfirmModal :visible="showErrorModal" :title="errorModalTitle" :message="errorModalMessage"
+      :errorCode="errorModalCode" :details="errorModalDetails" type="error" mode="alert" confirmText="Đóng"
+      @confirm="closeErrorModal" @cancel="closeErrorModal" :closeOnOverlay="true" />
   </div>
 </template>
 
 <script>
 import AppToast from './components/AppToast.vue'
+import ConfirmModal from './components/ConfirmModal.vue'
 import auth from './store/auth'
+import eventBus, { EVENTS } from './utils/eventBus'
+import { formatError } from './utils/errorHandler'
 
 export default {
   name: 'App',
-  components: { AppToast },
+  components: { AppToast, ConfirmModal },
+  data() {
+    return {
+      // Global Error Modal State
+      showErrorModal: false,
+      errorModalTitle: 'Lỗi',
+      errorModalMessage: '',
+      errorModalCode: '',
+      errorModalDetails: ''
+    }
+  },
   computed: {
     isAuthenticated() { return auth.state.isAuthenticated },
     isAdmin() { return auth.isAdmin.value },
@@ -54,7 +73,25 @@ export default {
     logout() {
       auth.logout();
       this.$router.push('/login');
+    },
+    openGlobalError(error) {
+      const { message, errorCode, details } = formatError(error);
+      this.errorModalTitle = 'Truy cập bị từ chối';
+      this.errorModalMessage = message;
+      this.errorModalCode = errorCode;
+      this.errorModalDetails = details;
+      this.showErrorModal = true;
+    },
+    closeErrorModal() {
+      this.showErrorModal = false;
     }
+  },
+  mounted() {
+    // Subscribe to global error events
+    eventBus.on(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
+  },
+  unmounted() {
+    eventBus.off(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
   }
 }
 </script>

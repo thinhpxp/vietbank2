@@ -59,6 +59,10 @@ const dictionary = {
 
     // Specific Field Fallbacks
     'so_hop_dong': 'Số hợp đồng',
+
+    // Error Messages
+    'YOU DO NOT HAVE PERMISSION TO PERFORM THIS ACTION.': 'Bạn không có quyền thực hiện hành động này.',
+    'AUTHENTICATION CREDENTIALS WERE NOT PROVIDED.': 'Thông tin xác thực không được cung cấp.',
 };
 
 /**
