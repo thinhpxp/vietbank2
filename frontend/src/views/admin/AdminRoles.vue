@@ -101,7 +101,7 @@ export default {
         this.roles = res.data;
         this.$nextTick(() => this.initResizable());
       } catch (e) {
-        console.error("Lỗi tải roles:", e);
+        this.showError(e, 'Lỗi tải danh sách vai trò');
       }
     },
     initResizable() {

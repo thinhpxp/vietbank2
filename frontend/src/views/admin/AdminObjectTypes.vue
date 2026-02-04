@@ -199,7 +199,7 @@ export default {
                 this.types = res.data;
                 this.$nextTick(() => this.initResizable());
             } catch (e) {
-                console.error(e);
+                this.showError(e, 'Lỗi tải danh sách loại đối tượng');
             }
         },
         initResizable() {

@@ -427,7 +427,7 @@ export default {
                 this.groups = gRes.data;
                 this.permissions = pRes.data;
             } catch (e) {
-                this.$toast.error('Lỗi tải dữ liệu hệ thống.');
+                this.showError(e, 'Lỗi tải dữ liệu hệ thống');
             }
         },
 
@@ -452,9 +452,9 @@ export default {
                 }
                 // Cập nhật selectedUser bằng clone mới từ server
                 this.selectedUser = JSON.parse(JSON.stringify(res.data));
-                this.$toast.success('Đã cập nhật người dùng.');
+                this.showSuccess('Đã cập nhật người dùng.');
             } catch (e) {
-                this.$toast.error('Lỗi khi lưu người dùng.');
+                this.showError(e, 'Lỗi khi lưu người dùng');
             } finally {
                 this.isSaving = false;
             }
@@ -467,9 +467,9 @@ export default {
             try {
                 await axios.post(`${API_BASE}/users/${this.selectedUser.id}/reset-password/`, { password: this.newPassword });
                 this.showResetModal = false;
-                this.$toast.success('Đã đặt lại mật khẩu thành công.');
+                this.showSuccess('Đã đặt lại mật khẩu thành công.');
             } catch (e) {
-                this.$toast.error('Lỗi khi reset mật khẩu.');
+                this.showError(e, 'Lỗi khi reset mật khẩu');
             }
         },
         async confirmDeleteUser() {
@@ -481,9 +481,9 @@ export default {
                 await axios.delete(`${API_BASE}/users/${this.selectedUser.id}/`);
                 this.users = this.users.filter(u => u.id !== this.selectedUser.id);
                 this.selectedUser = null;
-                this.$toast.success('Đã xóa tài khoản.');
+                this.showSuccess('Đã xóa tài khoản.');
             } catch (e) {
-                this.$toast.error('Lỗi khi xóa.');
+                this.showError(e, 'Lỗi khi xóa tài khoản');
             }
         },
 
@@ -500,9 +500,9 @@ export default {
             try {
                 const res = await axios.post(`${API_BASE}/user-groups/`, { name, permissions: [] });
                 this.groups.push(res.data);
-                this.$toast.success('Đã tạo nhóm mới.');
+                this.showSuccess('Đã tạo nhóm mới.');
             } catch (e) {
-                this.$toast.error('Lỗi khi tạo nhóm.');
+                this.showError(e, 'Lỗi khi tạo nhóm');
             }
         },
         async saveGroup() {
@@ -511,9 +511,9 @@ export default {
                 const res = await axios.put(`${API_BASE}/user-groups/${this.selectedGroup.id}/`, this.selectedGroup);
                 const idx = this.groups.findIndex(g => g.id === res.data.id);
                 if (idx !== -1) this.groups[idx] = res.data;
-                this.$toast.success('Đã lưu cấu hình nhóm.');
+                this.showSuccess('Đã lưu cấu hình nhóm.');
             } catch (e) {
-                this.$toast.error('Lỗi khi lưu.');
+                this.showError(e, 'Lỗi khi lưu cấu hình');
             } finally {
                 this.isSaving = false;
             }
@@ -527,9 +527,9 @@ export default {
                 await axios.delete(`${API_BASE}/user-groups/${this.selectedGroup.id}/`);
                 this.groups = this.groups.filter(g => g.id !== this.selectedGroup.id);
                 this.selectedGroup = null;
-                this.$toast.success('Đã xóa nhóm.');
+                this.showSuccess('Đã xóa nhóm.');
             } catch (e) {
-                this.$toast.error('Lỗi khi xóa nhóm.');
+                this.showError(e, 'Lỗi khi xóa nhóm');
             }
         },
 

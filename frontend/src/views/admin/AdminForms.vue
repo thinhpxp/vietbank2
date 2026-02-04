@@ -95,9 +95,13 @@ export default {
     },
     methods: {
         async fetchData() {
-            const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
-            this.forms = res.data;
-            this.$nextTick(() => this.initResizable());
+            try {
+                const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
+                this.forms = res.data;
+                this.$nextTick(() => this.initResizable());
+            } catch (e) {
+                this.showError(e, 'Lỗi tải danh sách Form');
+            }
         },
         initResizable() {
             const table = this.$el.querySelector('.data-table');

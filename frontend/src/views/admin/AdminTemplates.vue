@@ -105,9 +105,13 @@ export default {
   },
   methods: {
     async fetchTemplates() {
-      const res = await axios.get('http://127.0.0.1:8000/api/document-templates/');
-      this.templates = res.data;
-      this.$nextTick(() => this.initResizable());
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/document-templates/');
+        this.templates = res.data;
+        this.$nextTick(() => this.initResizable());
+      } catch (e) {
+        this.showError(e, 'Lỗi tải danh sách mẫu');
+      }
     },
     initResizable() {
       const table = this.$el.querySelector('.data-table');
@@ -149,10 +153,16 @@ export default {
     },
     async confirmDelete() {
       if (this.deleteTargetId) {
-        await axios.delete(`http://127.0.0.1:8000/api/document-templates/${this.deleteTargetId}/`);
-        this.showDeleteModal = false;
-        this.deleteTargetId = null;
-        this.fetchTemplates();
+        try {
+          await axios.delete(`http://127.0.0.1:8000/api/document-templates/${this.deleteTargetId}/`);
+          this.showDeleteModal = false;
+          this.deleteTargetId = null;
+          this.fetchTemplates();
+          this.showSuccess('Đã xóa mẫu thành công!');
+        } catch (e) {
+          this.showDeleteModal = false;
+          this.showError(e, 'Lỗi xóa mẫu');
+        }
       }
     },
     async updateTemplate(tpl) {

@@ -265,15 +265,19 @@ export default {
   methods: {
     // toggleSort removed (provided by mixin)
     async fetchData() {
-      const [resFields, resGroups, resTypes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/api/fields/'),
-        axios.get('http://127.0.0.1:8000/api/groups/'),
-        axios.get('http://127.0.0.1:8000/api/object-types/')
-      ]);
-      this.fields = resFields.data;
-      this.groups = resGroups.data;
-      this.objectTypes = resTypes.data;
-      this.$nextTick(() => this.initResizable());
+      try {
+        const [resFields, resGroups, resTypes] = await Promise.all([
+          axios.get('http://127.0.0.1:8000/api/fields/'),
+          axios.get('http://127.0.0.1:8000/api/groups/'),
+          axios.get('http://127.0.0.1:8000/api/object-types/')
+        ]);
+        this.fields = resFields.data;
+        this.groups = resGroups.data;
+        this.objectTypes = resTypes.data;
+        this.$nextTick(() => this.initResizable());
+      } catch (e) {
+        this.showError(e, 'Lỗi tải dữ liệu');
+      }
     },
     initResizable() {
       const table = this.$refs.resizableTable;
@@ -282,8 +286,12 @@ export default {
       }
     },
     async fetchForms() {
-      const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
-      this.allForms = res.data;
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
+        this.allForms = res.data;
+      } catch (e) {
+        this.showError(e, 'Lỗi tải danh sách Form');
+      }
     },
     getFormNames(ids) {
       if (!ids || ids.length === 0) return 'Chưa gán (Ẩn)';
@@ -333,10 +341,16 @@ export default {
     },
     async confirmDelete() {
       if (this.deleteTargetId) {
-        await axios.delete(`http://127.0.0.1:8000/api/fields/${this.deleteTargetId}/`);
-        this.showDeleteModal = false;
-        this.deleteTargetId = null;
-        this.fetchData();
+        try {
+          await axios.delete(`http://127.0.0.1:8000/api/fields/${this.deleteTargetId}/`);
+          this.showDeleteModal = false;
+          this.deleteTargetId = null;
+          this.fetchData();
+          this.showSuccess('Đã xóa trường thành công!');
+        } catch (e) {
+          this.showDeleteModal = false;
+          this.showError(e, 'Lỗi xóa trường');
+        }
       }
     },
     copyField(f) {

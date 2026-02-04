@@ -338,7 +338,7 @@ export default {
                     this.activeTab = this.objectTypes[0].code;
                 }
             } catch (e) {
-                console.error("Lỗi tải loại đối tượng:", e);
+                this.showError(e, 'Lỗi tải loại đối tượng');
             }
         },
         async fetchData() {
@@ -355,7 +355,7 @@ export default {
                 }));
 
             } catch (error) {
-                console.error('Lỗi khi tải dữ liệu master:', error);
+                this.showError(error, 'Lỗi khi tải dữ liệu master');
             } finally {
                 this.loading = false;
                 this.$nextTick(() => {
@@ -410,7 +410,7 @@ export default {
 
 
             } catch (error) {
-                console.error('Lỗi khi tải dữ liệu liên quan:', error);
+                this.showError(error, 'Lỗi khi tải dữ liệu liên quan');
             } finally {
                 this.relatedLoading = false;
             }
@@ -541,8 +541,7 @@ export default {
                 this.showCreateModal = true;
 
             } catch (e) {
-                console.error(e);
-                this.$toast.error("Không thể tải thông tin chi tiết");
+                this.showError(e, "Không thể tải thông tin chi tiết");
             } finally {
                 this.relatedLoading = false;
             }
