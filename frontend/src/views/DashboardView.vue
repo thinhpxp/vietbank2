@@ -119,6 +119,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import auth from '@/store/auth';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
@@ -126,11 +127,12 @@ import InputModal from '../components/InputModal.vue';
 import { makeTableResizable } from '@/utils/resizable-table';
 import { SortableTableMixin } from '@/mixins/SortableTableMixin';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
+import { errorHandlingMixin } from '@/utils/errorHandler';
 
 export default {
   name: 'DashboardView',
   components: { ContractDownloader, ConfirmModal, InputModal },
-  mixins: [SortableTableMixin, FilterableTableMixin],
+  mixins: [SortableTableMixin, FilterableTableMixin, errorHandlingMixin],
   data() {
     return {
       auth,
@@ -190,11 +192,11 @@ export default {
       try {
         const params = {};
         if (search) params.search = search;
-        const response = await axios.get('http://127.0.0.1:8000/api/loan-profiles/', { params });
+        const response = await axios.get(`${API_URL}/loan-profiles/`, { params });
         this.profiles = response.data;
       } catch (error) {
         console.error(error);
-        this.$toast.error('Lỗi tải danh sách hồ sơ');
+        this.showError(error, 'Lỗi tải danh sách hồ sơ');
       } finally {
         this.loading = false;
         this.$nextTick(() => {
@@ -210,7 +212,7 @@ export default {
     },
     async fetchForms() {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/form-views/');
+        const response = await axios.get(`${API_URL}/form-views/`);
         this.allForms = response.data;
       } catch (error) {
         console.error("Lỗi load forms:", error);
@@ -240,13 +242,13 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/loan-profiles/${this.deleteTargetId}/`);
+          await axios.delete(`${API_URL}/loan-profiles/${this.deleteTargetId}/`);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchProfiles();
         } catch (error) {
-          console.error(error);
-          this.$toast.error('Lỗi khi xóa hồ sơ!');
+          this.showDeleteModal = false;
+          this.showError(error, 'Lỗi khi xóa hồ sơ');
         }
       }
     },
@@ -265,7 +267,7 @@ export default {
     async confirmDuplicate(newName) {
       try {
         const response = await axios.post(
-          `http://127.0.0.1:8000/api/loan-profiles/${this.duplicateTargetId}/duplicate/`,
+          `${API_URL}/loan-profiles/${this.duplicateTargetId}/duplicate/`,
           { new_name: newName }
         );
         this.showDuplicateModal = false;
@@ -273,8 +275,8 @@ export default {
         this.$toast.success(`Đã tạo bản sao: ${response.data.name}`);
         this.fetchProfiles();
       } catch (error) {
-        console.error(error);
-        this.$toast.error('Lỗi khi tạo bản sao!');
+        this.showDuplicateModal = false;
+        this.showError(error, 'Lỗi khi tạo bản sao');
       }
     },
     formatDate(dateString) {

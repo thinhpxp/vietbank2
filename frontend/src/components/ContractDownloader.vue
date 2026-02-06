@@ -53,6 +53,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 
 export default {
   name: 'ContractDownloader',
@@ -93,7 +94,7 @@ export default {
     async fetchTemplates() {
       this.loadingTemplates = true;
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/document-templates/');
+        const response = await axios.get(`${API_URL}/document-templates/`);
         this.templates = response.data;
       } catch (e) {
         this.error = 'Không tải được danh sách mẫu.';
@@ -120,7 +121,7 @@ export default {
       this.error = '';
 
       try {
-        const url = `http://127.0.0.1:8000/api/loan-profiles/${this.profileId}/generate-document/`;
+        const url = `${API_URL}/loan-profiles/${this.profileId}/generate-document/`;
         const response = await axios.post(url, payload, { responseType: 'blob' });
 
         const contentType = response.headers['content-type'];

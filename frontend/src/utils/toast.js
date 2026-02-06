@@ -7,9 +7,22 @@ export const toastState = reactive({
 let nextId = 1;
 
 export const toast = {
+    lastMessage: null,
+    lastType: null,
+    lastTime: 0,
+
     add(message, type = 'info', duration = 3000) {
+        const now = Date.now();
+        // Debounce: Nếu cùng message và loại trong vòng 2s -> Bỏ qua
+        if (this.lastMessage === message && this.lastType === type && (now - this.lastTime < 2000)) {
+            return;
+        }
+        this.lastMessage = message;
+        this.lastType = type;
+        this.lastTime = now;
+
         const id = nextId++;
-        const item = { id, message, type };
+        const item = { id, message, type, duration };
         toastState.items.push(item);
 
         if (duration > 0) {

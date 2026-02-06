@@ -17,13 +17,15 @@
           <span class="rel-type-badge">{{ $t(rel.relation_type) }}</span>
 
           <span class="rel-target">
-            {{ isSource(rel) ? 'đối với' : 'là' }}
-            
+            {{ getRelationDescription(rel) }}
+
             <!-- Logic hiển thị: Nếu trong hồ sơ thì text thường, ngoài hồ sơ thì link -->
             <strong v-if="isObjectInProfile(isSource(rel) ? rel.target_object : rel.source_object)">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
             </strong>
-            <strong v-else class="external-link" @click="viewObjectDetail(isSource(rel) ? rel.target_object : rel.source_object)" title="Xem chi tiết đối tượng">
+            <strong v-else class="external-link"
+              @click="viewObjectDetail(isSource(rel) ? rel.target_object : rel.source_object)"
+              title="Xem chi tiết đối tượng">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
             </strong>
 
@@ -35,13 +37,9 @@
           title="Xóa liên kết">&times;</button>
       </div>
     </div>
-    
-            <!-- Modal xem chi tiết -->
-    <ObjectDetailModal 
-      :objectId="viewingObjectId" 
-      :fieldDefinitions="allFields"
-      @close="viewingObjectId = null" 
-    />
+
+    <!-- Modal xem chi tiết -->
+    <ObjectDetailModal :objectId="viewingObjectId" :fieldDefinitions="allFields" @close="viewingObjectId = null" />
 
     <!-- Modal chọn đối tượng để liên kết -->
     <BaseModal :isOpen="showAddModal" title="Gán mối quan hệ mới" @close="closeModal">
@@ -85,6 +83,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import BaseModal from './BaseModal.vue';
 import ObjectDetailModal from './ObjectDetailModal.vue';
 
@@ -108,7 +107,29 @@ export default {
       selectedTargetId: null,
       loading: false,
       // Quick View state
-      viewingObjectId: null
+      viewingObjectId: null,
+
+      // === BƯỚC 1: ĐỊNH NGHĨA BẢN ĐỒ QUAN HỆ ===
+      // Thêm đối tượng này vào data()
+      relationTextMap: {
+        'OWNER': {
+          source: 'là chủ sở hữu của',    // Khi object hiện tại là nguồn (source)
+          target: 'thuộc sở hữu của'      // Khi object hiện tại là đích (target)
+        },
+        'SECURES': {
+          source: 'bảo đảm cho',
+          target: 'được bảo đảm bởi'
+        },
+        'AMENDS': {
+          source: 'bổ sung/sửa đổi cho',
+          target: 'được bổ sung/sửa đổi bởi'
+        },
+        'REFERENCES': {
+          source: 'dẫn chiếu đến',
+          target: 'được dẫn chiếu bởi'
+        },
+        // Thêm các loại quan hệ khác ở đây trong tương lai
+      }
     };
   },
   computed: {
@@ -143,7 +164,7 @@ export default {
     async fetchRelations() {
       if (!this.masterObjectId) return;
       try {
-        const res = await axios.get(`http://127.0.0.1:8000/api/master-objects/${this.masterObjectId}/`);
+        const res = await axios.get(`${API_URL}/master-objects/${this.masterObjectId}/`);
         // Gộp quan hệ đi và quan hệ đến
         this.relations = [
           ...(res.data.relations_out || []),
@@ -163,7 +184,7 @@ export default {
     async confirmAddRelation() {
       if (!this.selectedTargetId) return;
       try {
-        await axios.post('http://127.0.0.1:8000/api/master-relations/create_relation/', {
+        await axios.post(`${API_URL}/master-relations/create_relation/`, {
           source_id: this.masterObjectId,
           target_id: this.selectedTargetId,
           relation_type: this.newRelType
@@ -178,7 +199,7 @@ export default {
     async removeRelation(relId) {
       if (!confirm('Bạn có chắc muốn xóa liên kết này?')) return;
       try {
-        await axios.delete(`http://127.0.0.1:8000/api/master-relations/${relId}/`);
+        await axios.delete(`${API_URL}/master-relations/${relId}/`);
         this.relations = this.relations.filter(r => r.id !== relId);
         this.$toast.success('Đã xóa liên kết');
       } catch (e) {
@@ -191,7 +212,20 @@ export default {
     },
     viewObjectDetail(objectId) {
       this.viewingObjectId = objectId;
-    }
+    },
+    // lựa chọn từ điển phù hợp với quan hệ
+    getRelationDescription(rel) {
+      const type = rel.relation_type;
+      const map = this.relationTextMap[type];
+
+      // Nếu có định nghĩa trong map, sử dụng nó
+      if (map) {
+        return this.isSource(rel) ? map.source : map.target;
+      }
+
+      // Nếu không, quay về mặc định để tránh lỗi
+      return this.isSource(rel) ? 'có quan hệ với' : 'là quan hệ của';
+    },
   }
 };
 </script>
@@ -342,7 +376,8 @@ export default {
 /* Style cho link external */
 .external-link {
   margin-left: 4px;
-  color: #b7950b !important; /* Màu vàng đậm (Dark Gold) cho dễ đọc trên nền trắng */
+  color: #b7950b !important;
+  /* Màu vàng đậm (Dark Gold) cho dễ đọc trên nền trắng */
   cursor: pointer;
   font-weight: 600;
 }

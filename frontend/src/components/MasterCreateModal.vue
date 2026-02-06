@@ -24,6 +24,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import DynamicForm from './DynamicForm.vue';
 import BaseModal from './BaseModal.vue';
 
@@ -104,7 +105,7 @@ export default {
             this.loadingFields = true;
             try {
                 // Sử dụng API active_fields_grouped với entity_type mới
-                const res = await axios.get(`http://127.0.0.1:8000/api/fields/active_fields_grouped/?entity_type=${this.type}`);
+                const res = await axios.get(`${API_URL}/fields/active_fields_grouped/?entity_type=${this.type}`);
 
                 // Flatten the grouped result from API into a simple array for DynamicForm if needed
                 const flatFields = [];
@@ -138,9 +139,9 @@ export default {
                 };
 
                 if (this.isEdit) {
-                    await axios.patch(`http://127.0.0.1:8000/api/master-objects/${this.editObject.id}/`, payload);
+                    await axios.patch(`${API_URL}/master-objects/${this.editObject.id}/`, payload);
                 } else {
-                    await axios.post(`http://127.0.0.1:8000/api/master-objects/`, payload);
+                    await axios.post(`${API_URL}/master-objects/`, payload);
                 }
 
                 this.$toast.success(`${this.isEdit ? 'Cập nhật' : 'Tạo mới'} thành công!`);

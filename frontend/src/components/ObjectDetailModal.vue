@@ -11,65 +11,54 @@
 
     <div v-else-if="objectData" class="admin-form-section">
       <!-- Section: Thông tin chung -->
-      <div class="mb-4">
-        <h4 class="text-sm font-bold text-gray-700 uppercase mb-2 border-b pb-1">
-          {{ $t('THONG_TIN_CHUNG') }}
+      <div class="mb-6">
+        <h4 class="text-sm font-bold text-gray-700 uppercase mb-3 border-b pb-1 flex items-center gap-2">
+          <span>📋</span> {{ $t('THONG_TIN_CHUNG') }}
         </h4>
-        <table class="admin-table w-full mb-4">
-          <tbody>
-            <tr class="border-b last:border-0 hover:bg-gray-50">
-              <td class="py-2 px-3 text-sm text-gray-600 font-medium w-1/3">
-                {{ $t('LOAI_DOI_TUONG') }}
-              </td>
-              <td class="py-2 px-3 text-sm font-bold text-gray-800">
-                {{ objectData.object_type_display }}
-              </td>
-            </tr>
-            <tr class="border-b last:border-0 hover:bg-gray-50">
-              <td class="py-2 px-3 text-sm text-gray-600 font-medium w-1/3">
-                {{ $t('TEN_HIEN_THI') }}
-              </td>
-              <td class="py-2 px-3 text-sm font-bold text-gray-800 break-words">
-                {{ objectData.display_name }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="ui-table-wrapper">
+          <table class="data-table allow-wrap w-full">
+            <tbody>
+              <tr>
+                <td class="font-medium text-gray-600 w-1/3">{{ $t('LOAI_DOI_TUONG') }}</td>
+                <td>
+                  <span class="badge badge-custom">{{ objectData.object_type_display }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td class="font-medium text-gray-600">{{ $t('TEN_HIEN_THI') }}</td>
+                <td class="font-bold break-all">{{ objectData.display_name }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Section: Chi tiết thuộc tính -->
       <div>
-        <h4 class="text-sm font-bold text-gray-700 uppercase mb-2 border-b pb-1">
-          {{ $t('THUO_TINH_CHI_TIET') }}
+        <h4 class="text-sm font-bold text-gray-700 uppercase mb-3 border-b pb-1 flex items-center gap-2">
+          <span>🔍</span> {{ $t('THUO_TINH_CHI_TIET') }}
         </h4>
-        <table class="admin-table w-full">
-          <thead>
-            <tr>
-              <th class="text-left py-2 px-3 bg-gray-50 text-xs font-semibold text-gray-600">
-                {{ $t('TRUONG_DU_LIEU') }}
-              </th>
-              <th class="text-left py-2 px-3 bg-gray-50 text-xs font-semibold text-gray-600">
-                {{ $t('GIA_TRI') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(value, key) in fieldValues" :key="key" class="border-b last:border-0 hover:bg-gray-50">
-              <td class="py-2 px-3 text-sm text-gray-600 font-medium w-1/3">
-                {{ getLabel(key) }}
-                <!-- <div class="text-xs text-gray-400 font-normal">{{ key }}</div> -->
-              </td>
-              <td class="py-2 px-3 text-sm text-gray-800">
-                {{ value }}
-              </td>
-            </tr>
-            <tr v-if="Object.keys(fieldValues).length === 0">
-              <td colspan="2" class="py-4 text-center text-gray-500 text-sm italic">
-                {{ $t('KHONG_CO_DU_LIEU_CHI_TIET') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="ui-table-wrapper">
+          <table class="data-table allow-wrap w-full">
+            <thead>
+              <tr>
+                <th class="w-1/3">{{ $t('TRUONG_DU_LIEU') }}</th>
+                <th>{{ $t('GIA_TRI') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(value, key) in fieldValues" :key="key">
+                <td class="font-medium text-gray-600">{{ getLabel(key) }}</td>
+                <td class="break-all">{{ value }}</td>
+              </tr>
+              <tr v-if="Object.keys(fieldValues).length === 0">
+                <td colspan="2" class="py-6 text-center text-gray-400 italic">
+                  {{ $t('KHONG_CO_DU_LIEU_CHI_TIET') }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -83,6 +72,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import BaseModal from './BaseModal.vue';
 
 export default {
@@ -108,8 +98,48 @@ export default {
   },
   computed: {
     fieldValues() {
-      // Trả về object chứa các giá trị field
-      return this.objectData ? (this.objectData.field_values || {}) : {};
+      if (!this.objectData || !this.objectData.field_values) return {};
+
+      const rawValues = this.objectData.field_values;
+      const objectType = this.objectData.object_type;
+      const filtered = {};
+
+      // Chỉ lấy các giá trị mà field definition cho phép loại đối tượng này
+      Object.keys(rawValues).forEach(key => {
+        const fieldDef = this.fieldDefinitions.find(f => f.placeholder_key === key);
+
+        // Nếu không tìm thấy định nghĩa, hiển thị mặc định (để tránh mất dữ liệu quan trọng)
+        if (!fieldDef) {
+          filtered[key] = rawValues[key];
+          return;
+        }
+
+        // Danh sách các loại đối tượng được phép từ cả Nhóm và Trường (Dùng mã Code)
+        const groupAllowed = fieldDef.group_allowed_object_type_codes || [];
+        const fieldAllowed = fieldDef.allowed_object_type_codes || [];
+
+        // Logic ưu tiên:
+        // 1. Nếu FIELD có định nghĩa loại cụ thể -> Chỉ theo FIELD
+        if (fieldAllowed.length > 0) {
+          if (fieldAllowed.includes(objectType)) {
+            filtered[key] = rawValues[key];
+          }
+          return;
+        }
+
+        // 2. Nếu FIELD không có nhưng GROUP có -> Theo GROUP
+        if (groupAllowed.length > 0) {
+          if (groupAllowed.includes(objectType)) {
+            filtered[key] = rawValues[key];
+          }
+          return;
+        }
+
+        // 3. Nếu cả hai đều trống -> Cho phép tất cả (thông tin chung)
+        filtered[key] = rawValues[key];
+      });
+
+      return filtered;
     }
   },
   watch: {
@@ -131,7 +161,7 @@ export default {
       this.error = null;
       this.objectData = null;
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/master-objects/${id}/`);
+        const response = await axios.get(`${API_URL}/master-objects/${id}/`);
         this.objectData = response.data;
       } catch (err) {
         console.error("Lỗi tải chi tiết đối tượng:", err);
@@ -146,7 +176,7 @@ export default {
         const field = this.fieldDefinitions.find(f => f.placeholder_key === key);
         if (field) return field.label;
       }
-      
+
       // 2. Nếu không có định nghĩa, thử dịch bằng dictionary (dành cho các key hệ thống như HDTC)
       const translated = this.$t(key);
       if (translated && translated !== key) return translated;
@@ -171,7 +201,12 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

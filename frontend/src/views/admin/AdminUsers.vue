@@ -103,6 +103,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -134,7 +135,7 @@ export default {
   methods: {
     async fetchUsers() {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/users/');
+        const response = await axios.get(`${API_URL}/users/`);
         this.users = response.data;
       } catch (error) {
         console.error("Lỗi tải users:", error);
@@ -154,7 +155,7 @@ export default {
         const payload = { ...user };
         delete payload.password;
 
-        await axios.patch(`http://127.0.0.1:8000/api/users/${user.id}/`, payload);
+        await axios.patch(`${API_URL}/users/${user.id}/`, payload);
         this.editingId = null;
         await this.fetchUsers(); // Tải lại để đảm bảo dữ liệu đồng bộ
       } catch (error) {
@@ -169,7 +170,7 @@ export default {
       }
 
       try {
-        await axios.post('http://127.0.0.1:8000/api/users/', this.newUser);
+        await axios.post(`${API_URL}/users/`, this.newUser);
         this.showSuccess('Tạo người dùng thành công!');
 
         // Reset form
@@ -189,7 +190,7 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/users/${this.deleteTargetId}/`);
+          await axios.delete(`${API_URL}/users/${this.deleteTargetId}/`);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchUsers();

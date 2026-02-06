@@ -74,9 +74,13 @@ export default {
       auth.logout();
       this.$router.push('/login');
     },
-    openGlobalError(error) {
+    openGlobalError(data) {
+      // Handle both old format (error only) and new format ({error, title})
+      const error = data?.error || data;
+      const title = data?.title || 'Lỗi';
+
       const { message, errorCode, details } = formatError(error);
-      this.errorModalTitle = 'Truy cập bị từ chối';
+      this.errorModalTitle = title;
       this.errorModalMessage = message;
       this.errorModalCode = errorCode;
       this.errorModalDetails = details;

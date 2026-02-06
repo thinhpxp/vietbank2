@@ -24,9 +24,10 @@
         <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock" @click="unlockProfile">🔓 Mở
           khóa</button>
         <button v-if="id || currentId" class="btn-action btn-doc" @click="openDownloadModal">Xuất HĐ</button>
-        <button v-if="id || currentId" class="btn-action btn-secondary" @click="showHistoryDrawer = true">🕒 Nhật ký</button>
+        <button v-if="id || currentId" class="btn-action btn-secondary" @click="showHistoryDrawer = true">🕒 Nhật
+          ký</button>
         <button v-if="id || currentId" class="btn-action btn-copy" @click="openDuplicateModal">Nhân bản</button>
-        <button class="btn-action btn-primary" @click="saveProfile" :disabled="isSaving">
+        <button class="btn-action btn-primary" @click="saveProfile(false)" :disabled="isSaving">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
         </button>
       </div>
@@ -62,7 +63,8 @@
               Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
             </div>
 
-            <div v-for="(item, index) in objectSections[segment.code]" :key="segment.code + '-' + index"
+            <div v-for="(item, index) in objectSections[segment.code]"
+              :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
               class="master-card generic-card">
               <div class="card-header-mini">
                 <strong>{{ segment.name }} #{{ index + 1 }}</strong>
@@ -72,7 +74,9 @@
                 :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
 
               <RelationManager v-if="item.master_object && item.master_object.id"
-                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :disabled="isReadOnly" />
+                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
+                :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                :disabled="isReadOnly" />
             </div>
           </div>
 
@@ -83,10 +87,10 @@
               <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
             </div>
             <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
-            <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
+            <div v-for="(asset, index) in getAssetList()" :key="asset.master_object?.id || asset._uid">
               <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" @update:asset="updateAssetList(index, $event)"
-                @remove="removeAssetList(index)" />
+                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
             </div>
           </div>
 
@@ -99,9 +103,10 @@
             <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
               Chưa có người nào.
             </div>
-            <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
+            <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
               <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                 @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
             </div>
           </div>
@@ -139,7 +144,8 @@
               Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
             </div>
 
-            <div v-for="(item, index) in objectSections[segment.code]" :key="segment.code + '-' + index"
+            <div v-for="(item, index) in objectSections[segment.code]"
+              :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
               class="master-card generic-card">
               <div class="card-header-mini">
                 <strong>{{ segment.name }} #{{ index + 1 }}</strong>
@@ -149,7 +155,9 @@
                 :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
 
               <RelationManager v-if="item.master_object && item.master_object.id"
-                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects" :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :disabled="isReadOnly" />
+                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
+                :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                :disabled="isReadOnly" />
             </div>
           </div>
 
@@ -160,10 +168,10 @@
               <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
             </div>
             <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
-            <div v-for="(asset, index) in getAssetList()" :key="'asset-' + index">
+            <div v-for="(asset, index) in getAssetList()" :key="asset.master_object?.id || asset._uid">
               <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields" @update:asset="updateAssetList(index, $event)"
-                @remove="removeAssetList(index)" />
+                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
             </div>
           </div>
 
@@ -176,9 +184,10 @@
             <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
               Chưa có người nào.
             </div>
-            <div v-for="(person, index) in objectSections['PERSON']" :key="'person-' + index">
+            <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
               <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                 @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
             </div>
           </div>
@@ -247,6 +256,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import DynamicForm from '../components/DynamicForm.vue';
 import PersonForm from '../components/PersonForm.vue';
 import AssetForm from '../components/AssetForm.vue';
@@ -280,6 +290,7 @@ export default {
       currentFormSlug: null, // MỚI: Theo dõi slug form hiện tại
       currentFormName: '', // MỚI: Tên hiển thị của form
       objectTypes: [], // List of MasterObjectTypes for AssetForm filtering
+      autoSaveInterval: null, // MỚI: Bộ đếm thời gian tự động lưu
       // Resize logic
       leftPanelWidth: 50,
       isResizing: false,
@@ -301,7 +312,7 @@ export default {
       showLockPasswordModal: false,
       showUnlockPasswordModal: false,
       relationRefreshTrigger: 0,
-      
+
       // Auto-save timer
       autoSaveTimer: null,
       // Profile Status
@@ -320,9 +331,9 @@ export default {
       return this.profileStatus === 'FINALIZED';
     },
     historyApiUrl() {
-        const pid = this.currentId || this.id;
-        const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
-        return pid ? `${API_URL}/loan-profiles/${pid}/history/` : '';
+      const pid = this.currentId || this.id;
+      const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
+      return pid ? `${API_URL}/loan-profiles/${pid}/history/` : '';
     },
     getSegmentsByPosition() {
       return (position) => {
@@ -334,8 +345,8 @@ export default {
           const gPos = field.group_layout_position || 'LEFT';
           if (gPos !== position) return acc;
 
-          // Chỉ lấy các trường "Mồ côi" (không gắn với Object Type nào)
-          const specialTypes = field.group_allowed_object_types || [];
+          // Chỉ lấy các trường "Mồ côi" (không gắn với Object Type nào qua Nhóm)
+          const specialTypes = field.group_allowed_object_type_codes || [];
           if (specialTypes.length > 0) return acc;
 
           if (!acc[gSlug]) {
@@ -467,10 +478,22 @@ export default {
     getFieldsForType() {
       return (typeCode) => {
         return this.allFields.filter(f => {
-          // Khớp qua group (ưu tiên) hoặc trực tiếp qua field level links
-          const groupMatch = f.group_allowed_object_types?.includes(typeCode);
-          const fieldMatch = f.allowed_object_types?.includes(typeCode);
-          return groupMatch || fieldMatch;
+          const groupAllowed = f.group_allowed_object_type_codes || [];
+          const fieldAllowed = f.allowed_object_type_codes || [];
+
+          // Logic ưu tiên:
+          // 1. Nếu FIELD có định nghĩa loại cụ thể -> Chỉ theo FIELD
+          if (fieldAllowed.length > 0) {
+            return fieldAllowed.includes(typeCode);
+          }
+
+          // 2. Nếu FIELD không có nhưng GROUP có -> Theo GROUP
+          if (groupAllowed.length > 0) {
+            return groupAllowed.includes(typeCode);
+          }
+
+          // 3. Nếu cả hai đều trống -> Cho phép tất cả (tố cốt lõi của hồ sơ)
+          return true;
         });
       }
     },
@@ -480,7 +503,7 @@ export default {
     coreFields() {
       // Thông tin CỐT LÕI (CORE) = Các trường không thuộc bất kỳ object_type nào (General Profile)
       return this.allFields.filter(f => {
-        const specialTypes = f.group_allowed_object_types || [];
+        const specialTypes = f.group_allowed_object_type_codes || [];
         return specialTypes.length === 0;
       }).sort((a, b) => a.order - b.order);
     },
@@ -493,6 +516,12 @@ export default {
       this.currentId = this.id;
       await this.fetchProfileData(this.id);
     }
+    // Thiết lập Auto-save định kỳ 2 phút (120000ms)
+    this.autoSaveInterval = setInterval(() => {
+      if (this.currentId || this.id) {
+        this.saveProfile(true); // silent = true
+      }
+    }, 120000);
     // ĐÃ XÓA: Tự động addEntity('PERSON') và addEntity(null) để tránh tạo rác
   },
   watch: {
@@ -501,6 +530,12 @@ export default {
       handler() {
         this.fetchFields();
       }
+    }
+  },
+  beforeUnmount() {
+    // Dọn dẹp bộ đếm khi thoát trang
+    if (this.autoSaveInterval) {
+      clearInterval(this.autoSaveInterval);
     }
   },
   methods: {
@@ -526,20 +561,20 @@ export default {
     },
     async fetchObjectTypes() {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+        const res = await axios.get(`${API_URL}/object-types/`);
         this.objectTypes = res.data;
       } catch (e) { console.error("Lỗi load object types:", e); }
     },
     async fetchRoles() {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/roles/');
+        const res = await axios.get(`${API_URL}/roles/`);
         this.availableRoles = res.data.map(r => r.name);
       } catch (e) { console.error("Lỗi load roles:", e); }
     },
     async fetchFields() {
       const form_slug = this.$route.query.form || this.currentFormSlug || "";
       try {
-        const url = `http://127.0.0.1:8000/api/fields/?form_slug=${form_slug}`;
+        const url = `${API_URL}/fields/?form_slug=${form_slug}`;
         const response = await axios.get(url);
         this.allFields = response.data;
 
@@ -579,7 +614,7 @@ export default {
         return;
       }
       try {
-        const res = await axios.get(`http://127.0.0.1:8000/api/form-views/`);
+        const res = await axios.get(`${API_URL}/form-views/`);
         const target = res.data.find(f => f.slug === slug);
         if (target) {
           this.currentFormName = target.name;
@@ -593,7 +628,7 @@ export default {
       // Logic MATCH với getGroupsByPosition để đảm bảo nhất quán
       const currentValues = { ...this.generalFieldValues };
       this.allFields.forEach(field => {
-        const specialTypes = field.group_allowed_object_types || [];
+        const specialTypes = field.group_allowed_object_type_codes || [];
         if (specialTypes.length === 0) {
           if (field.default_value && (currentValues[field.placeholder_key] === undefined || currentValues[field.placeholder_key] === null || currentValues[field.placeholder_key] === '')) {
             currentValues[field.placeholder_key] = field.default_value;
@@ -619,9 +654,10 @@ export default {
       const oldType = typeCode;
       const newType = updated.master_object?.object_type;
 
-      // TRƯỜNG HỢP: Đổi loại đối tượng (VD: Từ BOND sang REALESTATE)
+      // Làm mới _uid khi đổi loại để đưa lên đầu danh sách toàn cục
       if (newType && newType !== oldType) {
-        console.log(`DEBUG: Moving object from ${oldType} to ${newType}`);
+        updated._uid = Date.now() + Math.random();
+        console.log(`DEBUG: Di chuyển đối tượng từ ${oldType} sang ${newType} và làm mới _uid`);
 
         // 1. Xóa khỏi mảng cũ
         this.objectSections[oldType].splice(index, 1);
@@ -630,7 +666,8 @@ export default {
         if (!this.objectSections[newType]) {
           this.objectSections[newType] = [];
         }
-        this.objectSections[newType].push(updated);
+        // Đưa lên đầu mảng mới
+        this.objectSections[newType].unshift(updated);
 
         this.$toast.info(`Đã chuyển loại sang: ${this.$t(newType)}`);
 
@@ -654,20 +691,16 @@ export default {
         this.objectSections[targetType] = [];
       }
 
-      this.objectSections[targetType].push({
+      this.objectSections[targetType].unshift({
+        _uid: Date.now() + Math.random(),
         id: null,
         master_object: { object_type: typeCode }, // Có thể là null nếu typeCode=null
         individual_field_values: { ...defaults },
         roles: targetType === 'ATTORNEY' ? ['đại diện'] : []
       });
 
-      // Auto-save if profile exists
-      if (this.currentId) {
-        await this.saveProfile();
-      } else {
-        // For new profiles, just refresh the list which will update IDs
-        // No specific action needed as saveProfile handles navigation or data refresh
-      }
+      // Auto-save đã bị loại bỏ theo yêu cầu: avoid saving empty entities
+      // if (this.currentId) { await this.saveProfile(); }
 
       // Trigger generic refresh for relations
       this.relationRefreshTrigger++;
@@ -701,6 +734,7 @@ export default {
       const list = [];
       const seenTypes = new Set();
 
+      // Collect all assets from all relevant sections
       this.assetListTypes.forEach(t => {
         seenTypes.add(t);
         if (this.objectSections[t]) {
@@ -710,22 +744,39 @@ export default {
         }
       });
 
-      // Luôn bao gồm ngăn chứa 'ASSET' (ngăn chứa chung ban đầu)
-      if (!seenTypes.has('ASSET') && this.objectSections['ASSET']) {
+      if (this.objectSections['ASSET']) {
         this.objectSections['ASSET'].forEach((item, idx) => {
           list.push({ ...item, _originalType: 'ASSET', _originalIdx: idx });
         });
       }
-      return list;
+
+      // Sắp xếp theo _uid giảm dần (Mới nhất lên đầu)
+      // Nếu không có _uid (đối tượng cũ), dùng master_object.id hoặc 0
+      return list.sort((a, b) => {
+        const valA = a._uid || a.master_object?.id || 0;
+        const valB = b._uid || b.master_object?.id || 0;
+        return valB - valA;
+      });
     },
     getAssetFields() {
       // Lấy tất cả các fields thuộc về bất kỳ loại tài sản nào trong assetListTypes
       return this.allFields.filter(f => {
-        const types = f.group_allowed_object_types || [];
-        // Nếu không có types đặc thù -> Không phải field tài sản
-        if (types.length === 0) return false;
-        // Kiểm tra xem có trùng với bất kỳ loại ASSET_LIST nào không
-        return types.some(t => this.assetListTypes.includes(t));
+        const groupAllowed = f.group_allowed_object_type_codes || [];
+        const fieldAllowed = f.allowed_object_type_codes || [];
+
+        // Logic ưu tiên cho Asset Fields:
+        // Nếu có FIELD cụ thể, kiểm tra xem nó có thuộc bất kỳ loại tài sản nào không
+        if (fieldAllowed.length > 0) {
+          return fieldAllowed.some(t => this.assetListTypes.includes(t));
+        }
+
+        // Nếu không có FIELD nhưng có GROUP, kiểm tra GROUP
+        if (groupAllowed.length > 0) {
+          return groupAllowed.some(t => this.assetListTypes.includes(t));
+        }
+
+        // Nếu cả hai đều trống -> Đây là general field, không phải asset field chuyên dụng
+        return false;
       });
     },
     updateAssetList(index, updated) {
@@ -758,6 +809,10 @@ export default {
     handleSelectEntity(typeCode, index, masterObj) {
       if (!this.objectSections[typeCode]) return;
       const item = this.objectSections[typeCode][index];
+
+      // Làm mới _uid để đưa mục vừa chọn lên đầu danh sách (UX)
+      item._uid = Date.now() + Math.random();
+
       item.id = masterObj.id;
       item.master_object = { id: masterObj.id, object_type: typeCode };
 
@@ -779,7 +834,7 @@ export default {
     async confirmDuplicate(newName) {
       try {
         const response = await axios.post(
-          `http://127.0.0.1:8000/api/loan-profiles/${this.id}/duplicate/`,
+          `${API_URL}/loan-profiles/${this.id}/duplicate/`,
           { new_name: newName }
         );
         this.showDuplicateModal = false;
@@ -789,7 +844,7 @@ export default {
         // Vì Vue reuse component khi route thay đổi id, ta cần load lại data
         this.fetchProfileData(response.data.id);
       } catch (error) {
-        console.error(error);
+        this.showDuplicateModal = false;
         this.showError(error, 'Lỗi khi tạo bản sao');
       }
     },
@@ -797,14 +852,21 @@ export default {
     async fetchProfileData(id) {
       try {
         this.loading = true;
-        const response = await axios.get(`http://127.0.0.1:8000/api/loan-profiles/${id}/`);
+        const response = await axios.get(`${API_URL}/loan-profiles/${id}/`);
         const data = response.data;
         this.profileName = data.name;
         this.profileStatus = data.status || 'DRAFT';
         this.generalFieldValues = data.field_values || {};
 
         // MỚI: Load object_sections thay vì people/assets
-        this.objectSections = data.object_sections || {};
+        const sections = data.object_sections || {};
+        // Gán _uid cho các đối tượng cũ để có thể sắp xếp ổn định trong session
+        Object.keys(sections).forEach(type => {
+          sections[type].forEach(item => {
+            if (!item._uid) item._uid = item.master_object?.id || 0;
+          });
+        });
+        this.objectSections = sections;
 
         // Cập nhật slug form từ hồ sơ (nếu có)
         if (data.form_view_slug) {
@@ -822,22 +884,22 @@ export default {
         this.loading = false;
       }
     },
-    async saveProfile() {
+    async saveProfile(silent = false) {
       // 0. Kiểm tra hồ sơ khóa
       if (this.profileStatus === 'FINALIZED') {
-        this.$toast.warning("Hồ sơ đang khóa, không thể update");
+        if (!silent) this.$toast.warning("Hồ sơ đang khóa, không thể update");
         return;
       }
 
       if (!this.profileName) {
-        this.showWarning('Vui lòng nhập tên hồ sơ!', 'Thiếu thông tin');
+        if (!silent) this.showWarning('Vui lòng nhập tên hồ sơ!', 'Thiếu thông tin');
         return;
       }
-      this.isSaving = true;
+      if (!silent) this.isSaving = true;
       try {
         let targetId = this.currentId;
         if (!targetId) {
-          const createRes = await axios.post('http://127.0.0.1:8000/api/loan-profiles/', { name: this.profileName });
+          const createRes = await axios.post(`${API_URL}/loan-profiles/`, { name: this.profileName });
           targetId = createRes.data.id;
         }
 
@@ -845,9 +907,10 @@ export default {
           name: this.profileName,
           field_values: this.generalFieldValues,
           object_sections: this.objectSections, // MỚI: Gửi object_sections
-          form_slug: this.$route.query.form || this.currentFormSlug
+          form_slug: this.$route.query.form || this.currentFormSlug,
+          is_auto_save: silent
         };
-        const response = await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${targetId}/save_form_data/`, payload);
+        const response = await axios.post(`${API_URL}/loan-profiles/${targetId}/save_form_data/`, payload);
 
         // Update local state with fresh data (contains IDs)
         if (response.data && response.data.id) {
@@ -858,26 +921,24 @@ export default {
           this.objectSections = data.object_sections || {};
         }
 
-        // Cập nhật currentId nếu là hồ sơ mới tạo thành công
-        if (!this.currentId) {
-          this.currentId = targetId;
+        if (!silent) {
+          this.$toast.success('Hồ sơ đã được lưu thành công');
+        } else {
+          console.log("Auto-save completed at " + new Date().toLocaleTimeString());
         }
 
-        this.$toast.success('Lưu thành công!');
-        // KHÔNG chuyển trang nữa theo yêu cầu của User
-        // this.$router.push('/');
-        
         // Refresh relations to ensure latest links are shown
         this.relationRefreshTrigger++;
       } catch (error) {
-        console.error(error);
-        this.$toast.error('Lỗi khi lưu: ' + (error.response?.data?.message || error.message));
+        if (!silent) this.showError(error, 'Lỗi khi lưu');
+        else console.error("Auto-save failed:", error);
       } finally {
-        this.isSaving = false;
+        if (!silent) this.isSaving = false;
       }
     },
     validateInternalDuplicates() {
-      if (!this.objectTypes || this.objectTypes.length === 0) return true; // Tránh lỗi khi chưa load xong
+      if (!this.objectTypes || this.objectTypes.length === 0) return true;
+      let errors = [];
 
       // A. Kiểm tra trùng lặp Người
       const personType = this.objectTypes.find(t => t.code === 'PERSON');
@@ -889,16 +950,15 @@ export default {
           const idValue = p.individual_field_values?.[idKey];
           if (idValue) {
             if (peopleIdentities.has(idValue)) {
-              this.$toast.warning(`LỖI: Hồ sơ đang có 2 Người trùng ${personType.name} (${idValue}). Vui lòng kiểm tra lại.`);
-              return false;
+              errors.push(`Người trùng ${personType.name} (${idValue})`);
             }
             peopleIdentities.add(idValue);
           }
         }
       }
 
-      // B. Kiểm tra trùng lặp Tài sản (theo identity_field_key của từng loại)
-      const assetIdentities = {}; // { object_type: Set(values) }
+      // B. Kiểm tra trùng lặp Tài sản
+      const assetIdentities = {};
       const assetList = this.getAssetList();
       for (const a of assetList) {
         const typeCode = a.master_object?.object_type || a._originalType;
@@ -913,11 +973,16 @@ export default {
         if (idValue) {
           if (!assetIdentities[typeCode]) assetIdentities[typeCode] = new Set();
           if (assetIdentities[typeCode].has(idValue)) {
-            this.$toast.warning(`LỖI: Hồ sơ đang có 2 tài sản ${typeConfig.name} trùng mã định danh (${idValue}). Vui lòng kiểm tra lại.`);
-            return false;
+            errors.push(`Tài sản ${typeConfig.name} trùng mã (${idValue})`);
           }
           assetIdentities[typeCode].add(idValue);
         }
+      }
+
+      if (errors.length > 0) {
+        // Hiển thị thông báo tổng hợp
+        this.$toast.warning(`LỖI TRÙNG LẶP: \n- ${errors.join('\n- ')} \nVui lòng kiểm tra lại.`);
+        return false;
       }
 
       return true;
@@ -933,10 +998,11 @@ export default {
       if (!password) return;
 
       try {
-        await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${this.id || this.currentId}/lock_profile/`, { password });
+        await axios.post(`${API_URL}/loan-profiles/${this.id || this.currentId}/lock_profile/`, { password });
         this.profileStatus = 'FINALIZED';
         this.$toast.success("Hồ sơ đã được khóa.");
       } catch (e) {
+        this.showLockPasswordModal = false;
         this.showError(e, 'Lỗi khi khóa hồ sơ');
       }
     },
@@ -948,10 +1014,11 @@ export default {
       if (!password) return;
 
       try {
-        await axios.post(`http://127.0.0.1:8000/api/loan-profiles/${this.id || this.currentId}/unlock_profile/`, { password });
+        await axios.post(`${API_URL}/loan-profiles/${this.id || this.currentId}/unlock_profile/`, { password });
         this.profileStatus = 'DRAFT';
         this.$toast.success("Hồ sơ đã được mở khóa.");
       } catch (e) {
+        this.showUnlockPasswordModal = false;
         this.showError(e, 'Lỗi khi mở khóa');
       }
     }

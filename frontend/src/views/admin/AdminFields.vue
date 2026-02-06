@@ -210,6 +210,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table.js';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -267,9 +268,9 @@ export default {
     async fetchData() {
       try {
         const [resFields, resGroups, resTypes] = await Promise.all([
-          axios.get('http://127.0.0.1:8000/api/fields/'),
-          axios.get('http://127.0.0.1:8000/api/groups/'),
-          axios.get('http://127.0.0.1:8000/api/object-types/')
+          axios.get(`${API_URL}/fields/`),
+          axios.get(`${API_URL}/groups/`),
+          axios.get(`${API_URL}/object-types/`)
         ]);
         this.fields = resFields.data;
         this.groups = resGroups.data;
@@ -287,7 +288,7 @@ export default {
     },
     async fetchForms() {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
+        const res = await axios.get(`${API_URL}/form-views/`);
         this.allForms = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách Form');
@@ -312,7 +313,7 @@ export default {
         return;
       }
       try {
-        await axios.post('http://127.0.0.1:8000/api/fields/', this.newField);
+        await axios.post(`${API_URL}/fields/`, this.newField);
         this.fetchData();
         this.newField = {
           label: '', placeholder_key: '', note: '', data_type: 'TEXT', group: this.newField.group,
@@ -326,7 +327,7 @@ export default {
     },
     async updateField(field) {
       try {
-        await axios.put(`http://127.0.0.1:8000/api/fields/${field.id}/`, field);
+        await axios.put(`${API_URL}/fields/${field.id}/`, field);
         this.editingId = null;
         await this.fetchData();
       } catch (e) {
@@ -342,7 +343,7 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/fields/${this.deleteTargetId}/`);
+          await axios.delete(`${API_URL}/fields/${this.deleteTargetId}/`);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchData();

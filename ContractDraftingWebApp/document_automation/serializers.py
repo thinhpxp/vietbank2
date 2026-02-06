@@ -64,9 +64,16 @@ class FormViewSerializer(serializers.ModelSerializer):
 
 # 1.1 Serializer cho FieldGroup
 class FieldGroupSerializer(serializers.ModelSerializer):
+    allowed_object_type_codes = serializers.SerializerMethodField()
+
+    def get_allowed_object_type_codes(self, obj):
+        if obj.allowed_object_types.exists():
+            return list(obj.allowed_object_types.values_list('code', flat=True))
+        return []
+
     class Meta:
         model = FieldGroup
-        fields = ['id', 'name', 'slug', 'order', 'note', 'allowed_forms', 'layout_position', 'allowed_object_types']
+        fields = ['id', 'name', 'slug', 'order', 'note', 'allowed_forms', 'layout_position', 'allowed_object_types', 'allowed_object_type_codes']
 
 # 1.2 Serializer cho Field
 class FieldSerializer(serializers.ModelSerializer):
@@ -75,21 +82,35 @@ class FieldSerializer(serializers.ModelSerializer):
     group_slug = serializers.CharField(source='group.slug', read_only=True)
     group_layout_position = serializers.CharField(source='group.layout_position', read_only=True)
     group_order = serializers.IntegerField(source='group.order', read_only=True)
-    # MỚI: Trả về danh sách object types mà group này áp dụng (thay thế group_object_type cũ)
+    # Trả về danh sách ID (mặc định) để phục vụ UI Admin
+    allowed_object_types = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     group_allowed_object_types = serializers.SerializerMethodField()
-    # Đánh dấu đây có phải là field dựng sẵn từ model (không phải record trong bảng Field)
-    is_model_field = serializers.BooleanField(read_only=True, default=False)
+    
+    # Các trường mới phục vụ Rendering (dùng mã Code thay vì ID)
+    allowed_object_type_codes = serializers.SerializerMethodField()
+    group_allowed_object_type_codes = serializers.SerializerMethodField()
 
     def get_group_allowed_object_types(self, obj):
         if obj.group and obj.group.allowed_object_types.exists():
+            return list(obj.group.allowed_object_types.values_list('id', flat=True))
+        return []
+
+    def get_group_allowed_object_type_codes(self, obj):
+        if obj.group and obj.group.allowed_object_types.exists():
             return list(obj.group.allowed_object_types.values_list('code', flat=True))
+        return []
+    
+    def get_allowed_object_type_codes(self, obj):
+        if obj.allowed_object_types.exists():
+            return list(obj.allowed_object_types.values_list('code', flat=True))
         return []
 
     class Meta:
         model = Field
         fields = [
-            'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'group_slug', 'group_layout_position', 'group_order', 'group_allowed_object_types',
-            'is_active', 'is_protected', 'use_digit_grouping', 'show_amount_in_words', 'default_value', 'note', 'is_model_field', 
+            'id', 'label', 'placeholder_key', 'data_type', 'group', 'group_name', 'group_slug', 'group_layout_position', 'group_order', 
+            'group_allowed_object_types', 'group_allowed_object_type_codes', 'allowed_object_type_codes',
+            'is_active', 'is_protected', 'use_digit_grouping', 'show_amount_in_words', 'default_value', 'note', 
             'order', 'width_cols', 'css_class', 'allowed_forms', 'allowed_object_types'
         ]
         extra_kwargs = {

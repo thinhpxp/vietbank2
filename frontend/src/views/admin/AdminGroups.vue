@@ -109,6 +109,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '@/utils/errorHandler';
@@ -144,7 +145,7 @@ export default {
     },
     async fetchGroups() {
       try {
-        const groupsRes = await axios.get('http://127.0.0.1:8000/api/groups/');
+        const groupsRes = await axios.get(`${API_URL}/groups/`);
         this.groups = groupsRes.data.sort((a, b) => a.order - b.order);
         this.$nextTick(() => this.initResizable());
       } catch (e) {
@@ -159,7 +160,7 @@ export default {
     },
     async fetchForms() {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
+        const res = await axios.get(`${API_URL}/form-views/`);
         this.allForms = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách Form');
@@ -167,7 +168,7 @@ export default {
     },
     async fetchObjectTypes() {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+        const res = await axios.get(`${API_URL}/object-types/`);
         this.objectTypes = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải loại đối tượng');
@@ -176,7 +177,7 @@ export default {
     async addGroup() {
       if (!this.newGroup.name) return;
       try {
-        await axios.post('http://127.0.0.1:8000/api/groups/', this.newGroup);
+        await axios.post(`${API_URL}/groups/`, this.newGroup);
         this.newGroup.name = '';
         this.newGroup.slug = '';
         this.newGroup.order = 0;
@@ -198,7 +199,7 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/groups/${this.deleteTargetId}/`);
+          await axios.delete(`${API_URL}/groups/${this.deleteTargetId}/`);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchGroups();
@@ -211,7 +212,7 @@ export default {
     },
     async updateGroup(grp) {
       try {
-        await axios.put(`http://127.0.0.1:8000/api/groups/${grp.id}/`, grp);
+        await axios.put(`${API_URL}/groups/${grp.id}/`, grp);
         this.editingId = null;
         this.showSuccess('Cập nhật nhóm thành công!');
       } catch (e) {

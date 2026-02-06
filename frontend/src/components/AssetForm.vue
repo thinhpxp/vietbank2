@@ -30,15 +30,9 @@
       </div>
 
       <!-- Quản lý liên kết (Relations) -->
-      <RelationManager 
-        v-if="localAsset.master_object && localAsset.master_object.id"
-        :masterObjectId="localAsset.master_object.id"
-        :profileObjects="profileObjects"
-        :currentObjectType="selectedType"
-        :refreshTrigger="refreshTrigger"
-        :allFields="allFields"
-        :disabled="disabled"
-      />
+      <RelationManager v-if="localAsset.master_object && localAsset.master_object.id"
+        :masterObjectId="localAsset.master_object.id" :profileObjects="profileObjects" :currentObjectType="selectedType"
+        :refreshTrigger="refreshTrigger" :allFields="allFields" :disabled="disabled" />
     </div>
 
     <ObjectSelectModal :isOpen="isModalOpen" type="asset" @close="isModalOpen = false" @select="onAssetSelect" />
@@ -47,6 +41,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
 import RelationManager from './RelationManager.vue';
@@ -94,12 +89,24 @@ export default {
     },
     // Filter fields based on selected Object Type
     filteredAssetFields() {
-      if (!this.selectedType) return []; // If no type selected, show no fields or a default set
+      if (!this.selectedType) return [];
       return this.assetFields.filter(f => {
-        const allowed = f.allowed_object_types || [];
-        // If allowed_object_types is empty, it means the field is allowed for all types.
-        // Otherwise, check if the current selected type's ID is in the allowed list.
-        return allowed.length === 0 || allowed.includes(this.typeIdMap[this.selectedType]);
+        const groupAllowed = f.group_allowed_object_type_codes || [];
+        const fieldAllowed = f.allowed_object_type_codes || [];
+
+        // Logic ưu tiên:
+        // 1. Nếu FIELD có định nghĩa loại cụ thể -> Chỉ theo FIELD
+        if (fieldAllowed.length > 0) {
+          return fieldAllowed.includes(this.selectedType);
+        }
+
+        // 2. Nếu FIELD không có nhưng GROUP có -> Theo GROUP
+        if (groupAllowed.length > 0) {
+          return groupAllowed.includes(this.selectedType);
+        }
+
+        // 3. Nếu cả hai đều trống -> Cho phép tất cả (Trường thông tin chung)
+        return true;
       });
     },
     objectLabel() {
@@ -113,12 +120,6 @@ export default {
       }
 
       return type.name;
-    },
-    typeIdMap() {
-      return this.assetTypes.reduce((map, t) => {
-        map[t.code] = t.id;
-        return map;
-      }, {});
     }
   },
   watch: {
@@ -151,7 +152,7 @@ export default {
         return;
       }
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+        const res = await axios.get(`${API_URL}/object-types/`);
         // Filter only asset-related types (exclude PERSON)
         this.assetTypes = res.data.filter(t => t.code !== 'PERSON');
       } catch (e) {
@@ -187,7 +188,6 @@ export default {
       }
 
       this.$emit('update:asset', this.localAsset);
-      this.$toast.success(`Đã chọn tài sản: ${asset.display_name}`);
     },
     async handleFieldBlur({ key, value }) {
       if (!value || !this.selectedType) {
@@ -204,7 +204,7 @@ export default {
 
       // 2. Nếu là trường định danh, gọi API kiểm tra
       try {
-        const url = `http://127.0.0.1:8000/api/master-objects/check_identity/?object_type=${this.selectedType}&key=${key}&value=${encodeURIComponent(value)}`;
+        const url = `${API_URL}/master-objects/check_identity/?object_type=${this.selectedType}&key=${key}&value=${encodeURIComponent(value)}`;
         const res = await axios.get(url);
         if (res.data.exists) {
           if (this.localAsset.master_object?.id === res.data.id) {

@@ -72,6 +72,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import { makeTableResizable } from '../../utils/resizable-table';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -96,7 +97,7 @@ export default {
     methods: {
         async fetchData() {
             try {
-                const res = await axios.get('http://127.0.0.1:8000/api/form-views/');
+                const res = await axios.get(`${API_URL}/form-views/`);
                 this.forms = res.data;
                 this.$nextTick(() => this.initResizable());
             } catch (e) {
@@ -115,7 +116,7 @@ export default {
                 return;
             }
             try {
-                await axios.post('http://127.0.0.1:8000/api/form-views/', this.newForm);
+                await axios.post(`${API_URL}/form-views/`, this.newForm);
                 this.newForm = { name: '', slug: '', note: '' };
                 this.fetchData();
                 this.showSuccess('Thêm form thành công!');
@@ -125,7 +126,7 @@ export default {
         },
         async updateForm(f) {
             try {
-                await axios.put(`http://127.0.0.1:8000/api/form-views/${f.id}/`, f);
+                await axios.put(`${API_URL}/form-views/${f.id}/`, f);
                 this.editingId = null;
                 this.fetchData();
             } catch (e) {
@@ -141,12 +142,13 @@ export default {
         async confirmDelete() {
             if (this.deleteTargetId) {
                 try {
-                    await axios.delete(`http://127.0.0.1:8000/api/form-views/${this.deleteTargetId}/`);
+                    await axios.delete(`${API_URL}/form-views/${this.deleteTargetId}/`);
                     this.showDeleteModal = false;
                     this.deleteTargetId = null;
                     this.fetchData();
                     this.showSuccess('Đã xóa form!');
                 } catch (e) {
+                    this.showDeleteModal = false;
                     this.showError(e, 'Lỗi xóa form');
                 }
             }

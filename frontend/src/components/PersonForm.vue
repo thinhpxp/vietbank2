@@ -33,15 +33,9 @@
       </div>
 
       <!-- 4. Quản lý liên kết (Relations) -->
-      <RelationManager 
-        v-if="localPerson.master_object && localPerson.master_object.id"
-        :masterObjectId="localPerson.master_object.id"
-        :profileObjects="profileObjects"
-        :currentObjectType="'PERSON'"
-        :refreshTrigger="refreshTrigger"
-        :allFields="allFields"
-        :disabled="disabled"
-      />
+      <RelationManager v-if="localPerson.master_object && localPerson.master_object.id"
+        :masterObjectId="localPerson.master_object.id" :profileObjects="profileObjects" :currentObjectType="'PERSON'"
+        :refreshTrigger="refreshTrigger" :allFields="allFields" :disabled="disabled" />
     </div>
 
     <ObjectSelectModal :isOpen="isModalOpen" type="person" @close="isModalOpen = false" @select="onPersonSelect" />
@@ -50,6 +44,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
 import RelationManager from './RelationManager.vue';
@@ -125,7 +120,6 @@ export default {
       }
 
       this.$emit('update:person', this.localPerson);
-      this.$toast.success(`Đã chọn: ${person.display_name}`);
     },
     async handleFieldBlur({ key, value }) {
       if (!value) {
@@ -147,7 +141,7 @@ export default {
 
       // 2. Nếu là trường định danh, gọi API kiểm tra
       try {
-        const url = `http://127.0.0.1:8000/api/master-objects/check_identity/?object_type=PERSON&key=${key}&value=${encodeURIComponent(value)}`;
+        const url = `${API_URL}/master-objects/check_identity/?object_type=PERSON&key=${key}&value=${encodeURIComponent(value)}`;
         const res = await axios.get(url);
         if (res.data.exists) {
           if (this.localPerson.master_object?.id === res.data.id) {

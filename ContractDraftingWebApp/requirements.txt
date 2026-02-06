@@ -6,3 +6,4 @@ django-cleanup
 psycopg2-binary
 docxtpl
 num2words
+django-filter

@@ -79,6 +79,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -106,7 +107,7 @@ export default {
   methods: {
     async fetchTemplates() {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/document-templates/');
+        const res = await axios.get(`${API_URL}/document-templates/`);
         this.templates = res.data;
         this.$nextTick(() => this.initResizable());
       } catch (e) {
@@ -135,7 +136,7 @@ export default {
       formData.append('file', this.selectedFile);
 
       try {
-        await axios.post('http://127.0.0.1:8000/api/document-templates/', formData, {
+        await axios.post(`${API_URL}/document-templates/`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         this.newName = ''; this.newDept = ''; this.newDesc = ''; this.selectedFile = null; this.$refs.fileInput.value = '';
@@ -154,7 +155,7 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/document-templates/${this.deleteTargetId}/`);
+          await axios.delete(`${API_URL}/document-templates/${this.deleteTargetId}/`);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchTemplates();
@@ -167,7 +168,7 @@ export default {
     },
     async updateTemplate(tpl) {
       try {
-        await axios.patch(`http://127.0.0.1:8000/api/document-templates/${tpl.id}/`, {
+        await axios.patch(`${API_URL}/document-templates/${tpl.id}/`, {
           name: tpl.name,
           department: tpl.department,
           description: tpl.description

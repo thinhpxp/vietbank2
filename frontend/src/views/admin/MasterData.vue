@@ -236,6 +236,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import auth from '@/store/auth';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
@@ -332,7 +333,7 @@ export default {
         },
         async fetchObjectTypes() {
             try {
-                const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+                const res = await axios.get(`${API_URL}/object-types/`);
                 this.objectTypes = res.data;
                 if (this.objectTypes.length > 0) {
                     this.activeTab = this.objectTypes[0].code;
@@ -346,7 +347,7 @@ export default {
             this.loading = true;
             this.selectedIds = []; // Clear selection when fetching/changing tab
             try {
-                const response = await axios.get(`http://127.0.0.1:8000/api/master-objects/?object_type=${this.activeTab}`);
+                const response = await axios.get(`${API_URL}/master-objects/?object_type=${this.activeTab}`);
 
                 // Flatten
                 this.items = response.data.map(item => ({
@@ -378,7 +379,7 @@ export default {
 
             try {
                 // 2. Fetch Master Relations (Categorized & Deduplicated)
-                const resDetail = await axios.get(`http://127.0.0.1:8000/api/master-objects/${obj.id}/`);
+                const resDetail = await axios.get(`${API_URL}/master-objects/${obj.id}/`);
                 const detail = resDetail.data;
 
                 const allRelsRaw = [];
@@ -430,11 +431,12 @@ export default {
         },
         async executeDelete() {
             try {
-                await axios.delete(`http://127.0.0.1:8000/api/master-objects/${this.deleteTarget.id}/`);
+                await axios.delete(`${API_URL}/master-objects/${this.deleteTarget.id}/`);
                 this.showDeleteModal = false;
                 this.fetchData();
                 this.showSuccess('Đã xóa thành công!');
             } catch (error) {
+                this.showDeleteModal = false;
                 this.showError(error, 'Lỗi khi xóa');
             }
         },
@@ -460,7 +462,7 @@ export default {
         async executeBulkDelete() {
             try {
                 this.loading = true;
-                await axios.post('http://127.0.0.1:8000/api/master-objects/bulk-delete/', {
+                await axios.post(`${API_URL}/master-objects/bulk-delete/`, {
                     ids: this.selectedIds
                 });
                 this.showBulkDeleteModal = false;
@@ -468,6 +470,7 @@ export default {
                 await this.fetchData();
                 this.showSuccess('Đã xóa hàng loạt thành công!');
             } catch (error) {
+                this.showBulkDeleteModal = false;
                 this.showError(error, 'Lỗi khi xóa hàng loạt');
             } finally {
                 this.loading = false;
@@ -501,7 +504,7 @@ export default {
             // Fetch full details of the child object then open modal
             try {
                 this.relatedLoading = true;
-                const res = await axios.get(`http://127.0.0.1:8000/api/master-objects/${objectId}/`);
+                const res = await axios.get(`${API_URL}/master-objects/${objectId}/`);
                 // Flatten fields like we do in fetchData
                 const fullObj = {
                     ...res.data,

@@ -1,35 +1,49 @@
 import { reactive, computed } from 'vue';
 import axios from 'axios';
-import { toast } from '@/utils/toast';
 
-import eventBus, { EVENTS } from '@/utils/eventBus';
+// API Configuration
+export const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
 
-// Cấu hình Axios Interceptor để xử lý lỗi hết hạn phiên (401) và lỗi quyền (403)
-axios.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response) {
-            const status = error.response.status;
-
-            if (status === 401) {
-                // Kiểm tra nếu là lỗi hết hạn token
-                const detail = error.response.data?.detail || '';
-                if (detail.includes('expired') || detail.includes('valid')) {
-                    toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 5000);
-                    store.logout();
-                    window.location.href = '#/login';
-                }
-            } else if (status === 403) {
-                // Lỗi quyền truy cập -> Bắn sự kiện hiển thị Modal đẹp
-                eventBus.emit(EVENTS.SHOW_GLOBAL_ERROR, error);
-            }
+// Cấu hình Axios Request Interceptor để tự động gắn Token vào mọi yêu cầu
+axios.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
         }
+        return config;
+    },
+    (error) => {
         return Promise.reject(error);
     }
 );
 
-// API Configuration
-const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
+// Cấu hình Axios Response Interceptor để xử lý lỗi hết hạn phiên (401) và lỗi quyền (403)
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const { status } = error.response || {};
+
+        if (status === 401) {
+            // Hết hạn phiên hoặc Token không hợp lệ
+            // Import động để tránh vòng lặp phụ thuộc (circular dependency)
+            const { showErrorDialog } = require('../utils/errorHandler');
+            showErrorDialog(null, "Phiên đăng nhập đã hết hạn. Bạn sẽ được chuyển về trang đăng nhập.", "Hết hạn phiên");
+
+            setTimeout(() => {
+                store.logout();
+                window.location.href = '/login';
+            }, 3000); // Đợi 3s để user kịp đọc thông báo
+        }
+        else if (status === 403) {
+            // Không có quyền truy cập
+            const { showErrorDialog } = require('../utils/errorHandler');
+            showErrorDialog(null, error, "Truy cập bị từ chối");
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 const state = reactive({
     token: localStorage.getItem('token') || null,

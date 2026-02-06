@@ -1,4 +1,5 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, filters
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group, Permission
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,6 +13,8 @@ from rest_framework.views import APIView
 
 
 from django.db.models import Q, Prefetch
+from django.utils import timezone
+from django.db import transaction
 # --- CÁC IMPORT MỚI CHO CHỨC NĂNG XUẤT WORD ---
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
@@ -398,9 +401,15 @@ class AuditLogFilter(django_filters.FilterSet):
         model = AuditLog
         fields = ['action', 'username', 'target_model', 'timestamp_gte', 'timestamp_lte']
 
+class AuditLogPagination(PageNumberPagination):
+    page_size = 15
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
+    pagination_class = AuditLogPagination
     permission_classes = [IsAdminOrManager]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = AuditLogFilter
@@ -599,7 +608,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                             loan_profile=loan_profile,
                             master_object=None,
                             field=field_obj,
-                            defaults={'value': str(val)}
+                            defaults={'value': str(val) if val is not None else ""}
                         )
                     except Field.DoesNotExist:
                         continue
@@ -620,6 +629,13 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                         
                         # 1. Find or Create MasterObject
                         master_obj = None
+                        
+                        # SKIP LOGIC: Nếu không có ID (mới) và (không có mã loại hoặc không có dữ liệu fields) -> Bỏ qua
+                        is_empty = not any(str(v).strip() for v in fields_dict.values() if v)
+                        if not obj_id and (not actual_type or is_empty):
+                            print(f"  DEBUG: Skipping empty new object {actual_type}")
+                            continue
+
                         if obj_id:
                             master_obj = MasterObject.objects.filter(id=obj_id).first()
                             if master_obj:
@@ -650,6 +666,14 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                         for f_key, f_val in fields_dict.items():
                             try:
                                 f_obj = Field.objects.get(placeholder_key=f_key)
+                                
+                                # CHECK: Is this field allowed for this object type?
+                                # This prevents leaking fields across types (e.g. real estate fields in vehicle)
+                                if f_obj.allowed_object_types.exists():
+                                    allowed_codes = f_obj.allowed_object_types.values_list('code', flat=True)
+                                    if actual_type not in allowed_codes:
+                                        continue # Skip irrelevant field
+
                                 FieldValue.objects.update_or_create(
                                     loan_profile=loan_profile,
                                     master_object=master_obj,
@@ -733,6 +757,17 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 FieldValue.objects.filter(loan_profile=loan_profile, master_object__isnull=False).exclude(
                     master_object__id__in=processed_master_ids
                 ).delete()
+
+            # Ghi log Audit sau khi commit thành công (chỉ khi không phải auto-save)
+            is_auto_save = str(data.get('is_auto_save', 'False')).lower() == 'true'
+            if not is_auto_save:
+                log_action(
+                    updating_user, 
+                    'UPDATE', 
+                    'LoanProfile', 
+                    loan_profile.id, 
+                    f"Cập nhật dữ liệu từ Form: {loan_profile.name}"
+                )
 
             serializer = LoanProfileSerializer(loan_profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1146,6 +1181,7 @@ def find_existing_master_object(object_type, field_values):
         # 2. Tìm kiếm FieldValue khớp với key và value (ở mức Master, loan_profile=None)
         matching_fv = FieldValue.objects.filter(
             master_object__object_type=object_type,
+            master_object__deleted_at__isnull=True, # CHỈ TÌM ĐỐI TƯỢNG ACTIVE
             field__placeholder_key=id_key,
             value=id_value,
             loan_profile__isnull=True
@@ -1218,19 +1254,19 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         
         try:
             with transaction.atomic():
-                # Xóa các đối tượng
-                deleted_count, _ = MasterObject.objects.filter(id__in=ids).delete()
+                # Xóa hờ các đối tượng (Soft Delete)
+                deleted_count = MasterObject.objects.filter(id__in=ids).update(deleted_at=timezone.now())
                 
                 # Log hành động
-                log_action(request.user, 'DELETE', 'MasterObject:BULK', 0, f"Xóa hàng loạt {deleted_count} đối tượng: {ids}")
+                log_action(request.user, 'DELETE', 'MasterObject:BULK', 0, f"Xóa hàng loạt {deleted_count} đối tượng (Soft Delete): {ids}")
                 
                 return Response({"status": "success", "message": f"Đã xóa {deleted_count} đối tượng thành công."})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_queryset(self):
-        """Filter by object_type (can be comma-separated) if provided in query params"""
-        queryset = super().get_queryset()
+        """Filter by object_type and hide soft-deleted items"""
+        queryset = MasterObject.objects.filter(deleted_at__isnull=True).order_by('-id')
         object_types = self.request.query_params.get('object_type', None)
         if object_types:
             codes = [c.strip() for c in object_types.split(',') if c.strip()]
@@ -1263,8 +1299,10 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         o_id = instance.id
         o_type = instance.object_type
-        instance.delete()
-        log_action(self.request.user, 'DELETE', f'MasterObject:{o_type}', o_id, f"Xóa dữ liệu gốc")
+        # Soft Delete
+        instance.deleted_at = timezone.now()
+        instance.save()
+        log_action(self.request.user, 'DELETE', f'MasterObject:{o_type}', o_id, f"Xóa hờ dữ liệu gốc")
 
     @action(detail=False, methods=['get'])
     def check_identity(self, request):

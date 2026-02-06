@@ -72,6 +72,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -97,7 +98,7 @@ export default {
   methods: {
     async fetchRoles() {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/roles/');
+        const res = await axios.get(`${API_URL}/roles/`);
         this.roles = res.data;
         this.$nextTick(() => this.initResizable());
       } catch (e) {
@@ -116,7 +117,7 @@ export default {
         return;
       }
       try {
-        await axios.post('http://127.0.0.1:8000/api/roles/', this.newRole);
+        await axios.post(`${API_URL}/roles/`, this.newRole);
         this.newRole.name = '';
         this.newRole.slug = '';
         this.newRole.description = '';
@@ -134,18 +135,19 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/roles/${this.deleteTargetId}/`);
+          await axios.delete(`${API_URL}/roles/${this.deleteTargetId}/`);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchRoles();
         } catch (e) {
+          this.showDeleteModal = false;
           this.showError(e, 'Lỗi xóa vai trò');
         }
       }
     },
     async updateRole(role) {
       try {
-        await axios.put(`http://127.0.0.1:8000/api/roles/${role.id}/`, role);
+        await axios.put(`${API_URL}/roles/${role.id}/`, role);
         this.editingId = null;
       } catch (e) {
         this.showError(e, 'Lỗi cập nhật vai trò');

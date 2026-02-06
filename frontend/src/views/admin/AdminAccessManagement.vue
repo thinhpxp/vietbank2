@@ -170,7 +170,7 @@
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
                                     class="admin-perm-tags">
                                     <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -469,6 +469,7 @@ export default {
                 this.showResetModal = false;
                 this.showSuccess('Đã đặt lại mật khẩu thành công.');
             } catch (e) {
+                this.showResetModal = false;
                 this.showError(e, 'Lỗi khi reset mật khẩu');
             }
         },

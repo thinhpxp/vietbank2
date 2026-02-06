@@ -1,52 +1,56 @@
 /* ==========================================================================
-   Common UI Styles for End-User Components (Dashboard, Profile, Master Data)
+   Common UI Styles - Modernized Framework
    ========================================================================== */
 
 /* 1. Page & Layout Helpers */
 .page-container {
     max-width: 95%;
-    margin: 0 auto;
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin: 20px auto;
+    padding: var(--spacing-xl);
+    background: var(--color-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
 }
 
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-xl);
 }
 
 .header-title {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: var(--spacing-lg);
+    color: var(--color-text);
 }
 
 /* 2. Unified Buttons */
 .btn-action {
-    height: 32px;
-    padding: 0 12px;
-    border: none;
+    height: 36px;
+    padding: 0 var(--spacing-lg);
+    border: 1px solid transparent;
     border-radius: var(--radius-md);
     cursor: pointer;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: var(--font-sm);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    transition: all 0.2s ease;
+    gap: var(--spacing-xs);
+    transition: var(--transition-normal);
     line-height: 1;
     vertical-align: middle;
     box-sizing: border-box;
+    font-family: var(--font-family);
 }
 
 .btn-action:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
+    filter: brightness(1.05);
 }
 
 .btn-action:active {
@@ -54,136 +58,120 @@
 }
 
 .btn-action:disabled {
-    background: #ccc !important;
+    background-color: var(--slate-200) !important;
+    color: var(--slate-400) !important;
+    border-color: var(--slate-300) !important;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
-/* Color Variants using Design Tokens */
+/* Color Variants */
 .btn-primary,
 .btn-create,
 .btn-save {
-    background: var(--color-primary);
+    background-color: var(--color-primary);
     color: white;
-}
-
-.btn-primary:hover,
-.btn-create:hover,
-.btn-save:hover {
-    background: var(--color-primary-dark);
 }
 
 .btn-secondary {
-    background: var(--color-light);
+    background-color: var(--color-bg);
     color: var(--color-text);
-    border: 1px solid #dcdfe6;
+    border-color: var(--color-border);
 }
 
 .btn-secondary:hover {
-    background: #e0e6e8;
+    background-color: var(--slate-50);
+    border-color: var(--slate-300);
 }
 
 .btn-edit {
-    background: var(--color-primary);
-    /* Mapping edit to primary for consistency */
+    background-color: var(--color-primary);
     color: white;
-}
-
-.btn-edit:hover {
-    background: var(--color-primary-dark);
 }
 
 .btn-delete {
-    background: var(--color-danger);
+    background-color: var(--color-danger);
     color: white;
-}
-
-.btn-delete:hover {
-    background: #c0392b;
-    /* Keep hardcoded darker danger if no token yet */
 }
 
 .btn-copy {
-    background: var(--color-warning);
+    background-color: var(--color-warning);
     color: white;
-}
-
-.btn-copy:hover {
-    background: #d35400;
 }
 
 .btn-doc {
-    background: var(--color-info);
-    /* Using info for document actions */
+    background-color: var(--color-info);
     color: white;
-}
-
-.btn-doc:hover {
-    background: #138496;
 }
 
 /* 3. Data Table & Scroll Wrapper */
 .ui-table-wrapper {
     width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    position: relative;
-    /* Custom scrollbar for better look */
+    overflow: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    background: var(--color-bg);
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f1f5f9;
+    scrollbar-color: var(--slate-300) transparent;
 }
 
 .ui-table-wrapper::-webkit-scrollbar {
-    height: 8px;
-}
-
-.ui-table-wrapper::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    width: 6px;
+    height: 6px;
 }
 
 .ui-table-wrapper::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 4px;
+    background-color: var(--slate-300);
+    border-radius: var(--radius-full);
 }
 
 .data-table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
+    font-size: var(--font-sm);
     table-layout: fixed;
 }
 
-.data-table th,
-.data-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    text-align: left;
-}
-
 .data-table th {
-    background: #f8f9fa;
-    color: #333;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    background: var(--slate-50);
+    color: var(--slate-700);
+    font-weight: 600;
+    text-align: left;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 2px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.data-table tr:hover {
-    background-color: #fcfcfc;
+.data-table td {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--slate-600);
+    transition: var(--transition-fast);
 }
 
-/* 4. Form Controls (Mirroring Admin System) */
+.data-table tbody tr:hover {
+    background-color: var(--slate-50);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* 4. Form Controls */
 .admin-input,
 .admin-form-control {
-    padding: 8px 12px;
-    border: 1px solid #dcdfe6;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    transition: border-color 0.2s;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: var(--transition-fast);
     width: 100%;
     box-sizing: border-box;
 }
@@ -191,39 +179,45 @@
 .admin-input:focus,
 .admin-form-control:focus {
     outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.admin-input::placeholder {
+    color: var(--slate-400);
 }
 
 /* 5. Badges */
 .status-badge {
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 0.8rem;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: var(--font-xs);
     white-space: nowrap;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid transparent;
 }
 
 .status-badge.draft {
-    background: #e3f2fd;
-    color: #1976d2;
-    border: 1px solid #bbdefb;
+    background: var(--slate-100);
+    color: var(--slate-600);
+    border-color: var(--slate-200);
 }
 
 .status-badge.finalized {
-    background: #ffebee;
-    color: #c62828;
-    border: 1px solid #ffcdd2;
+    background: var(--emerald-50);
+    color: var(--emerald-700);
+    border-color: var(--emerald-500);
 }
 
 .badge-form {
     display: inline-block;
-    background: #e1f5fe;
-    color: #0288d1;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 0.85em;
+    background: var(--slate-100);
+    color: var(--slate-700);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-xs);
     font-weight: 600;
 }
 
@@ -241,39 +235,40 @@
 }
 
 .gap-2 {
-    gap: 8px;
+    gap: var(--spacing-sm);
+}
+
+.gap-4 {
+    gap: var(--spacing-lg);
 }
 
 .mb-2 {
-    margin-bottom: 8px;
+    margin-bottom: var(--spacing-sm);
 }
 
 .mb-4 {
-    margin-bottom: 16px;
+    margin-bottom: var(--spacing-lg);
 }
 
 .mb-6 {
-    margin-bottom: 24px;
+    margin-bottom: var(--spacing-xl);
 }
 
 .text-muted {
-    color: #999;
-    font-style: italic;
-    font-size: 0.85em;
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
 }
 
 .font-bold {
-    font-weight: bold;
+    font-weight: 700;
 }
 
 /* 7. Modals */
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -281,120 +276,73 @@
 }
 
 .modal-content {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    width: 500px;
-    max-width: 90%;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content .btn-cancel {
-    background: #4a4444;
-    color: white;
+    background: var(--color-bg);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    width: 600px;
+    max-width: 95%;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-border);
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-xl);
 }
 
 .modal-footer {
-    margin-top: 25px;
+    margin-top: var(--spacing-2xl);
     display: flex;
-    justify-content: center;
-    gap: 15px;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
 }
 
-
-/* 8. Additional Button Variants */
+/* 8. Specialized Buttons */
 .btn-lock {
-    background: #fdf6e3;
-    color: #e67e22;
-}
-
-.btn-lock:hover {
-    background: #f39c12;
-    color: white;
+    background: var(--slate-100);
+    padding: 4px 12px;
+    border-radius: var(--radius-md);
+    color: var(--color-warning);
 }
 
 .btn-unlock {
-    background: #e8f5e9;
-    color: #2e7d32;
-}
-
-.btn-unlock:hover {
-    background: #2e7d32;
-    color: white;
+    background: var(--emerald-50);
+    padding: 4px 12px;
+    border-radius: var(--radius-md);
+    color: var(--emerald-700);
 }
 
 .btn-cancel {
-    background: #4a4444;
-    color: white;
+    background: var(--slate-100);
+    color: var(--slate-700);
 }
 
 .btn-cancel:hover {
-    background: #131313;
+    background: var(--slate-200);
 }
 
-/* 9. Specialized Component Buttons */
 .btn-remove {
     background: var(--color-danger);
     color: white;
-    padding: 6px 12px;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: 0.9rem;
-    border: none;
-    transition: background 0.2s;
-}
-
-.btn-remove:hover {
-    background: #c0392b;
 }
 
 .btn-search-master {
     background: var(--color-info);
     color: white;
-    border: none;
     width: 32px;
     height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: background 0.2s;
-    margin-left: 5px;
+    border-radius: var(--radius-full);
 }
 
-.btn-search-master:hover {
-    background: #138496;
-}
-
-/* 10. Sortable Tables */
-.ui-sortable {
-    cursor: pointer;
-    user-select: none;
-    position: relative;
-}
-
+/* 9. Sortable & Resizing */
 .ui-sortable:hover {
-    background-color: #f1f3f5;
+    background-color: var(--slate-100);
     color: var(--color-primary);
 }
 
-/* 11. Resizing State Overrides */
 body.is-resizing,
 body.is-resizing * {
     cursor: col-resize !important;
-}
-
-body.is-resizing .ui-sortable {
-    pointer-events: none;
-    background-color: transparent !important;
 }

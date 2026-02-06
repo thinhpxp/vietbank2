@@ -170,6 +170,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -195,7 +196,7 @@ export default {
     methods: {
         async fetchTypes() {
             try {
-                const res = await axios.get('http://127.0.0.1:8000/api/object-types/');
+                const res = await axios.get(`${API_URL}/object-types/`);
                 this.types = res.data;
                 this.$nextTick(() => this.initResizable());
             } catch (e) {
@@ -217,7 +218,7 @@ export default {
                 return;
             }
             try {
-                await axios.post('http://127.0.0.1:8000/api/object-types/', this.newType);
+                await axios.post(`${API_URL}/object-types/`, this.newType);
                 this.newType = { code: '', name: '', description: '', identity_field_key: '', form_display_mode: null, layout_position: null, dynamic_summary_template: '', order: null };
                 this.fetchTypes();
             } catch (e) {
@@ -235,7 +236,7 @@ export default {
             }
 
             try {
-                await axios.patch(`http://127.0.0.1:8000/api/object-types/${this.editingId}/`, this.editingData);
+                await axios.patch(`${API_URL}/object-types/${this.editingId}/`, this.editingData);
                 this.editingId = null;
                 this.fetchTypes();
             } catch (e) {
@@ -248,10 +249,11 @@ export default {
         },
         async executeDelete() {
             try {
-                await axios.delete(`http://127.0.0.1:8000/api/object-types/${this.deleteTarget.id}/`);
+                await axios.delete(`${API_URL}/object-types/${this.deleteTarget.id}/`);
                 this.fetchTypes();
                 this.showDeleteModal = false;
             } catch (e) {
+                this.showDeleteModal = false;
                 this.showError(e, 'Lỗi xóa');
             }
         }

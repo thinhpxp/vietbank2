@@ -59,6 +59,7 @@
 
 <script>
 import axios from 'axios';
+import { API_URL } from '@/store/auth';
 import { makeTableResizable } from '@/utils/resizable-table';
 
 export default {
@@ -116,7 +117,7 @@ export default {
     methods: {
         async fetchObjectTypes() {
             try {
-                const response = await axios.get('http://127.0.0.1:8000/api/object-types/');
+                const response = await axios.get(`${API_URL}/object-types/`);
                 this.objectTypes = response.data;
             } catch (error) {
                 console.error('Lỗi khi tải loại đối tượng:', error);
@@ -146,7 +147,7 @@ export default {
                     if (!types) types = 'ASSET,VEHICLE,REALESTATE,SAVINGS,CONTRACT';
                 }
 
-                const response = await axios.get(`http://127.0.0.1:8000/api/master-objects/?object_type=${types}`);
+                const response = await axios.get(`${API_URL}/master-objects/?object_type=${types}`);
 
                 // Flatten data for compatibility
                 this.items = response.data.map(item => ({
