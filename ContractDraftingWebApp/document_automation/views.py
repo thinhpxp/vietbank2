@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions, filters
+from rest_framework import viewsets, status, permissions
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group, Permission
 from rest_framework.decorators import action

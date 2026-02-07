@@ -57,10 +57,12 @@ Sử dụng khi bạn đang duyệt danh sách tổng `people` và muốn lọc 
 Dùng cho các loại tài sản bảo đảm. Các trường thông tin dưới đây được gom nhóm theo loại đối tượng để bạn dễ dàng tra cứu.
 
 **A. Thông tin chung (Áp dụng cho mọi loại tài sản):**
+
 8. **Tên tài sản bảo đảm**: `{{ tai_san_bao_dam }}`
 9. **Giá trị định giá**: `{{ dinh_gia }}`
 
 **B. Nhóm: Bất động sản (REALESTATE):**
+
 10. **Địa chỉ Thửa đất**: `{{ dia_chi_thua_dat }}`
 11. **Thửa đất số**: `{{ thua_dat_so }}`
 12. **Tờ bản đồ số**: `{{ to_ban_do }}`
@@ -76,6 +78,7 @@ Dùng cho các loại tài sản bảo đảm. Các trường thông tin dưới
 22. **Thay đổi pháp lý (nếu có)**: `{{ thay_doi_phap_ly }}`
 
 **C. Nhóm: Công trình trên đất (Thường đi kèm Bất động sản):**
+
 23. **Địa chỉ TS GLVĐ**: `{{ dia_chi_tai_san_glvd }}`
 24. **Loại nhà ở/Công trình**: `{{ loai_tai_san_glvd }}`
 25. **Diện tích xây dựng**: `{{ dien_tich_xd_tsglvd }}`
@@ -84,20 +87,23 @@ Dùng cho các loại tài sản bảo đảm. Các trường thông tin dưới
 28. **Số tầng**: `{{ so_tang_tsglvd }}`
 
 **D. Nhóm: Phương tiện / Ô tô (VEHICLE):**
+
 29. **Nhãn hiệu xe**: `{{ nhan_hieu_xe }}`
 30. **Số đăng ký xe**: `{{ dang_ky_xe }}`
 31. **Số khung**: `{{ so_khung }}`
 32. **Số máy**: `{{ so_may }}`
 
 **E. Nhóm: Sổ tiết kiệm (SAVINGS):**
+
 33. **Số thẻ STK**: `{{ stk }}`
 34. **Số tiền gởi**: `{{ so_tien_goi }}`
 35. **Ngày gởi**: `{{ ngay_goi_stk }}`
 36. **Ngày đến hạn**: `{{ ngay_den_han_stk }}`
 
 **F. Nhóm: Trái phiếu (BOND):**
+
 37. **Mã trái phiếu**: `{{ ma_trai_phieu }}`
-38. **Mệnh giá**: `{{ menh_gia_trai_phieu }}`
+38. **Mệnh giá**: `{{ men_gia_trai_phieu }}`
 39. **Kỳ hạn**: `{{ ky_han_trai_phieu }}`
 
 **Cách sử dụng vòng lặp và Ví dụ thực tiễn:**
@@ -131,6 +137,22 @@ Sử dụng các trường này để đổ dữ liệu liên quan đến khoả
 **Ví dụ thực tiễn:**
 Trình bày thông tin số tiền bằng số và bằng chữ trong hợp đồng:
 > "Số tiền cho vay là: **{{ hdtd_tl_so_tien_vay | format_currency }}** VNĐ (Bằng chữ: *{{ hdtd_tl_so_tien_vay | num2words }}*)."
+
+**Xử lý trường hợp có 1 hoặc cả 2 loại hợp đồng:**
+Sử dụng cú pháp `if` để chỉ hiển thị phần văn bản tương ứng với dữ liệu hiện có:
+```jinja2
+{% if hdtd_tl %}
+HỢP ĐỒNG TÍN DỤNG TỪNG LẦN:
+- Số hợp đồng: {{ hdtd_tl }}
+- Số tiền vay: {{ hdtd_tl_so_tien_vay | format_currency }} VNĐ
+{% endif %}
+
+{% if hdtd_hm %}
+HỢP ĐỒNG TÍN DỤNG HẠN MỨC:
+- Số hợp đồng: {{ hdtd_hm }}
+- Hạn mức: {{ hdtd_hm_so_tien_vay | format_currency }} VNĐ
+{% endif %}
+```
 
 ---
 
