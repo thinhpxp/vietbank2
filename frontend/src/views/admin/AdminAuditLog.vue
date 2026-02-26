@@ -36,60 +36,56 @@
     </div>
 
     <!-- Data Table -->
-    <div class="ui-table-wrapper">
+    <div class="data-table-vxe">
       <div v-if="loading" class="loading-state">Đang tải dữ liệu...</div>
 
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th width="50" class="admin-sortable" @click="toggleSort('id')">
-              ID {{ getSortIcon('id') }}
-            </th>
-            <th width="150" class="admin-sortable" @click="toggleSort('timestamp')">
-              Thời gian {{ getSortIcon('timestamp') }}
-            </th>
-            <th width="150" class="admin-sortable" @click="toggleSort('user')">
-              Người thực hiện {{ getSortIcon('user') }}
-            </th>
-            <th width="120" class="admin-sortable" @click="toggleSort('action')">
-              Hành động {{ getSortIcon('action') }}
-            </th>
-            <th width="200" class="admin-sortable" @click="toggleSort('target_model')">
-              Đối tượng {{ getSortIcon('target_model') }}
-            </th>
-            <th>Chi tiết</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="logs.length === 0">
-            <td colspan="6" class="text-center">Không có dữ liệu nhật ký.</td>
-          </tr>
-          <tr v-for="log in sortedLogs" :key="log.id">
-            <td>#{{ log.id }}</td>
-            <td>{{ formatTime(log.timestamp) }}<br><small class="text-muted">{{ formatDate(log.timestamp) }}</small>
-            </td>
-            <td>
-              <div class="user-cell">
-                <span class="user-avatar-sm">👤</span>
-                <div>
-                  <strong>{{ log.user_details?.username || 'System' }}</strong>
-                  <br><small>ID: {{ log.user }}</small>
-                </div>
+      <vxe-table v-else border round :data="filteredLogs" :row-config="{ isHover: true }"
+        :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" height="auto" class="audit-table">
+
+        <vxe-column field="id" title="ID" width="70" sortable>
+          <template #default="{ row }">
+            #{{ row.id }}
+          </template>
+        </vxe-column>
+
+        <vxe-column field="timestamp" title="Thời gian" width="160" sortable>
+          <template #default="{ row }">
+            {{ formatTime(row.timestamp) }}<br>
+            <small class="text-muted">{{ formatDate(row.timestamp) }}</small>
+          </template>
+        </vxe-column>
+
+        <vxe-column field="user" title="Người thực hiện" width="180" sortable>
+          <template #default="{ row }">
+            <div class="user-cell">
+              <span class="user-avatar-sm">👤</span>
+              <div>
+                <strong>{{ row.user_details?.username || 'System' }}</strong>
+                <br><small>ID: {{ row.user }}</small>
               </div>
-            </td>
-            <td>
-              <span class="badge" :class="getActionClass(log.action)">{{ log.action }}</span>
-            </td>
-            <td>
-              <strong>{{ log.target_model }}</strong>
-              <span v-if="log.target_id" class="target-id">#{{ log.target_id }}</span>
-            </td>
-            <td class="cell-details">
-              {{ log.details }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </template>
+        </vxe-column>
+
+        <vxe-column field="action" title="Hành động" width="130" sortable>
+          <template #default="{ row }">
+            <span class="badge" :class="getActionClass(row.action)">{{ row.action }}</span>
+          </template>
+        </vxe-column>
+
+        <vxe-column field="target_model" title="Đối tượng" width="220" sortable>
+          <template #default="{ row }">
+            <strong>{{ row.target_model }}</strong>
+            <span v-if="row.target_id" class="target-id">#{{ row.target_id }}</span>
+          </template>
+        </vxe-column>
+
+        <vxe-column field="details" title="Chi tiết" min-width="300">
+          <template #default="{ row }">
+            <div class="cell-details">{{ row.details }}</div>
+          </template>
+        </vxe-column>
+      </vxe-table>
     </div>
 
     <!-- Pagination (Simple Previous/Next based on DRF) -->
@@ -106,13 +102,11 @@
 import axios from 'axios';
 import { format, parseISO, subDays } from 'date-fns';
 import { errorHandlingMixin } from '@/utils/errorHandler';
-import { makeTableResizable } from '@/utils/resizable-table';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
-import { SortableTableMixin } from '@/mixins/SortableTableMixin';
 
 export default {
   name: 'AdminAuditLog',
-  mixins: [errorHandlingMixin, FilterableTableMixin, SortableTableMixin],
+  mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
       logs: [],
@@ -126,25 +120,8 @@ export default {
     };
   },
   computed: {
-    sortedLogs() {
-      // Map 'user' sort key to 'user_details.username' if needed, 
-      // but SortableTableMixin supports simple key mapping or direct access.
-      // For user, let's sort by username if possible, or fallback to user ID.
-      // Since our mixin is simple, let's pre-process or just sort by basic fields.
-      // We will add a simple mapping if the mixin supports it or just use 'user' (ID).
-      // actually, let's use the mixin's mapping feature if available.
-      // Looking at mixin: sortArray(items, mapping).
-
-      const mapping = {
-        'user': 'user', // Defaults to ID. To sort by username we'd need to flatten or custom sort.
-        // Let's stick to default for now as planned.
-      };
-
-      // Apply filtering first? No, filter is applied in fetchLogs (server/client hybrid).
-      // Actually, fetchLogs updates 'this.logs'. 
-      // If we use filterArray in fetchLogs, 'this.logs' will contain filtered items.
-      // Then we sort 'this.logs'.
-      return this.sortArray(this.logs, mapping);
+    filteredLogs() {
+      return this.logs;
     }
   },
   created() {
@@ -182,7 +159,6 @@ export default {
         this.showError(error);
       } finally {
         this.loading = false;
-        this.$nextTick(() => this.initResizable());
       }
     },
     async loadPage(url) {
@@ -199,7 +175,6 @@ export default {
         this.showError(error);
       } finally {
         this.loading = false;
-        this.$nextTick(() => this.initResizable());
       }
     },
     formatDate(isoString) {
@@ -220,12 +195,6 @@ export default {
       };
       return map[action] || 'badge-user';
     },
-    initResizable() {
-      const table = this.$el.querySelector('.data-table');
-      if (table) {
-        makeTableResizable(table, 'admin-audit-logs');
-      }
-    }
   }
 };
 </script>

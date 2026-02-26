@@ -15,6 +15,15 @@
             </div>
         </div>
 
+        <!-- Filter Bar -->
+        <div class="filter-bar mb-4">
+            <div class="filter-group">
+                <label>Tìm kiếm:</label>
+                <input v-model="filters.search" placeholder="Tìm theo tên, số hiệu..." class="admin-form-control"
+                    style="width: 300px">
+            </div>
+        </div>
+
         <!-- TABS -->
         <div class="admin-tabs">
             <button v-for="type in objectTypes" :key="type.code" class="admin-tab-item"
@@ -25,64 +34,62 @@
 
         <div class="tab-content">
             <div v-if="loading" class="loading-state">Đang tải dữ liệu...</div>
-            <div v-else class="ui-table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th v-if="auth.isSuperuser" width="40">
-                                <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
-                            </th>
-                            <th>ID</th>
-                            <!-- Dynamic Headers based on Type could be improved later, for now Generic -->
-                            <th>Tên / Số hiệu</th>
-                            <th>Thông tin thêm</th>
-                            <th>Ngày tạo</th>
-                            <th>Cập nhật gần nhất</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="item in items" :key="item.id"
-                            :class="{ 'row-selected': selectedIds.includes(item.id) }">
-                            <td v-if="auth.isSuperuser">
-                                <input type="checkbox" :checked="selectedIds.includes(item.id)"
-                                    @change="toggleSelect(item.id)" />
-                            </td>
-                            <td>
-                                {{ item.id }}
-                                <div v-if="item.profiles_count === 0" class="indicator-tag indicator-warning mt-1">
-                                    Chưa liên kết</div>
-                            </td>
-                            <td class="font-bold">
-                                <!-- Hiển thị tên hoặc số GCN tùy loại, hoặc fallback display_name (Smart translated) -->
-                                {{ item.ho_ten || item.so_giay_chung_nhan || $t(item.display_name) || '---' }}
-                            </td>
+            <div v-else class="data-table-vxe">
+                <vxe-table border round :data="filteredItems" :row-config="{ isHover: true }"
+                    :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }"
+                    @checkbox-change="handleCheckboxChange" @checkbox-all="handleCheckboxAll">
 
-                            <td>
-                                <span>{{ getDynamicSummary(item, activeTab) }}</span>
-                            </td>
-                            <td>{{ formatDate(item.created_at) }}</td>
-                            <td>
-                                <div class="text-sm">
-                                    <div>{{ formatDate(item.updated_at) }}</div>
-                                    <small class="badge bg-gray-100 text-gray-600 mt-1"
-                                        v-if="item.last_updated_by_name">
-                                        👤 {{ item.last_updated_by_name }}
-                                    </small>
-                                </div>
-                            </td>
+                    <vxe-column v-if="auth.isSuperuser" type="checkbox" width="50"></vxe-column>
 
-                            <td>
-                                <div class="flex gap-2">
-                                    <button class="btn-action btn-secondary" @click="viewRelated(item)">Liên
-                                        kết</button>
-                                    <button class="btn-action btn-edit" @click="editObject(item)">Sửa</button>
-                                    <button class="btn-action btn-delete" @click="confirmDelete(item)">Xóa</button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <vxe-column field="id" title="ID" width="80" sortable>
+                        <template #default="{ row }">
+                            {{ row.id }}
+                            <div v-if="row.profiles_count === 0" class="indicator-tag indicator-warning mt-1">
+                                Chưa liên kết</div>
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column field="display_name" title="Tên / Số hiệu" min-width="200" sortable>
+                        <template #default="{ row }">
+                            <span class="font-bold">
+                                {{ row.ho_ten || row.so_giay_chung_nhan || $t(row.display_name) || '---' }}
+                            </span>
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column title="Thông tin thêm" min-width="200">
+                        <template #default="{ row }">
+                            {{ getDynamicSummary(row, activeTab) }}
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column field="created_at" title="Ngày tạo" width="160" sortable>
+                        <template #default="{ row }">
+                            {{ formatDate(row.created_at) }}
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column field="updated_at" title="Cập nhật gần nhất" width="180" sortable>
+                        <template #default="{ row }">
+                            <div class="text-sm">
+                                <div>{{ formatDate(row.updated_at) }}</div>
+                                <small class="badge bg-gray-100 text-gray-600 mt-1" v-if="row.last_updated_by_name">
+                                    👤 {{ row.last_updated_by_name }}
+                                </small>
+                            </div>
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column title="Hành động" width="220" fixed="right">
+                        <template #default="{ row }">
+                            <div class="flex gap-2">
+                                <button class="btn-action btn-secondary" @click="viewRelated(row)">Liên kết</button>
+                                <button class="btn-action btn-edit" @click="editObject(row)">Sửa</button>
+                                <button class="btn-action btn-delete" @click="confirmDelete(row)">Xóa</button>
+                            </div>
+                        </template>
+                    </vxe-column>
+                </vxe-table>
             </div>
         </div>
 
@@ -192,7 +199,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                            }}</span>
+                                        }}</span>
                                     </div>
 
                                 </div>
@@ -241,13 +248,13 @@ import auth from '@/store/auth';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import MasterCreateModal from '../../components/MasterCreateModal.vue';
-import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '../../utils/errorHandler';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
     name: 'MasterData',
     components: { ConfirmModal, MasterCreateModal, SvgIcon },
-    mixins: [errorHandlingMixin],
+    mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
             objectTypes: [], // List of dynamic types
@@ -285,17 +292,22 @@ export default {
 
             // Modal Type Override (for viewing cross-type relations)
             tempOverrideType: null,
-            tempOverrideTypeName: null
+            tempOverrideTypeName: null,
+            filters: { search: '' }
         };
     },
     computed: {
-        // currentEntityType() { ... } // Không cần nữa vì activeTab chính là code (PERSON, ASSET...)
+        filteredItems() {
+            // Define searchable fields based on type
+            let searchFields = ['ho_ten', 'so_giay_chung_nhan', 'display_name'];
+
+            return this.filterArray(this.items, this.filters, {
+                search: { type: 'text', fields: searchFields }
+            });
+        },
         currentTypeName() {
             const t = this.objectTypes.find(type => type.code === this.activeTab);
             return t ? t.name : 'Đối tượng';
-        },
-        isAllSelected() {
-            return this.items.length > 0 && this.selectedIds.length === this.items.length;
         }
     },
     watch: {
@@ -307,7 +319,6 @@ export default {
     },
     async mounted() {
         await this.fetchObjectTypes();
-        this.initResizable();
     },
     methods: {
         getDynamicSummary(item, typeCode) {
@@ -359,15 +370,6 @@ export default {
                 this.showError(error, 'Lỗi khi tải dữ liệu master');
             } finally {
                 this.loading = false;
-                this.$nextTick(() => {
-                    this.initResizable();
-                });
-            }
-        },
-        initResizable() {
-            const table = this.$el.querySelector('.data-table');
-            if (table) {
-                makeTableResizable(table, 'master-data-' + this.activeTab);
             }
         },
         async viewRelated(obj) {
@@ -434,27 +436,17 @@ export default {
                 await axios.delete(`${API_URL}/master-objects/${this.deleteTarget.id}/`);
                 this.showDeleteModal = false;
                 this.fetchData();
-                this.showSuccess('Đã xóa thành công!');
+                this.$toast.success('Đã xóa thành công!');
             } catch (error) {
                 this.showDeleteModal = false;
                 this.showError(error, 'Lỗi khi xóa');
             }
         },
-        // Bulk Selection Logic
-        toggleSelect(id) {
-            const index = this.selectedIds.indexOf(id);
-            if (index === -1) {
-                this.selectedIds.push(id);
-            } else {
-                this.selectedIds.splice(index, 1);
-            }
+        handleCheckboxChange({ selection }) {
+            this.selectedIds = selection.map(row => row.id);
         },
-        toggleSelectAll() {
-            if (this.isAllSelected) {
-                this.selectedIds = [];
-            } else {
-                this.selectedIds = this.items.map(item => item.id);
-            }
+        handleCheckboxAll({ selection }) {
+            this.selectedIds = selection.map(row => row.id);
         },
         confirmBulkDelete() {
             this.showBulkDeleteModal = true;
@@ -468,7 +460,7 @@ export default {
                 this.showBulkDeleteModal = false;
                 this.selectedIds = [];
                 await this.fetchData();
-                this.showSuccess('Đã xóa hàng loạt thành công!');
+                this.$toast.success('Đã xóa hàng loạt thành công!');
             } catch (error) {
                 this.showBulkDeleteModal = false;
                 this.showError(error, 'Lỗi khi xóa hàng loạt');

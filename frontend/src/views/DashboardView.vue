@@ -3,83 +3,109 @@
     <div class="header-actions">
       <h2>Danh sách Hồ sơ Vay</h2>
       <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-create"
-        @click="openFormSelectModal">+ Tạo Mới</button>
+        @click="openFormSelectModal">
+        <SvgIcon name="plus" size="sm" /> <span>Tạo Mới</span>
+      </button>
     </div>
 
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label>Tìm kiếm</label>
-        <input v-model="filters.search" placeholder="Tìm kiếm hồ sơ..." class="filter-control" style="width: 250px">
+    <!-- Filter Bar (Premium Refactor) -->
+    <div class="filter-bar admin-row align-end gap-md mb-6">
+      <div class="filter-group" style="flex: 1.5; min-width: 100px;">
+        <label class="premium-label">
+          <SvgIcon name="search" size="xs" /> Tìm kiếm
+        </label>
+        <div class="premium-input-wrapper">
+          <input v-model="filters.search" placeholder="Tìm kiếm hồ sơ..." class="filter-control premium-input">
+        </div>
       </div>
-      <div class="filter-group">
-        <label>Trạng thái</label>
-        <select v-model="filters.status" class="filter-control" style="width: 200px">
+
+      <div class="filter-group" style="flex: 1; min-width: 180px;">
+        <label class="premium-label">
+          <SvgIcon name="shield" size="xs" /> Trạng thái
+        </label>
+        <select v-model="filters.status" class="filter-control premium-select">
           <option :value="null">- Tất cả trạng thái -</option>
           <option value="DRAFT">Nháp</option>
           <option value="FINALIZED">Đã khóa</option>
         </select>
       </div>
-      <div class="filter-group">
-        <label>Ngày tạo</label>
-        <input v-model="filters.createdDate" type="date" class="filter-control" style="width: 150px">
+
+      <div class="filter-group" style="flex: 1; min-width: 150px;">
+        <label class="premium-label">
+          <SvgIcon name="calendar" size="xs" /> Ngày tạo
+        </label>
+        <input v-model="filters.createdDate" type="date" class="filter-control premium-input">
       </div>
-      <div class="filter-group">
-        <label>Người tạo</label>
-        <input v-model="filters.creator" placeholder="Nhập tên người tạo..." class="filter-control"
-          style="width: 180px">
+
+      <div class="filter-group" style="flex: 1; min-width: 100px;">
+        <label class="premium-label">
+          <SvgIcon name="user" size="xs" /> Người tạo
+        </label>
+        <input v-model="filters.creator" placeholder="Nhập tên..." class="filter-control premium-input">
       </div>
-      <button class="btn-action btn-secondary" @click="resetFilters">Đặt lại</button>
+
+      <div class="filter-actions flex items-end">
+        <button class="btn-action btn-secondary flex items-center gap-2" @click="resetFilters" title="Đặt lại bộ lọc">
+          <SvgIcon name="x" size="sm" /> <span>Đặt lại</span>
+        </button>
+      </div>
     </div>
 
-    <div v-if="loading">Đang tải dữ liệu...</div>
-    <div v-else class="ui-table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th @click="toggleSort('id')" :class="getSortableClass('id')">ID {{ getSortIcon('id') }}</th>
-            <th @click="toggleSort('name')" :class="getSortableClass('name')">Tên Hồ sơ {{ getSortIcon('name') }}</th>
-            <th @click="toggleSort('created_by_user_name', 'id')" :class="getSortableClass('created_by_user_name')">
-              Người
-              tạo {{ getSortIcon('created_by_user_name') }}</th>
-            <th @click="toggleSort('created_at')" :class="getSortableClass('created_at')">Ngày tạo {{
-              getSortIcon('created_at') }}</th>
-            <th @click="toggleSort('form_view_name')" :class="getSortableClass('form_view_name')">Loại Form {{
-              getSortIcon('form_view_name') }}</th>
-            <th @click="toggleSort('status')" :class="getSortableClass('status')">Trạng thái {{ getSortIcon('status') }}
-            </th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="profile in sortedProfiles" :key="profile.id">
-            <td>{{ profile.id }}</td>
-            <td>{{ profile.name }}</td>
-            <td>{{ profile.created_by_user_name || 'Admin' }}</td>
-            <td>{{ formatDate(profile.created_at) }}</td>
-            <td>
-              <span class="badge-form" v-if="profile.form_view_name">{{ profile.form_view_name }}</span>
-              <span v-else class="text-muted">Mặc định</span>
-            </td>
-            <td>
-              <div class="status-badge-container">
-                <span class="status-badge" :class="profile.status.toLowerCase()">
-                  {{ $t(profile.status) }}
-                </span>
-              </div>
-            </td>
-            <td>
+    <div v-if="loading" class="loading-state">
+      <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      <span class="ms-2">Đang tải dữ liệu...</span>
+    </div>
+    <div v-else class="data-table-vxe">
+      <vxe-table border round :data="sortedProfiles" :row-config="{ isHover: true }"
+        :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }">
+
+        <vxe-column field="id" title="ID" width="80" sortable></vxe-column>
+
+        <vxe-column field="name" title="Tên Hồ sơ" min-width="200" sortable></vxe-column>
+
+        <vxe-column field="created_by_user_name" title="Người tạo" width="180" sortable>
+          <template #default="{ row }">
+            {{ row.created_by_user_name || 'Admin' }}
+          </template>
+        </vxe-column>
+
+        <vxe-column field="created_at" title="Ngày tạo" width="150" sortable>
+          <template #default="{ row }">
+            {{ formatDate(row.created_at) }}
+          </template>
+        </vxe-column>
+
+        <vxe-column field="form_view_name" title="Loại Form" width="180" sortable>
+          <template #default="{ row }">
+            <span class="badge-form" v-if="row.form_view_name">{{ row.form_view_name }}</span>
+            <span v-else class="text-muted">Mặc định</span>
+          </template>
+        </vxe-column>
+
+        <vxe-column field="status" title="Trạng thái" width="150" sortable>
+          <template #default="{ row }">
+            <div class="status-badge-container">
+              <span class="status-badge" :class="row.status.toLowerCase()">
+                {{ $t(row.status) }}
+              </span>
+            </div>
+          </template>
+        </vxe-column>
+
+        <vxe-column title="Hành động" width="280" fixed="right">
+          <template #default="{ row }">
+            <div class="flex gap-2">
               <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-action btn-edit"
-                @click="editProfile(profile.id)">Sửa</button>
+                @click="editProfile(row.id)">Sửa</button>
               <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-copy"
-                @click="openDuplicateModal(profile)">Sao chép</button>
-              <button class="btn-action btn-doc" @click="openDownloadModal(profile)">Xuất HĐ</button>
+                @click="openDuplicateModal(row)">Sao chép</button>
+              <button class="btn-action btn-doc" @click="openDownloadModal(row)">Xuất HĐ</button>
               <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-action btn-delete"
-                @click="deleteProfile(profile.id)">Xóa</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                @click="deleteProfile(row.id)">Xóa</button>
+            </div>
+          </template>
+        </vxe-column>
+      </vxe-table>
     </div>
 
     <!-- Contract Downloader Modal -->
@@ -96,24 +122,24 @@
       :defaultValue="duplicateDefaultName" confirmText="Tạo bản sao" @confirm="confirmDuplicate"
       @cancel="showDuplicateModal = false" />
 
-    <!-- Form Selection Modal -->
-    <div v-if="showFormSelectModal" class="modal-overlay" @click.self="showFormSelectModal = false">
-      <div class="modal-content form-select-modal">
-        <h3>Chọn loại hồ sơ muốn tạo</h3>
-        <div class="form-options">
-          <button v-for="form in allForms" :key="form.id" class="form-option-item" @click="createNewProfile(form.slug)">
-            <div class="option-icon">📄</div>
-            <div class="option-info">
-              <div class="option-name">{{ form.name }}</div>
-              <div class="option-note">{{ form.note || 'Mẫu hồ sơ tiêu chuẩn' }}</div>
-            </div>
-          </button>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-action btn-secondary" @click="showFormSelectModal = false">Đóng</button>
-        </div>
+    <!-- Form Selection Modal (Refactored to BaseModal) -->
+    <BaseModal :isOpen="showFormSelectModal" title="Chọn loại hồ sơ muốn tạo" :initialWidth="500"
+      @close="showFormSelectModal = false">
+      <div class="form-options">
+        <button v-for="form in allForms" :key="form.id" class="form-option-item" @click="createNewProfile(form.slug)">
+          <div class="option-icon">
+            <SvgIcon name="file" size="lg" />
+          </div>
+          <div class="option-info">
+            <div class="option-name">{{ form.name }}</div>
+            <div class="option-note">{{ form.note || 'Mẫu hồ sơ tiêu chuẩn' }}</div>
+          </div>
+        </button>
       </div>
-    </div>
+      <template #footer>
+        <button class="btn-action btn-secondary" @click="showFormSelectModal = false">Đóng</button>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -124,15 +150,15 @@ import auth from '@/store/auth';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
-import { makeTableResizable } from '@/utils/resizable-table';
-import { SortableTableMixin } from '@/mixins/SortableTableMixin';
+import BaseModal from '../components/BaseModal.vue';
+import SvgIcon from '../components/common/SvgIcon.vue';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 
 export default {
   name: 'DashboardView',
-  components: { ContractDownloader, ConfirmModal, InputModal },
-  mixins: [SortableTableMixin, FilterableTableMixin, errorHandlingMixin],
+  components: { ContractDownloader, ConfirmModal, InputModal, BaseModal, SvgIcon },
+  mixins: [FilterableTableMixin, errorHandlingMixin],
   data() {
     return {
       auth,
@@ -165,26 +191,14 @@ export default {
     this.fetchProfiles();
     this.fetchForms();
   },
-  watch: {
-    'filters.search': {
-      handler(newVal) {
-        // Debounce search
-        clearTimeout(this.searchTimer);
-        this.searchTimer = setTimeout(() => {
-          this.fetchProfiles(newVal);
-        }, 500);
-      }
-    }
-  },
   computed: {
-    sortedProfiles() {
-      const filtered = this.filterArray(this.profiles, this.filters, {
+    filteredProfiles() {
+      return this.filterArray(this.profiles, this.filters, {
         search: { type: 'text', fields: ['name', 'created_by_user_name', 'search_identifiers'] },
         status: { type: 'exact' },
         createdDate: { type: 'date', field: 'created_at' },
         creator: { type: 'text', field: 'created_by_user_name' }
       });
-      return this.sortArray(filtered);
     }
   },
   methods: {
@@ -199,15 +213,6 @@ export default {
         this.showError(error, 'Lỗi tải danh sách hồ sơ');
       } finally {
         this.loading = false;
-        this.$nextTick(() => {
-          this.initResizable();
-        });
-      }
-    },
-    initResizable() {
-      const table = this.$el.querySelector('.data-table');
-      if (table) {
-        makeTableResizable(table, 'dashboard-profiles');
       }
     },
     async fetchForms() {
@@ -296,65 +301,97 @@ export default {
 </script>
 
 <style scoped>
-/* Scoped overrides if any */
-.form-select-modal {
-  width: 500px;
-  max-width: 90%;
+.data-table-vxe {
+  margin-top: 10px;
 }
 
 .form-options {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: var(--spacing-md);
   max-height: 400px;
   overflow-y: auto;
-  padding: 5px;
+  padding: var(--spacing-xs);
 }
 
 .form-option-item {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px;
-  background: #f8f9fa;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--slate-50);
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s;
+  transition: var(--transition-normal);
   width: 100%;
 }
 
 .form-option-item:hover {
   background: #e1f5fe;
-  border-color: #0288d1;
+  border-color: var(--color-primary);
   transform: translateY(-2px);
 }
 
 .option-icon {
-  font-size: 24px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
 }
 
 .option-name {
-  font-weight: bold;
-  font-size: 1.1em;
-  color: #2c3e50;
+  font-weight: 700;
+  font-size: var(--font-md);
+  color: var(--slate-800);
 }
 
 .option-note {
-  font-size: 0.9em;
-  color: #7f8c8d;
-  margin-top: 4px;
+  font-size: var(--font-sm);
+  color: var(--slate-500);
+  margin-top: 2px;
 }
 
-.badge-identifier {
-  display: inline-block;
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  margin-right: 4px;
-  border: 1px solid #bbdefb;
+.premium-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--slate-600);
+  margin-bottom: 6px;
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.premium-input,
+.premium-select {
+  width: 100%;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  background-color: white;
+  transition: all 0.2s ease;
+  font-size: var(--font-sm);
+}
+
+.premium-input:focus,
+.premium-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-muted);
 }
 </style>

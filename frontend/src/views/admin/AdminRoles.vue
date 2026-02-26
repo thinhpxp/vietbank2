@@ -12,56 +12,61 @@
       </div>
     </div>
 
-    <div class="ui-table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tên Vai trò</th>
-            <th>Mã (Slug)</th>
-            <th>Mô tả</th>
-            <th>Quan hệ Tự động</th>
-            <th>Hệ thống</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
+    <div class="filter-bar mb-4">
+      <div class="filter-group">
+        <label>Tìm kiếm:</label>
+        <input v-model="filters.search" placeholder="Tìm theo tên hoặc mã..." class="admin-form-control"
+          style="width: 300px">
+      </div>
+    </div>
 
-        <tbody class="tbody">
-          <tr v-for="role in roles" :key="role.id">
-            <td>{{ role.id }}</td>
-            <td>
-              <input v-if="editingId === role.id" v-model="role.name">
-              <span v-else>{{ role.name }}</span>
-            </td>
-            <td>
-              <input v-if="editingId === role.id" v-model="role.slug">
-              <span v-else>{{ role.slug || '---' }}</span>
-            </td>
-            <td>
-              <input v-if="editingId === role.id" v-model="role.description" style="width: 100%" class="admin-input">
-              <span v-else>{{ role.description }}</span>
-            </td>
-            <td>
-              <input v-if="editingId === role.id" v-model="role.relation_type" placeholder="OWNER..."
-                class="admin-input">
-              <span v-else>{{ role.relation_type || '---' }}</span>
-            </td>
-            <td style="text-align: center;">
-              <span v-if="role.is_system" class="badge badge-system">System</span>
-              <span v-else class="badge badge-user">User</span>
-            </td>
-            <td>
-              <div class="flex gap-2">
-                <button v-if="editingId === role.id" @click="updateRole(role)" class="btn-action btn-save">Lưu</button>
-                <button v-else @click="editingId = role.id" class="btn-action btn-edit">Sửa</button>
+    <div class="data-table-vxe">
+      <vxe-table border round :data="filteredRoles" :row-config="{ isHover: true }" :column-config="{ resizable: true }"
+        :sort-config="{ trigger: 'cell' }">
+        <vxe-column field="id" title="ID" width="60" sortable></vxe-column>
+        <vxe-column field="name" title="Tên Vai trò" min-width="150" sortable>
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.name" class="vxe-input-minimal">
+            <span v-else>{{ row.name }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="slug" title="Mã (Slug)" width="150" sortable>
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.slug" class="vxe-input-minimal">
+            <span v-else>{{ row.slug || '---' }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="description" title="Mô tả" min-width="200">
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.description" class="vxe-input-minimal">
+            <span v-else>{{ row.description }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="relation_type" title="Quan hệ Tự động" width="150">
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.relation_type" class="vxe-input-minimal"
+              placeholder="OWNER...">
+            <span v-else>{{ row.relation_type || '---' }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="is_system" title="Hệ thống" width="100" align="center">
+          <template #default="{ row }">
+            <span v-if="row.is_system" class="status-badge finalized">System</span>
+            <span v-else class="status-badge draft">User</span>
+          </template>
+        </vxe-column>
+        <vxe-column title="Hành động" width="150" fixed="right">
+          <template #default="{ row }">
+            <div class="flex gap-2">
+              <button v-if="editingId === row.id" @click="updateRole(row)" class="btn-action btn-save">Lưu</button>
+              <button v-else @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
 
-                <button v-if="!role.is_system" @click="deleteRole(role.id)" class="btn-action btn-delete">Xóa</button>
-                <span v-else title="Role hệ thống không thể xóa" class="text-gray-400 px-2 cursor-not-allowed">🔒</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <button v-if="!row.is_system" @click="deleteRole(row.id)" class="btn-action btn-delete">Xóa</button>
+              <span v-else title="Role hệ thống không thể xóa" class="text-muted px-2 cursor-not-allowed">🔒</span>
+            </div>
+          </template>
+        </vxe-column>
+      </vxe-table>
     </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
@@ -74,41 +79,43 @@
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
-import { makeTableResizable } from '../../utils/resizable-table';
-import { errorHandlingMixin } from '../../utils/errorHandler';
+import { errorHandlingMixin } from '@/utils/errorHandler';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'AdminRoles',
   components: { ConfirmModal },
-  mixins: [errorHandlingMixin],
+  mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
       roles: [],
       newRole: { name: '', slug: '', description: '', relation_type: '' },
       editingId: null,
+      filters: { search: '' },
       showDeleteModal: false,
       deleteTargetId: null,
       deleteTargetName: ''
     }
   },
+  computed: {
+    filteredRoles() {
+      return this.filterArray(this.roles, this.filters, {
+        search: { type: 'text', fields: ['name', 'slug'] }
+      });
+    }
+  },
+  watch: {
+  },
   mounted() {
     this.fetchRoles();
-    this.initResizable();
   },
   methods: {
     async fetchRoles() {
       try {
         const res = await axios.get(`${API_URL}/roles/`);
         this.roles = res.data;
-        this.$nextTick(() => this.initResizable());
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách vai trò');
-      }
-    },
-    initResizable() {
-      const table = this.$el.querySelector('.data-table');
-      if (table) {
-        makeTableResizable(table, 'admin-roles');
       }
     },
     async addRole() {
@@ -156,3 +163,9 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.data-table-vxe {
+  margin-top: 10px;
+}
+</style>

@@ -17,88 +17,96 @@
       </div>
     </div>
 
-    <div class="ui-table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tên Nhóm</th>
-            <th>Mã (Slug)</th>
-            <th>Vị trí</th>
-            <th>Ghi chú</th>
-            <th>Thứ tự</th>
-            <th>Loại đối tượng áp dụng</th>
-            <th>Hiển thị ở Form</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
+    <div class="filter-bar mb-4">
+      <div class="filter-group">
+        <label>Tìm kiếm:</label>
+        <input v-model="filters.search" placeholder="Tìm theo tên hoặc mã..." class="admin-form-control"
+          style="width: 300px">
+      </div>
+    </div>
 
-        <tbody class="tbody">
-          <tr v-for="grp in groups" :key="grp.id">
-            <td>{{ grp.id }}</td>
-            <td>
-              <input v-if="editingId === grp.id" v-model="grp.name" style="width: 35%">
-              <span v-else>{{ grp.name }}</span>
-            </td>
-            <td>
-              <input v-if="editingId === grp.id" v-model="grp.slug" style="width: 90%"
-                placeholder="vd: thong-tin-chung">
-              <span v-else><code>{{ grp.slug || '---' }}</code></span>
-            </td>
-            <td>
-              <select v-if="editingId === grp.id" v-model="grp.layout_position">
-                <option value="LEFT">Cột Trái</option>
-                <option value="RIGHT">Cột Phải</option>
-              </select>
-              <span v-else>
-                <span v-if="grp.layout_position === 'RIGHT'" class="badge badge-warning">Cột Phải</span>
-                <span v-else class="badge badge-info">Cột Trái</span>
-              </span>
-            </td>
-            <td>
-              <input v-if="editingId === grp.id" v-model="grp.note" style="width: 60%">
-              <span v-else>{{ grp.note }}</span>
-            </td>
-            <td>
-              <input v-if="editingId === grp.id" v-model.number="grp.order" type="number" style="width:50px">
-              <span v-else>{{ grp.order }}</span>
-            </td>
-            <td style="min-width: 150px;">
-              <!-- Object Types Column -->
-              <div v-if="editingId === grp.id">
-                <div v-for="type in objectTypes" :key="type.id">
-                  <label>
-                    <input type="checkbox" :value="type.id" v-model="grp.allowed_object_types">
-                    {{ type.name }}
-                  </label>
-                </div>
+    <div class="data-table-vxe">
+      <vxe-table border round :data="filteredGroups" :row-config="{ isHover: true }"
+        :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }">
+        <vxe-column field="id" title="ID" width="60" sortable></vxe-column>
+        <vxe-column field="name" title="Tên Nhóm" min-width="150" sortable>
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.name" class="vxe-input-minimal">
+            <span v-else>{{ row.name }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="slug" title="Mã (Slug)" width="150" sortable>
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.slug" class="vxe-input-minimal"
+              placeholder="vd: thong-tin-chung">
+            <span v-else><code>{{ row.slug || '---' }}</code></span>
+          </template>
+        </vxe-column>
+        <vxe-column field="layout_position" title="Vị trí" width="120" sortable>
+          <template #default="{ row }">
+            <select v-if="editingId === row.id" v-model="row.layout_position" class="vxe-input-minimal">
+              <option value="LEFT">Cột Trái</option>
+              <option value="RIGHT">Cột Phải</option>
+            </select>
+            <span v-else>
+              <span v-if="row.layout_position === 'RIGHT'" class="status-badge draft">Cột Phải</span>
+              <span v-else class="status-badge finalized">Cột Trái</span>
+            </span>
+          </template>
+        </vxe-column>
+        <vxe-column field="note" title="Ghi chú" min-width="150">
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.note" class="vxe-input-minimal">
+            <span v-else>{{ row.note }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="order" title="Thứ tự" width="100" sortable>
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model.number="row.order" type="number" class="vxe-input-minimal">
+            <span v-else>{{ row.order }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column title="Loại đối tượng áp dụng" min-width="200">
+          <template #default="{ row }">
+            <div v-if="editingId === row.id">
+              <div v-for="type in objectTypes" :key="type.id">
+                <label class="admin-checkbox-label">
+                  <input type="checkbox" :value="type.id" v-model="row.allowed_object_types">
+                  {{ type.name }}
+                </label>
               </div>
-              <div v-else>
-                <span v-if="!grp.allowed_object_types || grp.allowed_object_types.length === 0" class="badge-all">Tất
-                  cả</span>
-                <span v-else v-for="tid in grp.allowed_object_types" :key="tid" class="badge">
+            </div>
+            <div v-else>
+              <span v-if="!row.allowed_object_types || row.allowed_object_types.length === 0" class="badge-form">Tất
+                cả</span>
+              <div class="flex gap-2 flex-wrap">
+                <span v-for="tid in row.allowed_object_types" :key="tid" class="badge-form">
                   {{objectTypes.find(t => t.id === tid)?.name || tid}}
                 </span>
               </div>
-            </td>
-            <td>
-              <div v-if="editingId === grp.id" class="admin-form-selector">
-                <label v-for="f in allForms" :key="f.id">
-                  <input type="checkbox" :value="f.id" v-model="grp.allowed_forms"> {{ f.name }}
-                </label>
-              </div>
-              <span v-else>{{ getFormNames(grp.allowed_forms) }}</span>
-            </td>
-            <td>
-              <div class="flex gap-2">
-                <button v-if="editingId === grp.id" @click="updateGroup(grp)" class="btn-action btn-save">Lưu</button>
-                <button v-else @click="editingId = grp.id" class="btn-action btn-edit">Sửa</button>
-                <button @click="deleteGroup(grp.id)" class="btn-action btn-delete">Xóa</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </template>
+        </vxe-column>
+        <vxe-column title="Hiển thị ở Form" min-width="200">
+          <template #default="{ row }">
+            <div v-if="editingId === row.id" class="form-selector">
+              <label v-for="f in allForms" :key="f.id" class="admin-checkbox-label">
+                <input type="checkbox" :value="f.id" v-model="row.allowed_forms"> {{ f.name }}
+              </label>
+            </div>
+            <span v-else>{{ getFormNames(row.allowed_forms) }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column title="Hành động" width="150" fixed="right">
+          <template #default="{ row }">
+            <div class="flex gap-2">
+              <button v-if="editingId === row.id" @click="updateGroup(row)" class="btn-action btn-save">Lưu</button>
+              <button v-else @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
+              <button @click="deleteGroup(row.id)" class="btn-action btn-delete">Xóa</button>
+            </div>
+          </template>
+        </vxe-column>
+      </vxe-table>
     </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
@@ -111,12 +119,12 @@
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
-import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '@/utils/errorHandler';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   components: { ConfirmModal },
-  mixins: [errorHandlingMixin],
+  mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
       groups: [],
@@ -124,16 +132,25 @@ export default {
       allForms: [],
       newGroup: { name: '', slug: '', order: 0, note: '', allowed_forms: [], layout_position: 'LEFT', allowed_object_types: [] },
       editingId: null,
+      filters: { search: '' },
       showDeleteModal: false,
       deleteTargetId: null,
       deleteTargetName: ''
     }
   },
+  computed: {
+    filteredGroups() {
+      return this.filterArray(this.groups, this.filters, {
+        search: { type: 'text', fields: ['name', 'slug'] }
+      });
+    }
+  },
+  watch: {
+  },
   async mounted() {
     await this.fetchGroups();
     await this.fetchForms();
-    await this.fetchObjectTypes();  // NEW
-    this.initResizable();
+    await this.fetchObjectTypes();
   },
   methods: {
     getFormNames(ids) {
@@ -147,15 +164,8 @@ export default {
       try {
         const groupsRes = await axios.get(`${API_URL}/groups/`);
         this.groups = groupsRes.data.sort((a, b) => a.order - b.order);
-        this.$nextTick(() => this.initResizable());
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách nhóm');
-      }
-    },
-    initResizable() {
-      const table = this.$el.querySelector('.data-table');
-      if (table) {
-        makeTableResizable(table, 'admin-groups');
       }
     },
     async fetchForms() {

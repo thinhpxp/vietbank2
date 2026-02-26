@@ -15,6 +15,9 @@ from rest_framework.views import APIView
 from django.db.models import Q, Prefetch
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
+import logging
+logger = logging.getLogger(__name__)
 # --- CÁC IMPORT MỚI CHO CHỨC NĂNG XUẤT WORD ---
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
@@ -90,7 +93,7 @@ def num2words_filter(value):
         result = num2words(val_to_read, lang='vi').capitalize()
         return result
     except Exception as e:
-        print(f"DEBUG: num2words_filter failed for value '{value}': {e}")
+        logger.warning("num2words_filter failed for value '%s': %s", value, e)
         return str(value)
 
 def to_roman_filter(value):
@@ -168,6 +171,246 @@ def dateformat_filter(value, fmt="%d/%m/%Y"):
         return res
         
     return str(value) if value else " . . . . . . . . "
+
+# --- COMPUTED FIELDS: Formula Engine (Backend) ---
+import re as _re_formula  # alias riêng tránh conflict
+
+def evaluate_formula(formula_str, context):
+    """
+    Parse và tính toán công thức dạng =FUNC(arg1, arg2, ...)
+    Hỗ trợ đệ quy: ROUND(DIVIDE(A, B), 2)
+    """
+    if not formula_str or not formula_str.strip().startswith('='):
+        return None
+
+    expr = formula_str.strip()[1:]  # Bỏ dấu =
+    return evaluate_sub_expr(expr, context)
+
+def evaluate_sub_expr(expr, context):
+    """Hàm đệ quy xử lý biểu thức"""
+    expr = expr.strip()
+    
+    # Check if it's a function call: FUNC(...)
+    match = _re_formula.match(r'^(\w+)\((.*)\)$', expr, _re_formula.DOTALL)
+    if not match:
+        # Không phải hàm -> Có thể là hằng số hoặc Field lookup
+        return None # Sẽ xử lý trong collect_raw
+
+    func = match.group(1).upper()
+    args_raw = match.group(2)
+
+    # Tách tham số thông minh (tôn trọng dấu ngoặc lồng nhau và quotes)
+    args = []
+    current = ''
+    depth = 0
+    in_quote = False
+    quote_char = ''
+    for ch in args_raw:
+        if ch in ('"', "'") and not in_quote:
+            in_quote = True
+            quote_char = ch
+            current += ch
+        elif ch == quote_char and in_quote:
+            in_quote = False
+            current += ch
+        elif not in_quote:
+            if ch == '(': depth += 1
+            elif ch == ')': depth -= 1
+            if ch == ',' and depth == 0:
+                args.append(current.strip())
+                current = ''
+                continue
+        current += ch
+    if current.strip():
+        args.append(current.strip())
+
+    def extract_from_obj(obj, fkey):
+        if not isinstance(obj, dict): return None
+        fkey_lower = fkey.lower()
+        for k, v in obj.items():
+            if k.lower() == fkey_lower: return v
+        return None
+
+    def to_float(val):
+        if val is None or val == '': return 0.0
+        if isinstance(val, (int, float)): return float(val)
+        if isinstance(val, list): return to_float(val[0]) if val else 0.0
+        
+        s = str(val).replace(' ', '').replace('\xa0', '').strip()
+        if not s: return 0.0
+        
+        # Heuristic xử lý dấu phân cách nghìn/thập phân (Ưu tiên VN 1.000,50)
+        if ',' in s and '.' in s:
+            if s.rfind(',') > s.rfind('.'): # format VN
+                s = s.replace('.', '').replace(',', '.')
+            else: # format US
+                s = s.replace(',', '')
+        elif ',' in s:
+            # Chỉ có dấu phẩy: 1,000,000 hoặc 1,5?
+            if s.count(',') > 1: s = s.replace(',', '')
+            elif len(s.split(',')[1]) == 3: s = s.replace(',', '') # 1,000 -> 1000
+            else: s = s.replace(',', '.') # 1,5 -> 1.5
+        elif '.' in s:
+            # Chỉ có dấu chấm: 1.000.000 hoặc 1.5?
+            if s.count('.') > 1: s = s.replace('.', '')
+            elif len(s.split('.')[1]) == 3: s = s.replace('.', '') # 1.000 -> 1000
+            # Ngược lại giữ nguyên (1.5 -> 1.5)
+
+        try:
+            return float(s)
+        except (ValueError, TypeError):
+            try:
+                eval_res = evaluate_sub_expr(s, context)
+                return float(eval_res) if eval_res is not None else 0.0
+            except:
+                return 0.0
+
+    def collect_raw(arg_str):
+        if not arg_str: return []
+        arg_str = arg_str.strip()
+        
+        # Nếu là chuỗi hằng số "abc"
+        if arg_str.startswith('"') or arg_str.startswith("'"):
+            return [arg_str.strip('"').strip("'")]
+            
+        # Nếu là lời gọi hàm lồng nhau FUNC(...)
+        if '(' in arg_str and ')' in arg_str:
+            res = evaluate_sub_expr(arg_str, context)
+            return [res] if res is not None else []
+            
+        results = []
+        tc = None
+        fk = arg_str
+        if '.' in arg_str:
+            parts = arg_str.split('.', 1)
+            tc, fk = parts[0].upper(), parts[1]
+
+        # Quét danh sách chuẩn
+        if tc == 'ASSET' or not tc:
+            for o in context.get('assets', []):
+                v = extract_from_obj(o, fk)
+                if v is not None: results.append(v)
+        if tc == 'PERSON' or (not tc and not results):
+            for o in context.get('people', []):
+                v = extract_from_obj(o, fk)
+                if v is not None: results.append(v)
+        if tc == '_GENERAL_' or (not tc and not results):
+            gen = context.get('_GENERAL_')
+            v = extract_from_obj(gen, fk) if isinstance(gen, dict) else None
+            if v is not None: results.append(v)
+        
+        if tc and tc not in ('ASSET', 'PERSON', '_GENERAL_'):
+            for o in (context.get(tc, []) or context.get(tc.lower(), [])):
+                v = extract_from_obj(o, fk)
+                if v is not None: results.append(v)
+                
+        if not results and not tc:
+            v_dir = context.get(arg_str) or context.get(arg_str.lower())
+            if v_dir is not None and not isinstance(v_dir, (list, dict)):
+                results.append(v_dir)
+        return results
+
+    def collect_numbers(arg_list):
+        nums = []
+        for a in arg_list:
+            raws = collect_raw(a)
+            if not raws:
+                # Nếu không phải field lookup, thử ép kiểu trực tiếp tử chuỗi (hỗ trợ hằng số 0,5)
+                n = to_float(a)
+                nums.append(n)
+            else:
+                for v in raws: nums.append(to_float(v))
+        return nums
+
+    try:
+        if func == 'SUM':
+            vals = collect_numbers(args)
+            return sum(vals) if vals else 0
+        elif func in ('PRODUCT', 'MUL'):
+            vals = collect_numbers(args)
+            if not vals: return 0
+            res = 1.0
+            for v in vals: res *= v
+            return res
+        elif func in ('SUBTRACT', 'SUB'):
+            vals = collect_numbers(args)
+            if not vals: return 0
+            res = vals[0]
+            for v in vals[1:]: res -= v
+            return res
+        elif func in ('DIVIDE', 'DIV'):
+            vals = collect_numbers(args)
+            if not vals: return 0
+            res = vals[0]
+            for v in vals[1:]:
+                if v != 0: res /= v
+            return res
+        elif func == 'ROUND':
+            v_list = collect_numbers(args[:1])
+            if not v_list: return 0
+            p_list = collect_numbers(args[1:]) if len(args) > 1 else [0]
+            precision = int(p_list[0]) if p_list else 0
+            return round(v_list[0], precision)
+        elif func == 'COUNT':
+            total = 0
+            for arg in args:
+                if arg.startswith('"') or arg.startswith("'"): continue
+                t_code = arg.strip().split('.')[0].upper() if '.' in arg else arg.strip().upper()
+                if t_code == 'ASSET': total += len(context.get('assets', []))
+                elif t_code == 'PERSON': total += len(context.get('people', []))
+                else: 
+                    items = context.get(t_code, []) or context.get(t_code.lower(), [])
+                    total += len(items) if isinstance(items, list) else 0
+            return total
+        elif func == 'AVG':
+            vals = collect_numbers(args)
+            return sum(vals) / len(vals) if vals else 0
+        elif func == 'MIN':
+            vals = collect_numbers(args)
+            return min(vals) if vals else 0
+        elif func == 'MAX':
+            vals = collect_numbers(args)
+            return max(vals) if vals else 0
+        elif func == 'CONCAT':
+            sep_arg = next((a for a in args if a.startswith('"') or a.startswith("'")), None)
+            separator = sep_arg.strip().strip('"').strip("'") if sep_arg else ', '
+            field_args = [a for a in args if a != sep_arg]
+            final_texts = []
+            for arg in field_args:
+                for r in collect_raw(arg): final_texts.append(str(r))
+            return separator.join(final_texts)
+        elif func == 'IF':
+            if len(args) < 3: return ""
+            cond_raw = args[0]
+            is_true = False
+            for op in ('>=', '<=', '>', '<', '='):
+                if op in cond_raw:
+                    l_s, r_s = cond_raw.split(op, 1)
+                    l_v = collect_numbers([l_s.strip()])[0] if collect_numbers([l_s.strip()]) else to_float(l_s.strip())
+                    r_v = collect_numbers([r_s.strip()])[0] if collect_numbers([r_s.strip()]) else to_float(r_s.strip())
+                    if op == '>=': is_true = l_v >= r_v
+                    elif op == '<=': is_true = l_v <= r_v
+                    elif op == '>': is_true = l_v > r_v
+                    elif op == '<': is_true = l_v < r_v
+                    elif op == '=': 
+                        try:
+                            is_true = abs(float(l_v) - float(r_v)) < 0.000001
+                        except:
+                            is_true = str(l_v) == str(r_v)
+                    break
+            else:
+                raw_cond = collect_raw(cond_raw)
+                is_true = bool(raw_cond[0]) if raw_cond else bool(cond_raw.strip().replace('"', '').replace("'", ""))
+            res_key = args[1] if is_true else args[2]
+            lookup = collect_raw(res_key)
+            return lookup[0] if lookup else res_key.strip('"').strip("'")
+        else:
+            logger.warning("evaluate_formula: Unknown function '%s'", func)
+            return None
+    except Exception as e:
+        logger.error("evaluate_sub_expr error for '%s': %s", expr, e, exc_info=True)
+        return None
+
 # --- HELPER GHI LOG ---
 def log_action(user, action, target_model, target_id=None, details=None):
     """Ghi nhật ký thao tác người dùng"""
@@ -694,11 +937,11 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
                 # New logic: Process object_sections if provided
                 object_sections = data.get('object_sections', {})
-                print(f"DEBUG: object_sections keys: {list(object_sections.keys())}")
-                print(f"DEBUG: Processing {len(object_sections)} sections")
+                logger.debug("object_sections keys: %s", list(object_sections.keys()))
+                logger.debug("Processing %d sections", len(object_sections))
                 if object_sections:
                     for t_code, items in object_sections.items():
-                        print(f"DEBUG: type {t_code} has {len(items)} items")
+                        logger.debug("type %s has %d items", t_code, len(items))
                         process_objects(items, t_code)
                 else:
                     # Backward compatibility for existing payloads
@@ -788,13 +1031,15 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         """
         API sinh file Word từ Template và Dữ liệu hồ sơ.
         Input: { "template_id": 1 } hoặc { "template_ids": [1, 2] }
-        Output: File .docx hoặc .zip
+               Tùy chọn: { "export_mode": "BATCH" } để xuất riêng từng đối tượng
+        Output: File .docx, .zip, hoặc JSON danh sách files (cho BATCH mode)
         """
         loan_profile = self.get_object()
         data = request.data
         
         template_id = data.get('template_id')
         template_ids = data.get('template_ids', [])
+        export_mode = data.get('export_mode', 'SINGLE')  # MỚI: SINGLE hoặc BATCH
 
         if not template_id and not template_ids:
             return Response({"error": "Vui lòng cung cấp template_id hoặc template_ids."}, status=status.HTTP_400_BAD_REQUEST)
@@ -904,9 +1149,15 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             master_fvs = {fv.field.placeholder_key: fv.value 
                           for fv in FieldValue.objects.filter(master_object=master, loan_profile__isnull=True)}
 
+            # QUAN TRỌNG: master.object_type là string (code), không phải FK instance nữa (đã refactor ở repo này)
+            # Tuy nhiên để chắc chắn, ta lấy str() hoặc .code nếu nó là object
+            obj_type_str = master.object_type
+            if not isinstance(obj_type_str, str) and hasattr(obj_type_str, 'code'):
+                obj_type_str = obj_type_str.code
+
             a_data = {
                 'id': master.id,
-                '_object_type': master.object_type 
+                '_object_type': obj_type_str
             }
             a_data.update(master_fvs)
             for fv in specific_fvs:
@@ -920,7 +1171,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         context['assets'] = assets_list
 
         # MỚI: Tự động tạo các Group danh sách theo Object Type (VD: context['REALESTATE'], context['VEHICLE'])
-        # Giúp người dùng dùng vòng lặp {% for as in REALESTATE %} trong template
+        logger.debug("Processing %d assets into context groups", len(assets_list))
         for a in assets_list:
             obj_type = a.get('_object_type')
             if not obj_type: continue
@@ -935,6 +1186,8 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             if slug_key not in context:
                 context[slug_key] = []
             context[slug_key].append(a)
+        
+        logger.debug("Context keys after grouping: %s", list(context.keys()))
 
         # F. SIÊU CẢI TIẾN: HỖ TRỢ TRUY XUẤT TRỰC TIẾP (Flattening cho Dedicated Sections)
         # Giúp enduser dùng {{ ten_du_an }} thay vì {{ PROJECT.0.ten_du_an }}
@@ -1047,15 +1300,27 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
         context['today'] = date.today().strftime('%d/%m/%Y')
 
+        # --- COMPUTED FIELDS: Tính toán các trường công thức trước khi render ---
+        computed_fields = Field.objects.filter(
+            is_active=True,
+            default_value__startswith='='
+        )
+        for cf in computed_fields:
+            result = evaluate_formula(cf.default_value, context)
+            if result is not None:
+                context[cf.placeholder_key] = result
+                logger.debug("Computed field '%s' = %s", cf.placeholder_key, result)
+
         # 3. XỬ LÝ TEMPLATE VÀ SINH FILE
         template_ids = data.get('template_ids', [])
         document_template_id = data.get('template_id')
+        batch_template_ids = [int(id) for id in data.get('batch_template_ids', [])]
         
         # Thu thập danh sách templates cần xử lý
         if template_ids:
-            templates_to_process = DocumentTemplate.objects.filter(id__in=template_ids)
+            templates_to_process = DocumentTemplate.objects.filter(id__in=template_ids).select_related('loop_object_type')
         elif document_template_id:
-            templates_to_process = DocumentTemplate.objects.filter(id=document_template_id)
+            templates_to_process = DocumentTemplate.objects.filter(id=document_template_id).select_related('loop_object_type')
         else:
             return Response({"error": "No template selected"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1063,30 +1328,147 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             return Response({"error": "Mẫu tài liệu không tồn tại"}, status=status.HTTP_404_NOT_FOUND)
 
         results = []
+        error_details = []
         try:
             for document_template in templates_to_process:
-                template_path = document_template.file.path
-                if not os.path.exists(template_path):
-                    continue
+                # Quyết định mode cho template này
+                effective_batch = (export_mode == 'BATCH') or (document_template.id in batch_template_ids)
+                
+                logger.debug("Processing template '%s' (ID: %s), effective_batch=%s, loop_type=%s",
+                    document_template.name, document_template.id, effective_batch,
+                    document_template.loop_object_type.code if document_template.loop_object_type else 'None')
+                
+                try:
+                    template_path = document_template.file.path
+                    if not os.path.exists(template_path):
+                        logger.warning("Template file not found at %s", template_path)
+                        continue
                     
-                doc = DocxTemplate(template_path)
-                doc.render(context, jinja_env=jinja_env)
-                
-                file_stream = io.BytesIO()
-                doc.save(file_stream)
-                file_stream.seek(0)
-                
-                # Tạo tên file output an toàn
-                filename = f"{clean_filename(document_template.name)}.docx"
-                results.append((filename, file_stream))
+                    # MỚI: Xử lý BATCH mode - xuất/tách riêng từng đối tượng
+                    if effective_batch and document_template.loop_object_type:
+                        loop_type_code = document_template.loop_object_type.code
+                        identity_field_key = document_template.loop_object_type.identity_field_key
+                        
+                        target_object_id = data.get('target_object_id')
+                        return_metadata = data.get('return_metadata', False)
+                        
+                        logger.debug("BATCH: Starting for type '%s', Target ID: %s", loop_type_code, target_object_id)
+                        
+                        # Lấy danh sách đối tượng thuộc loại này trong hồ sơ
+                        batch_objects = context.get(loop_type_code, [])
+                        if not batch_objects and loop_type_code.lower() in context:
+                            batch_objects = context.get(loop_type_code.lower(), [])
+                        
+                        # Nếu chỉ lấy metadata để frontend loop
+                        if return_metadata:
+                            metadata_list = []
+                            for obj in batch_objects:
+                                obj_identity = obj.get(identity_field_key, '') if identity_field_key else ''
+                                if not obj_identity:
+                                    obj_identity = obj.get('id', 'unknown')
+                                metadata_list.append({
+                                    'id': obj.get('id'),
+                                    'identity': obj_identity
+                                })
+                            return Response({
+                                "template_id": document_template.id,
+                                "loop_type": loop_type_code,
+                                "objects": metadata_list
+                            })
+
+                        # Nếu có target_object_id, lọc ra đúng đối tượng đó
+                        if target_object_id:
+                            batch_objects = [obj for obj in batch_objects if str(obj.get('id')) == str(target_object_id)]
+                            logger.debug("BATCH: Filtered to %d object(s)", len(batch_objects))
+                        
+                        logger.debug("BATCH: Processing %d objects", len(batch_objects))
+                        
+                        if not batch_objects:
+                            logger.warning("BATCH: No objects found for type '%s'. Context keys: %s", loop_type_code, list(context.keys())[:10])
+                            continue
+                        
+                        for idx, obj_data in enumerate(batch_objects):
+                            logger.debug("BATCH: Rendering object %d/%d", idx+1, len(batch_objects))
+                            batch_context = context.copy()
+                            batch_context['current_asset'] = obj_data
+                            batch_context['current_object'] = obj_data
+                            batch_context['is_batch'] = True
+                            batch_context['is_single'] = False
+                            
+                            for key, val in obj_data.items():
+                                if not key.startswith('_'):
+                                    batch_context[key] = val
+                            
+                            try:
+                                doc = DocxTemplate(template_path)
+                                doc.render(batch_context, jinja_env=jinja_env)
+                                
+                                file_stream = io.BytesIO()
+                                doc.save(file_stream)
+                                file_stream.seek(0)
+                                
+                                obj_identity = obj_data.get(identity_field_key, '') if identity_field_key else ''
+                                if not obj_identity:
+                                    obj_identity = obj_data.get('id', 'unknown')
+                                
+                                filename = f"{clean_filename(document_template.name)}_{clean_filename(str(obj_identity))}.docx"
+                                results.append((filename, file_stream))
+                            except Exception as render_err:
+                                logger.error("BATCH render error: %s", render_err, exc_info=True)
+                                # Thu thập lỗi để báo cáo cho người dùng
+                                error_details.append(f"Lỗi tại đối tượng {obj_data.get('id')}: {str(render_err)}")
+                                continue
+                    else:
+                        # SINGLE mode - logic cũ nhưng được nâng cấp "Smart"
+                        logger.debug("SINGLE mode for template %s", document_template.id)
+                        
+                        single_context = context.copy()
+                        single_context['is_batch'] = False
+                        single_context['is_single'] = True
+                        
+                        # MỚI: Nếu mẫu này có cấu hình lặp nhưng đang tải Single,
+                        # tự động flatten dữ liệu của đối tượng đầu tiên để template không bị trống.
+                        if document_template.loop_object_type:
+                            loop_type_code = document_template.loop_object_type.code
+                            obj_list = context.get(loop_type_code, [])
+                            if not obj_list and loop_type_code.lower() in context:
+                                obj_list = context.get(loop_type_code.lower(), [])
+                            
+                            if obj_list:
+                                first_obj = obj_list[0]
+                                single_context['current_asset'] = first_obj
+                                single_context['current_object'] = first_obj
+                                for key, val in first_obj.items():
+                                    if not key.startswith('_'):
+                                        single_context[key] = val
+                        
+                        try:
+                            doc = DocxTemplate(template_path)
+                            doc.render(single_context, jinja_env=jinja_env)
+                            
+                            file_stream = io.BytesIO()
+                            doc.save(file_stream)
+                            file_stream.seek(0)
+                            
+                            filename = f"{clean_filename(document_template.name)}.docx"
+                            results.append((filename, file_stream))
+                        except Exception as render_err:
+                            logger.error("SINGLE render error: %s", render_err, exc_info=True)
+                            error_details.append(f"Lỗi render mẫu {document_template.id}: {str(render_err)}")
+                except Exception as template_err:
+                    logger.error("Template processing error: %s", template_err, exc_info=True)
+                    error_details.append(f"Lỗi xử lý mẫu {document_template.id}: {str(template_err)}")
+                    continue
 
             if not results:
-                return Response({"error": "Không thể sinh bất kỳ file nào (File mẫu có thể bị thiếu trên server)."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({
+                    "error": "Không thể sinh bất kỳ file nào.",
+                    "details": "; ".join(error_details)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # 4. TRẢ VỀ KẾT QUẢ (1 FILE HOẶC ZIP)
             if len(results) == 1:
                 filename, file_stream = results[0]
-                # Encode filename properly for HTTP header
                 from django.utils.encoding import escape_uri_path
                 safe_filename = escape_uri_path(filename)
                 
@@ -1095,7 +1477,6 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 response['Access-Control-Expose-Headers'] = 'Content-Disposition'
                 return response
             else:
-                # Sinh file ZIP
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     for filename, file_stream in results:
@@ -1113,10 +1494,16 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 return response
 
         except Exception as e:
-            print(f"Lỗi sinh file: {e}")
+            error_msg = str(e)
+            print(f"Lỗi sinh file: {error_msg}")
             import traceback
             traceback.print_exc()
-            return Response({"error": f"Lỗi sinh file: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Trả về lỗi chi tiết cho client dễ debug (VD: Jinja2 syntax error)
+            return Response({
+                "error": f"Lỗi xử lý template: {error_msg}",
+                "details": traceback.format_exc() if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # 10. ViewSets phục vụ Master Data (Universal)
 def save_master_field_values(instance, field_values):

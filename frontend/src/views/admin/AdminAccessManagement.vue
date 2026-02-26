@@ -34,41 +34,47 @@
                     </button>
                 </div>
 
-                <div class="table-container scrollable ui-table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Tài khoản</th>
-                                <th>Họ tên</th>
-                                <th>Email</th>
-                                <th>Admin</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="user in filteredUsers" :key="user.id" @click="selectUser(user)"
-                                :class="{ active: selectedUser && selectedUser.id === user.id }" class="cursor-pointer">
-                                <td><strong>{{ user.username }}</strong></td>
-                                <td>{{ user.first_name }} {{ user.last_name }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>
-                                    <span v-if="user.is_superuser" class="badge-root">ROOT</span>
-                                    <span v-else-if="user.is_staff" class="tag tag-blue">Staff</span>
-                                    <span v-else class="tag tag-gray">User</span>
-                                </td>
-                                <td>
-                                    <span :class="user.is_active ? 'text-green' : 'text-red'">
-                                        {{ user.is_active ? '● Hoạt động' : '○ Đang khóa' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <button class="btn-action btn-edit" @click.stop="editUser(user)">Sửa /
-                                        Quyền</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="data-table-vxe">
+                    <vxe-table border round :data="filteredUsers" @cell-click="({ row }) => selectUser(row)"
+                        :row-config="{ isHover: true, isCurrent: true }" :column-config="{ resizable: true }"
+                        :sort-config="{ trigger: 'cell' }" height="auto" class="user-table">
+
+                        <vxe-column field="username" title="Tài khoản" min-width="120" sortable>
+                            <template #default="{ row }">
+                                <strong>{{ row.username }}</strong>
+                            </template>
+                        </vxe-column>
+
+                        <vxe-column field="full_name" title="Họ tên" min-width="150" sortable>
+                            <template #default="{ row }">
+                                {{ row.first_name }} {{ row.last_name }}
+                            </template>
+                        </vxe-column>
+
+                        <vxe-column field="email" title="Email" min-width="150" sortable></vxe-column>
+
+                        <vxe-column field="is_staff" title="Quyền" width="100" sortable>
+                            <template #default="{ row }">
+                                <span v-if="row.is_superuser" class="badge-root">ROOT</span>
+                                <span v-else-if="row.is_staff" class="tag tag-blue">Staff</span>
+                                <span v-else class="tag tag-gray">User</span>
+                            </template>
+                        </vxe-column>
+
+                        <vxe-column field="is_active" title="Trạng thái" width="120" sortable>
+                            <template #default="{ row }">
+                                <span :class="row.is_active ? 'text-green' : 'text-red'">
+                                    {{ row.is_active ? '● Hoạt động' : '○ Đang khóa' }}
+                                </span>
+                            </template>
+                        </vxe-column>
+
+                        <vxe-column title="Hành động" width="110" fixed="right">
+                            <template #default="{ row }">
+                                <button class="btn-action btn-edit" @click.stop="editUser(row)">Sửa / Quyền</button>
+                            </template>
+                        </vxe-column>
+                    </vxe-table>
                 </div>
             </div>
 
@@ -78,15 +84,21 @@
             <div class="pane pane-right" :style="{ width: (100 - userPaneWidth) + '%' }">
                 <div v-if="selectedUser" class="editor-container">
                     <div class="pane-header admin-row">
-                        <h3 class="flex-1">Chi tiết: {{ selectedUser.username }}</h3>
+                        <h3 class="flex-1">{{ isCreating ? 'Tạo người dùng mới' : `Chi tiết: ${selectedUser.username}`
+                        }}</h3>
                         <div class="actions">
                             <span v-if="selectedUser.is_superuser" class="superuser-warning">
                                 🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
                             </span>
-                            <button @click="saveUser" class="btn-success"
+                            <button v-if="isCreating" @click="handleCreateUser" class="btn-success"
+                                :disabled="isSaving">
+                                <SvgIcon name="check" size="sm" /> Tạo người dùng
+                            </button>
+                            <button v-else @click="saveUser" class="btn-success"
                                 :disabled="isSaving || (selectedUser.is_superuser && !auth.isSuperuser)">
                                 Lưu thay đổi
                             </button>
+                            <button v-if="isCreating" @click="cancelCreate" class="btn-secondary ml-2">Hủy</button>
                         </div>
                     </div>
 
@@ -95,9 +107,15 @@
                             <section class="admin-form-section">
                                 <h4>Thông tin Tài khoản</h4>
                                 <div class="admin-field">
-                                    <label>Username</label>
+                                    <label>Username (*)</label>
                                     <input type="text" v-model="selectedUser.username" class="admin-form-control"
-                                        disabled title="Username là định danh duy nhất và không thể thay đổi." />
+                                        :disabled="!isCreating"
+                                        :title="isCreating ? 'Nhập tên đăng nhập duy nhất' : 'Username là định danh duy nhất và không thể thay đổi.'" />
+                                </div>
+                                <div class="admin-field" v-if="isCreating">
+                                    <label>Mật khẩu (*)</label>
+                                    <input type="password" v-model="selectedUser.password" class="admin-form-control"
+                                        placeholder="Nhập mật khẩu cho user mới" />
                                 </div>
                                 <div class="admin-field">
                                     <label>Email</label>
@@ -213,26 +231,25 @@
                         <SvgIcon name="plus" size="sm" /> Tạo Nhóm
                     </button>
                 </div>
-                <div class="table-container scrollable ui-table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Tên nhóm</th>
-                                <th>Mã</th>
-                                <th width="100">Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)"
-                                :class="{ active: selectedGroup && selectedGroup.id === group.id }">
-                                <td>{{ group.name }}</td>
-                                <td><code>{{ group.name }}</code></td>
-                                <td>
-                                    <button class="btn-action btn-edit" @click.stop="selectGroup(group)">Sửa</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="data-table-vxe">
+                    <vxe-table border round :data="filteredGroups" @cell-click="({ row }) => selectGroup(row)"
+                        :row-config="{ isHover: true, isCurrent: true }" :column-config="{ resizable: true }"
+                        :sort-config="{ trigger: 'cell' }" height="auto" class="group-table">
+
+                        <vxe-column field="name" title="Tên nhóm" min-width="150" sortable></vxe-column>
+
+                        <vxe-column field="name" title="Mã (Slug)" width="150" sortable>
+                            <template #default="{ row }">
+                                <code>{{ row.name }}</code>
+                            </template>
+                        </vxe-column>
+
+                        <vxe-column title="Hành động" width="100" fixed="right">
+                            <template #default="{ row }">
+                                <button class="btn-action btn-edit" @click.stop="selectGroup(row)">Sửa</button>
+                            </template>
+                        </vxe-column>
+                    </vxe-table>
                 </div>
             </div>
 
@@ -330,15 +347,14 @@ import auth from '@/store/auth';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import InputModal from '@/components/InputModal.vue';
-
-import { makeTableResizable } from '@/utils/resizable-table';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 const API_BASE = 'http://localhost:8000/api';
 
 export default {
     name: 'AdminAccessManagement',
     components: { ConfirmModal, InputModal },
-    mixins: [errorHandlingMixin],
+    mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
             activeMainTab: 'users',
@@ -370,25 +386,21 @@ export default {
             showDeleteUserConfirm: false,
             showDeleteGroupConfirm: false,
             showCreateGroupInput: false,
+            isCreating: false,
 
             auth // Add to data for template use
         };
     },
     computed: {
         filteredUsers() {
-            if (!this.userSearch) return this.users;
-            const q = this.userSearch.toLowerCase();
-            return this.users.filter(u =>
-                u.username.toLowerCase().includes(q) ||
-                u.full_name?.toLowerCase().includes(q)
-            );
+            return this.filterArray(this.users, { search: this.userSearch }, {
+                search: { type: 'text', fields: ['username', 'full_name', 'email'] }
+            });
         },
         filteredGroups() {
-            if (!this.groupSearch) return this.groups;
-            const q = this.groupSearch.toLowerCase();
-            return this.groups.filter(g =>
-                g.name.toLowerCase().includes(q)
-            );
+            return this.filterArray(this.groups, { search: this.groupSearch }, {
+                search: { type: 'text', fields: ['name'] }
+            });
         },
         groupedPermissions() {
             const grouped = {};
@@ -408,12 +420,8 @@ export default {
     },
     async created() {
         await this.loadAllData();
-        this.$nextTick(() => this.initResizable());
     },
     watch: {
-        activeMainTab() {
-            this.$nextTick(() => this.initResizable());
-        }
     },
     methods: {
         async loadAllData() {
@@ -433,13 +441,51 @@ export default {
 
         // User Methods
         selectUser(u) {
+            this.isCreating = false;
             this.selectedUser = JSON.parse(JSON.stringify(u));
         },
         editUser(u) {
             this.selectUser(u);
         },
         createNewUser() {
-            this.$router.push('/register'); // Redirect to existing register page for now or create inline
+            this.isCreating = true;
+            this.selectedUser = {
+                username: '',
+                password: '',
+                email: '',
+                is_active: true,
+                is_staff: false,
+                is_superuser: false,
+                full_name: '',
+                phone: '',
+                workplace: '',
+                department: '',
+                note: '',
+                groups: [],
+                permissions: []
+            };
+        },
+        cancelCreate() {
+            this.isCreating = false;
+            this.selectedUser = null;
+        },
+        async handleCreateUser() {
+            if (!this.selectedUser.username || !this.selectedUser.password) {
+                this.$toast.warning('Vui lòng nhập Username và Mật khẩu!');
+                return;
+            }
+            this.isSaving = true;
+            try {
+                const res = await axios.post(`${API_BASE}/users/`, this.selectedUser);
+                this.users.unshift(res.data);
+                this.isCreating = false;
+                this.selectedUser = JSON.parse(JSON.stringify(res.data));
+                this.$toast.success(`Đã tạo người dùng '${res.data.username}' thành công!`);
+            } catch (e) {
+                this.showError(e, 'Lỗi khi tạo người dùng');
+            } finally {
+                this.isSaving = false;
+            }
         },
         async saveUser() {
             this.isSaving = true;
@@ -452,7 +498,7 @@ export default {
                 }
                 // Cập nhật selectedUser bằng clone mới từ server
                 this.selectedUser = JSON.parse(JSON.stringify(res.data));
-                this.showSuccess('Đã cập nhật người dùng.');
+                this.$toast.success(`Cập nhật người dùng '${res.data.username}' thành công!`);
             } catch (e) {
                 this.showError(e, 'Lỗi khi lưu người dùng');
             } finally {
@@ -467,7 +513,7 @@ export default {
             try {
                 await axios.post(`${API_BASE}/users/${this.selectedUser.id}/reset-password/`, { password: this.newPassword });
                 this.showResetModal = false;
-                this.showSuccess('Đã đặt lại mật khẩu thành công.');
+                this.$toast.success(`Đã đặt lại mật khẩu cho '${this.selectedUser.username}' thành công.`);
             } catch (e) {
                 this.showResetModal = false;
                 this.showError(e, 'Lỗi khi reset mật khẩu');
@@ -480,9 +526,10 @@ export default {
             this.showDeleteUserConfirm = false;
             try {
                 await axios.delete(`${API_BASE}/users/${this.selectedUser.id}/`);
+                const deletedName = this.selectedUser.username;
                 this.users = this.users.filter(u => u.id !== this.selectedUser.id);
                 this.selectedUser = null;
-                this.showSuccess('Đã xóa tài khoản.');
+                this.$toast.success(`Đã xóa tài khoản '${deletedName}' thành công.`);
             } catch (e) {
                 this.showError(e, 'Lỗi khi xóa tài khoản');
             }
@@ -501,7 +548,7 @@ export default {
             try {
                 const res = await axios.post(`${API_BASE}/user-groups/`, { name, permissions: [] });
                 this.groups.push(res.data);
-                this.showSuccess('Đã tạo nhóm mới.');
+                this.$toast.success(`Đã tạo nhóm '${name}' thành công.`);
             } catch (e) {
                 this.showError(e, 'Lỗi khi tạo nhóm');
             }
@@ -512,7 +559,7 @@ export default {
                 const res = await axios.put(`${API_BASE}/user-groups/${this.selectedGroup.id}/`, this.selectedGroup);
                 const idx = this.groups.findIndex(g => g.id === res.data.id);
                 if (idx !== -1) this.groups[idx] = res.data;
-                this.showSuccess('Đã lưu cấu hình nhóm.');
+                this.$toast.success(`Đã lưu cấu hình nhóm '${res.data.name}'.`);
             } catch (e) {
                 this.showError(e, 'Lỗi khi lưu cấu hình');
             } finally {
@@ -526,9 +573,10 @@ export default {
             this.showDeleteGroupConfirm = false;
             try {
                 await axios.delete(`${API_BASE}/user-groups/${this.selectedGroup.id}/`);
+                const deletedName = this.selectedGroup.name;
                 this.groups = this.groups.filter(g => g.id !== this.selectedGroup.id);
                 this.selectedGroup = null;
-                this.showSuccess('Đã xóa nhóm.');
+                this.$toast.success(`Đã xóa nhóm '${deletedName}' thành công.`);
             } catch (e) {
                 this.showError(e, 'Lỗi khi xóa nhóm');
             }
@@ -561,22 +609,6 @@ export default {
             document.removeEventListener('mouseup', this.stopResize);
             document.body.style.cursor = '';
         },
-        initResizable() {
-            let table = null;
-            let id = '';
-
-            if (this.activeMainTab === 'users') {
-                table = this.$el.querySelector('.pane-left .data-table');
-                id = 'admin-access-users';
-            } else if (this.activeMainTab === 'groups') {
-                table = this.$el.querySelector('.pane-left .data-table');
-                id = 'admin-access-groups';
-            }
-
-            if (table && id) {
-                makeTableResizable(table, id);
-            }
-        }
     }
 };
 </script>
@@ -736,43 +768,9 @@ export default {
     outline: none;
 }
 
-/* Tables */
-.table-container {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    white-space: nowrap;
-    /* Prevent wrapping in cells */
-}
-
-.data-table th {
-    background: #f8fafc;
-    padding: 10px 12px;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: #64748b;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.data-table td {
-    padding: 12px;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 0.9rem;
-}
-
-.data-table tr:hover {
-    background: #f8fafc;
-    cursor: pointer;
-}
-
-.data-table tr.selected {
-    background: #eff6ff;
-    border-left: 3px solid #2563eb;
+.data-table-vxe {
+    margin-top: 10px;
+    height: calc(100% - 60px);
 }
 
 /* Badges - Migrated to admin.css */

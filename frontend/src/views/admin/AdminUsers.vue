@@ -3,98 +3,109 @@
     <h2>Quản lý Người dùng</h2>
 
     <!-- Form tạo User mới -->
-    <div class="add-box">
+    <div class="admin-panel mb-6">
       <h4>Tạo tài khoản mới</h4>
-      <div class="row">
+      <div class="admin-row mb-2">
         <input v-model="newUser.username" placeholder="Tên đăng nhập (*)" class="admin-input">
         <input v-model="newUser.email" placeholder="Email" type="email" class="admin-input">
-      </div>
-      <div class="row">
-        <input v-model="newUser.note" placeholder="Ghi chú (Chức vụ, Phòng ban...)" style="flex: 2" class="admin-input">
         <input v-model="newUser.password" placeholder="Mật khẩu (*)" type="password" class="admin-input">
-        <label class="checkbox-label">
+      </div>
+      <div class="admin-row items-center">
+        <input v-model="newUser.note" placeholder="Ghi chú (Chức vụ, Phòng ban...)" style="flex: 2" class="admin-input">
+        <label class="admin-checkbox-label">
           <input type="checkbox" v-model="newUser.is_staff"> Là Admin/Staff?
         </label>
-        <button @click="addUser" class="btn-action btn-create">Tạo User</button>
+        <button @click="addUser" class="btn-action btn-success">🚀 Tạo User</button>
+      </div>
+    </div>
+
+    <div class="filter-bar mb-4">
+      <div class="filter-group">
+        <label>Tìm kiếm:</label>
+        <input v-model="filters.search" placeholder="Tìm theo username hoặc email..." class="admin-form-control"
+          style="width: 300px">
       </div>
     </div>
 
     <!-- Danh sách User -->
-    <div class="ui-table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Ghi chú</th>
-            <th>Vai trò</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="u in users" :key="u.id">
-            <td>{{ u.id }}</td>
-            <td>
-              <input v-if="editingId === u.id" v-model="u.username" class="inline-edit">
-              <strong v-else>{{ u.username }}</strong>
-            </td>
-            <td>
-              <input v-if="editingId === u.id" v-model="u.email" class="inline-edit">
-              <span v-else>{{ u.email }}</span>
-            </td>
-            <td>
-              <input v-if="editingId === u.id" v-model="u.note" class="inline-edit">
-              <span v-else>{{ u.note }}</span>
-            </td>
-            <td>
-              <select v-if="editingId === u.id" v-model="u.is_staff" class="inline-edit">
-                <option :value="true">Admin</option>
-                <option :value="false">User</option>
-              </select>
-              <template v-else>
-                <span v-if="u.is_staff" class="badge admin">Admin</span>
-                <span v-else class="badge user">User</span>
+    <div class="data-table-vxe">
+      <vxe-table border round :data="filteredUsers" :row-config="{ isHover: true }" :column-config="{ resizable: true }"
+        :sort-config="{ trigger: 'cell' }">
+        <vxe-column field="id" title="ID" width="60" sortable></vxe-column>
+        <vxe-column field="username" title="Username" min-width="150" sortable>
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.username" class="vxe-input-minimal">
+            <strong v-else>{{ row.username }}</strong>
+          </template>
+        </vxe-column>
+        <vxe-column field="email" title="Email" min-width="200" sortable>
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.email" class="vxe-input-minimal">
+            <span v-else>{{ row.email }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="note" title="Ghi chú" min-width="150">
+          <template #default="{ row }">
+            <input v-if="editingId === row.id" v-model="row.note" class="vxe-input-minimal">
+            <span v-else>{{ row.note }}</span>
+          </template>
+        </vxe-column>
+        <vxe-column field="is_staff" title="Vai trò" width="120">
+          <template #default="{ row }">
+            <select v-if="editingId === row.id" v-model="row.is_staff" class="vxe-input-minimal">
+              <option :value="true">Admin</option>
+              <option :value="false">User</option>
+            </select>
+            <template v-else>
+              <span v-if="row.is_staff" class="badge-form"
+                style="background: var(--color-info); color: white">Admin</span>
+              <span v-else class="badge-form">User</span>
+            </template>
+          </template>
+        </vxe-column>
+        <vxe-column field="is_active" title="Trạng thái" width="120">
+          <template #default="{ row }">
+            <select v-if="editingId === row.id" v-model="row.is_active" class="vxe-input-minimal">
+              <option :value="true">Active</option>
+              <option :value="false">Inactive</option>
+            </select>
+            <template v-else>
+              <span :class="['status-badge', row.is_active ? 'finalized' : 'draft']">
+                {{ row.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </template>
+          </template>
+        </vxe-column>
+        <vxe-column title="Hành động" width="150" fixed="right">
+          <template #default="{ row }">
+            <div class="flex gap-2">
+              <template v-if="editingId === row.id">
+                <button @click="updateUser(row)" class="btn-action btn-save">Lưu</button>
+                <button @click="editingId = null" class="btn-action btn-secondary">Hủy</button>
               </template>
-            </td>
-            <td>
-              <select v-if="editingId === u.id" v-model="u.is_active" class="inline-edit">
-                <option :value="true">Active</option>
-                <option :value="false">Inactive</option>
-              </select>
               <template v-else>
-                <span v-if="u.is_active" class="status active">Active</span>
-                <span v-else class="status inactive">Inactive</span>
+                <button @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
+                <button @click="deleteUser(row.id)" class="btn-action btn-delete">Xóa</button>
               </template>
-            </td>
-            <td>
-              <div class="action-group">
-                <button v-if="editingId === u.id" @click="updateUser(u)" class="btn-action btn-save">Lưu</button>
-                <button v-else @click="editingId = u.id" class="btn-action btn-edit">Sửa</button>
-                <button @click="deleteUser(u.id)" class="btn-action btn-delete">Xóa</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </template>
+        </vxe-column>
+      </vxe-table>
     </div>
 
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa người dùng '${deleteTargetName}'?`" confirmText="Xóa" @confirm="confirmDelete"
       @cancel="showDeleteModal = false" />
 
-    <!-- Error Modal -->
+    <!-- Hệ thống Modal Toàn cục (kế thừa từ mixin) -->
     <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
       :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
       confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
 
-    <!-- Success Modal -->
     <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
       :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
       @cancel="showSuccessModal = false" />
 
-    <!-- Warning Modal -->
     <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
       :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
       @cancel="showWarningModal = false" />
@@ -105,13 +116,13 @@
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
-import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '../../utils/errorHandler';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'AdminUsers',
   components: { ConfirmModal },
-  mixins: [errorHandlingMixin],
+  mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
       users: [],
@@ -125,12 +136,21 @@ export default {
       },
       showDeleteModal: false,
       deleteTargetId: null,
-      deleteTargetName: ''
+      deleteTargetName: '',
+      filters: { search: '' }
     }
+  },
+  computed: {
+    filteredUsers() {
+      return this.filterArray(this.users, this.filters, {
+        search: { type: 'text', fields: ['username', 'email'] }
+      });
+    }
+  },
+  watch: {
   },
   mounted() {
     this.fetchUsers();
-    this.initResizable();
   },
   methods: {
     async fetchUsers() {
@@ -139,25 +159,17 @@ export default {
         this.users = response.data;
       } catch (error) {
         console.error("Lỗi tải users:", error);
-      } finally {
-        this.$nextTick(() => this.initResizable());
-      }
-    },
-    initResizable() {
-      const table = this.$el.querySelector('.data-table');
-      if (table) {
-        makeTableResizable(table, 'admin-users');
       }
     },
     async updateUser(user) {
       try {
-        // Không gửi mật khẩu khi cập nhật thông tin. Việc đổi mật khẩu nên có một form riêng.
         const payload = { ...user };
         delete payload.password;
 
         await axios.patch(`${API_URL}/users/${user.id}/`, payload);
         this.editingId = null;
-        await this.fetchUsers(); // Tải lại để đảm bảo dữ liệu đồng bộ
+        this.$toast.success(`Cập nhật thông tin người dùng '${user.username}' thành công!`);
+        await this.fetchUsers();
       } catch (error) {
         console.error(error);
         this.showError(error, 'Lỗi khi cập nhật user');
@@ -171,7 +183,7 @@ export default {
 
       try {
         await axios.post(`${API_URL}/users/`, this.newUser);
-        this.showSuccess('Tạo người dùng thành công!');
+        this.$toast.success(`Tạo người dùng '${this.newUser.username}' thành công!`);
 
         // Reset form
         this.newUser = { username: '', password: '', email: '', is_staff: false };
@@ -192,6 +204,7 @@ export default {
         try {
           await axios.delete(`${API_URL}/users/${this.deleteTargetId}/`);
           this.showDeleteModal = false;
+          this.$toast.success(`Đã xóa người dùng '${this.deleteTargetName}' khỏi hệ thống.`);
           this.deleteTargetId = null;
           this.fetchUsers();
         } catch (error) {
@@ -204,66 +217,5 @@ export default {
 </script>
 
 <style scoped>
-.add-box {
-  background: #eee;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 5px;
-}
-
-.row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  align-items: center;
-}
-
-.row input {
-  padding: 8px;
-  flex: 1;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.action-group {
-  display: flex;
-  gap: 5px;
-}
-
-.inline-edit {
-  padding: 5px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.badge.admin {
-  background-color: #8e44ad;
-  color: white;
-}
-
-.badge.user {
-  background-color: #3498db;
-  color: white;
-}
-
-.status {
-  font-weight: bold;
-  font-size: 0.8rem;
-}
-
-.status.active {
-  color: #27ae60;
-}
-
-.status.inactive {
-  color: #7f8c8d;
-}
+/* Scoped styles removed as they are now standardized in common-ui.css */
 </style>

@@ -1,91 +1,135 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Xuất Hợp đồng</h3>
-        <button class="close-btn" @click="close">×</button>
-      </div>
+  <BaseModal :isOpen="isOpen" :title="'Xuất Hợp đồng: ' + profileName" :initialWidth="800" :isResizable="true"
+    @close="close">
+    <div class="downloader-content">
+      <p class="text-muted mb-4">Chọn các mẫu hợp đồng muốn xuất cho hồ sơ.</p>
 
-      <div class="modal-body">
-        <p>Chọn các mẫu hợp đồng muốn xuất cho hồ sơ: <strong>{{ profileName }}</strong></p>
-
-        <div v-if="loadingTemplates">Đang tải danh sách mẫu...</div>
-
-        <div v-else class="template-table-container">
-          <table class="template-table">
-            <thead>
-              <tr>
-                <th style="width: 40px;"><input type="checkbox" @change="toggleAll" :checked="isAllSelected"></th>
-                <th>Tên mẫu</th>
-                <th>Bộ phận</th>
-                <th>Ghi chú</th>
-                <th style="width: 80px;">Tải về</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="tpl in templates" :key="tpl.id">
-                <td><input type="checkbox" v-model="selectedTemplateIds" :value="tpl.id"></td>
-                <td>{{ tpl.name }}</td>
-                <td><span class="dept-badge" v-if="tpl.department">{{ tpl.department }}</span></td>
-                <td class="cell-note">{{ tpl.description }}</td>
-                <td>
-                  <button class="btn-icon" title="Tải nhanh bản .docx" @click="downloadIndividual(tpl.id)">
-                    📥
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="filter-bar mb-4" v-if="!loadingTemplates && templates.length > 1">
+        <div class="filter-group">
+          <label>Tìm kiếm:</label>
+          <input v-model="filters.search" placeholder="Tìm theo tên mẫu hoặc bộ phận..." class="modal-search-input"
+            style="width: 250px">
         </div>
-
-        <div v-if="error" class="error-msg">{{ error }}</div>
       </div>
 
-      <div class="modal-footer">
-        <button class="btn-cancel" @click="close">Hủy</button>
-        <button class="btn-download" @click="downloadBulk" :disabled="selectedTemplateIds.length === 0 || isProcessing">
-          {{ isProcessing ? 'Đang xử lý...' : 'Tải các mẫu đã chọn (.zip)' }}
-        </button>
+      <div v-if="loadingTemplates" class="loading-text">Đang tải danh sách mẫu...</div>
+
+      <div v-else class="data-table-vxe">
+        <vxe-table border round :data="sortedTemplates" :row-config="{ isHover: true }"
+          :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }"
+          @checkbox-change="handleCheckboxChange" @checkbox-all="handleCheckboxAll" ref="vxeTable" height="auto"
+          class="downloader-table">
+
+          <vxe-column type="checkbox" width="50"></vxe-column>
+
+          <vxe-column field="name" title="Tên mẫu" min-width="200" sortable></vxe-column>
+
+          <vxe-column field="department" title="Bộ phận" width="150" sortable>
+            <template #default="{ row }">
+              <span class="status-badge draft" v-if="row.department">{{ row.department }}</span>
+            </template>
+          </vxe-column>
+
+          <vxe-column field="description" title="Ghi chú" min-width="200">
+            <template #default="{ row }">
+              <div class="cell-note">{{ row.description }}</div>
+            </template>
+          </vxe-column>
+
+          <vxe-column field="loop_object_type" title="Tách riêng" width="100" align="center">
+            <template #default="{ row }">
+              <input v-if="row.loop_object_type" type="checkbox" v-model="batchTemplateIds" :value="row.id"
+                title="Tách riêng từng file">
+              <span v-else class="text-muted">—</span>
+            </template>
+          </vxe-column>
+
+          <vxe-column title="Tải về" width="80" align="center" fixed="right">
+            <template #default="{ row }">
+              <button class="btn-action btn-doc btn-icon-sm" title="Tải nhanh bản .docx"
+                @click="downloadIndividual(row.id)" :disabled="isProcessing">
+                <SvgIcon name="download" size="sm" />
+              </button>
+            </template>
+          </vxe-column>
+        </vxe-table>
       </div>
+
+      <div v-if="batchProgress" class="batch-progress">
+        <span class="spinner">⏳</span> {{ batchProgress }}
+      </div>
+
+      <div v-if="error" class="error-msg">{{ error }}</div>
     </div>
-  </div>
+
+    <template #footer>
+      <button class="btn-action btn-cancel" @click="close">Hủy</button>
+      <button class="btn-action btn-download" @click="downloadBulk"
+        :disabled="selectedTemplateIds.length === 0 || isProcessing">
+        <SvgIcon name="download" size="sm" v-if="!isProcessing" />
+        {{ isProcessing ? 'Đang xử lý...' : 'Tải các mẫu đã chọn' }}
+      </button>
+    </template>
+  </BaseModal>
 </template>
 
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
+import BaseModal from '@/components/BaseModal.vue';
+import SvgIcon from '@/components/common/SvgIcon.vue';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'ContractDownloader',
+  components: {
+    BaseModal,
+    SvgIcon
+  },
+  mixins: [FilterableTableMixin],
   props: {
-    isOpen: Boolean,      // Trạng thái mở/đóng modal
-    profileId: Number,    // ID hồ sơ cần xuất
-    profileName: String   // Tên hồ sơ (để hiển thị cho user biết)
+    isOpen: Boolean,
+    profileId: Number,
+    profileName: String
   },
   emits: ['close'],
   data() {
     return {
       templates: [],
-      selectedTemplateIds: [], // Mảng chứa ID các mẫu được chọn
+      selectedTemplateIds: [],
+      batchTemplateIds: [],
       loadingTemplates: false,
       isProcessing: false,
-      error: ''
+      batchProgress: '',
+      error: '',
+      filters: { search: '' }
     }
   },
   computed: {
+    filteredTemplates() {
+      return this.filterArray(this.templates, this.filters, {
+        search: { type: 'text', fields: ['name', 'department'] }
+      });
+    },
+    sortedTemplates() {
+      return this.sortArray(this.filteredTemplates);
+    },
     isAllSelected() {
-      return this.templates.length > 0 && this.selectedTemplateIds.length === this.templates.length;
+      return this.sortedTemplates.length > 0 &&
+        this.sortedTemplates.every(t => this.selectedTemplateIds.includes(t.id));
     }
   },
   watch: {
-    // Khi modal mở lên thì mới tải danh sách mẫu
     isOpen(newVal) {
       if (newVal) {
         this.fetchTemplates();
         this.selectedTemplateIds = [];
+        this.batchTemplateIds = [];
+        this.batchProgress = '';
         this.error = '';
+        this.filters.search = '';
       }
-    }
+    },
   },
   methods: {
     close() {
@@ -102,24 +146,108 @@ export default {
         this.loadingTemplates = false;
       }
     },
-    toggleAll(e) {
-      if (e.target.checked) {
-        this.selectedTemplateIds = this.templates.map(t => t.id);
+    handleCheckboxChange({ checked, row }) {
+      if (checked) {
+        if (!this.selectedTemplateIds.includes(row.id)) this.selectedTemplateIds.push(row.id);
+      } else {
+        this.selectedTemplateIds = this.selectedTemplateIds.filter(id => id !== row.id);
+      }
+    },
+    handleCheckboxAll({ checked }) {
+      if (checked) {
+        this.selectedTemplateIds = this.sortedTemplates.map(t => t.id);
       } else {
         this.selectedTemplateIds = [];
       }
     },
+
     async downloadIndividual(tplId) {
-      await this.executeDownload({ template_id: tplId });
-    },
-    async downloadBulk() {
-      if (this.selectedTemplateIds.length === 0) return;
-      await this.executeDownload({ template_ids: this.selectedTemplateIds });
-    },
-    async executeDownload(payload) {
       this.isProcessing = true;
       this.error = '';
+      try {
+        const isBatch = this.batchTemplateIds.map(Number).includes(Number(tplId));
+        if (isBatch) {
+          await this.executeFrontendBatch(Number(tplId));
+        } else {
+          const payload = {
+            template_id: Number(tplId),
+            batch_template_ids: []
+          };
+          await this.executeDownload(payload);
+        }
+      } finally {
+        this.isProcessing = false;
+        this.batchProgress = '';
+      }
+    },
 
+    async executeFrontendBatch(templateId) {
+      try {
+        const url = `${API_URL}/loan-profiles/${this.profileId}/generate-document/`;
+        const metaResp = await axios.post(url, {
+          template_id: templateId,
+          batch_template_ids: [templateId],
+          return_metadata: true
+        });
+
+        const objects = metaResp.data.objects || [];
+        if (objects.length === 0) {
+          this.error = `Không tìm thấy đối tượng nào để tách cho mẫu "${this.getTemplateName(templateId)}".`;
+          return;
+        }
+
+        for (let i = 0; i < objects.length; i++) {
+          const obj = objects[i];
+          this.batchProgress = `Đang tải file ${i + 1}/${objects.length} — ${this.getTemplateName(templateId)}`;
+
+          const response = await axios.post(url, {
+            template_id: templateId,
+            export_mode: 'BATCH',
+            target_object_id: obj.id
+          }, { responseType: 'blob' });
+
+          const contentType = response.headers['content-type'] || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          const blob = new Blob([response.data], { type: contentType });
+
+          const disposition = response.headers['content-disposition'];
+          let filename = `TachRieng_${obj.identity}.docx`;
+
+          if (disposition && disposition.indexOf('filename=') !== -1) {
+            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+            if (matches != null && matches[1]) {
+              filename = decodeURIComponent(matches[1].replace(/['"]/g, ''));
+            }
+          }
+
+          this.triggerDownload(blob, filename);
+          await new Promise(r => setTimeout(r, 800));
+        }
+      } catch (e) {
+        console.error('Frontend Batch error:', e);
+        this.error = 'Có lỗi xảy ra khi tải tách rời tài liệu.';
+      }
+    },
+
+    async downloadBulk() {
+      if (this.selectedTemplateIds.length === 0) return;
+
+      this.isProcessing = true;
+      this.error = '';
+      this.batchProgress = 'Đang chuẩn bị tài liệu...';
+      try {
+        const payload = {
+          template_ids: this.selectedTemplateIds.map(Number),
+          batch_template_ids: this.batchTemplateIds.map(Number)
+        };
+        await this.executeDownload(payload);
+      } finally {
+        this.isProcessing = false;
+        this.batchProgress = '';
+      }
+    },
+
+    async executeDownload(payload) {
+      this.error = '';
       try {
         const url = `${API_URL}/loan-profiles/${this.profileId}/generate-document/`;
         const response = await axios.post(url, payload, { responseType: 'blob' });
@@ -134,14 +262,11 @@ export default {
         if (disposition && disposition.indexOf('filename=') !== -1) {
           const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
           if (matches != null && matches[1]) {
-            filename = matches[1].replace(/['"]/g, '');
+            filename = decodeURIComponent(matches[1].replace(/['"]/g, ''));
           }
         }
 
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = filename;
-        link.click();
+        this.triggerDownload(blob, filename);
       } catch (e) {
         console.error(e);
         if (e.response && e.response.data instanceof Blob) {
@@ -150,102 +275,55 @@ export default {
         } else {
           this.error = 'Có lỗi xảy ra khi tải tài liệu.';
         }
-      } finally {
-        this.isProcessing = false;
       }
+    },
+
+    triggerDownload(blob, filename) {
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(link.href);
+      }, 1000);
+    },
+
+    getTemplateName(templateId) {
+      const tpl = this.templates.find(t => t.id === templateId);
+      return tpl ? tpl.name : `#${templateId}`;
     }
   }
 }
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
+.downloader-content {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  padding-bottom: var(--spacing-md);
 }
 
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 700px;
-  max-width: 95%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #2c3e50;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #888;
-}
-
-.template-table-container {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  margin-bottom: 15px;
-}
-
-.template-table {
-  width: 100%;
-  border-collapse: collapse;
+.modal-search-input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
   font-size: 14px;
 }
 
-.template-table th,
-.template-table td {
-  padding: 10px;
-  border-bottom: 1px solid #f0f0f0;
-  text-align: left;
+.modal-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
-.template-table th {
-  background: #f8f9fa;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.template-table tr:hover {
-  background: #fafafa;
-}
-
-.dept-badge {
-  background: #e8f4fd;
-  color: #2980b9;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+.data-table-vxe {
+  flex: 1;
+  min-height: 200px;
 }
 
 .cell-note {
-  color: #666;
+  color: var(--color-text-muted);
   font-style: italic;
   max-width: 200px;
   overflow: hidden;
@@ -253,53 +331,60 @@ export default {
   white-space: nowrap;
 }
 
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 5px;
-  transition: transform 0.2s;
+.text-center {
+  text-align: center;
 }
 
-.btn-icon:hover {
-  transform: scale(1.2);
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.btn-cancel {
-  background: #95a5a6;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
+.btn-icon-sm {
+  min-width: auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-full);
 }
 
 .btn-download {
-  background: #e67e22;
+  background-color: var(--color-primary);
   color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
 }
 
-.btn-download:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
+.loading-text {
+  color: var(--color-text-muted);
+  padding: var(--spacing-xl) 0;
+  text-align: center;
+}
+
+.batch-progress {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  color: var(--color-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .error-msg {
-  color: #e74c3c;
-  margin-top: 10px;
-  font-size: 0.9rem;
+  color: var(--color-danger);
+  margin-top: var(--spacing-md);
+  font-size: var(--font-sm);
   font-weight: 500;
+}
+
+.spinner {
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

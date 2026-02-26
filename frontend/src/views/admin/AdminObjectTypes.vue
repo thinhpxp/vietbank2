@@ -49,105 +49,126 @@
             </div>
         </div>
 
-        <div class="ui-table-wrapper">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 150px">Mã (Code)</th>
-                        <th style="width: 200px">Tên hiển thị</th>
-                        <th style="width: 180px">Trường định danh</th>
-                        <th style="width: 150px">Phân loại</th>
-                        <th style="width: 100px">Vị trí</th>
-                        <th style="width: 120px">Cho phép LK</th>
-                        <th style="width: 200px">Mẫu hiển thị</th>
-                        <th>Mô tả</th>
-                        <th style="width: 100px">Hệ thống</th>
-                        <th style="width: 70px">Thứ tự</th>
-                        <th style="width: 150px">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="type in types" :key="type.id" :class="{ 'editing-row': editingId === type.id }">
-                        <td>
-                            <code>{{ type.code }}</code>
-                        </td>
-                        <td>
-                            <input v-if="editingId === type.id" v-model="editingData.name" class="admin-input w-full" />
-                            <span v-else class="font-bold">{{ type.name }}</span>
-                        </td>
-                        <td>
-                            <input v-if="editingId === type.id" v-model="editingData.identity_field_key"
-                                class="admin-input w-full" />
-                            <code v-else>{{ type.identity_field_key || '---' }}</code>
-                        </td>
-                        <td>
-                            <select v-if="editingId === type.id" v-model="editingData.form_display_mode"
-                                class="admin-input w-full p-1">
-                                <option value="ASSET_LIST">Tài sản</option>
-                                <option value="DEDICATED_SECTION">Độc lập</option>
-                            </select>
-                            <span v-else class="badge"
-                                :class="type.form_display_mode === 'DEDICATED_SECTION' ? 'badge-primary' : 'badge-secondary'">
-                                {{ getDisplayModeLabel(type.form_display_mode) }}
-                            </span>
-                        </td>
-                        <td>
-                            <select v-if="editingId === type.id" v-model="editingData.layout_position"
-                                class="admin-input w-full p-1">
-                                <option value="LEFT">Trái</option>
-                                <option value="RIGHT">Phải</option>
-                            </select>
-                            <span v-else class="badge"
-                                :class="type.layout_position === 'RIGHT' ? 'badge-primary' : 'badge-secondary'">
-                                {{ type.layout_position === 'RIGHT' ? '👉 Phải' : '👈 Trái' }}
-                            </span>
-                        </td>
-                        <td>
-                            <input v-if="editingId === type.id" v-model="editingData.allow_relations" type="checkbox"
-                                class="w-5 h-5" />
-                            <span v-else class="badge"
-                                :class="type.allow_relations ? 'badge-success' : 'badge-secondary'">
-                                {{ type.allow_relations ? '✓ Có' : '✗ Không' }}
-                            </span>
-                        </td>
-                        <td>
-                            <input v-if="editingId === type.id" v-model="editingData.dynamic_summary_template"
-                                class="admin-input w-full" />
-                            <span v-else>{{ type.dynamic_summary_template || '---' }}</span>
-                        </td>
-                        <td>
-                            <input v-if="editingId === type.id" v-model="editingData.description"
-                                class="admin-input w-full" />
-                            <span v-else>{{ type.description || '---' }}</span>
-                        </td>
-                        <td>
-                            <span v-if="type.is_system" class="badge badge-system">System</span>
-                            <span v-else class="badge badge-custom">Custom</span>
-                        </td>
-                        <td>
-                            <input v-if="editingId === type.id" v-model.number="editingData.order" type="number"
-                                class="admin-input w-full" style="width: 50px" />
-                            <span v-else>{{ type.order }}</span>
-                        </td>
-                        <td>
-                            <div class="flex gap-2">
-                                <template v-if="editingId === type.id">
-                                    <button class="btn-action btn-save" @click="updateType">Lưu</button>
-                                    <button class="btn-action btn-secondary" @click="editingId = null">Hủy</button>
-                                </template>
-                                <template v-else>
-                                    <button class="btn-action btn-edit" @click="startEdit(type)">Sửa</button>
-                                    <button class="btn-action btn-delete" :disabled="type.is_system"
-                                        @click="confirmDelete(type)"
-                                        :title="type.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
-                                        Xóa
-                                    </button>
-                                </template>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="filter-bar mb-4">
+            <div class="filter-group">
+                <label>Tìm kiếm:</label>
+                <input v-model="filters.search" placeholder="Tìm theo tên hoặc mã..." class="admin-form-control"
+                    style="width: 300px">
+            </div>
+        </div>
+
+        <div class="data-table-vxe">
+            <vxe-table border round :data="filteredTypes" :row-config="{ isHover: true }"
+                :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }">
+
+                <vxe-column field="code" title="Mã (Code)" width="150" sortable>
+                    <template #default="{ row }">
+                        <code>{{ row.code }}</code>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="name" title="Tên hiển thị" width="200" sortable>
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="editingData.name" class="vxe-input-minimal" />
+                        <span v-else class="font-bold">{{ row.name }}</span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="identity_field_key" title="Trường định danh" width="180">
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="editingData.identity_field_key"
+                            class="vxe-input-minimal" />
+                        <code v-else>{{ row.identity_field_key || '---' }}</code>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="form_display_mode" title="Phân loại" width="150">
+                    <template #default="{ row }">
+                        <select v-if="editingId === row.id" v-model="editingData.form_display_mode"
+                            class="vxe-input-minimal">
+                            <option value="ASSET_LIST">Tài sản</option>
+                            <option value="DEDICATED_SECTION">Độc lập</option>
+                        </select>
+                        <span v-else class="badge"
+                            :class="row.form_display_mode === 'DEDICATED_SECTION' ? 'badge-primary' : 'badge-secondary'">
+                            {{ getDisplayModeLabel(row.form_display_mode) }}
+                        </span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="layout_position" title="Vị trí" width="100">
+                    <template #default="{ row }">
+                        <select v-if="editingId === row.id" v-model="editingData.layout_position"
+                            class="vxe-input-minimal">
+                            <option value="LEFT">Trái</option>
+                            <option value="RIGHT">Phải</option>
+                        </select>
+                        <span v-else class="badge"
+                            :class="row.layout_position === 'RIGHT' ? 'badge-primary' : 'badge-secondary'">
+                            {{ row.layout_position === 'RIGHT' ? '👉 Phải' : '👈 Trái' }}
+                        </span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="allow_relations" title="Cho phép LK" width="120">
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="editingData.allow_relations" type="checkbox" />
+                        <span v-else class="badge" :class="row.allow_relations ? 'badge-success' : 'badge-secondary'">
+                            {{ row.allow_relations ? '✓ Có' : '✗ Không' }}
+                        </span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="dynamic_summary_template" title="Mẫu hiển thị" width="200">
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="editingData.dynamic_summary_template"
+                            class="vxe-input-minimal" />
+                        <span v-else>{{ row.dynamic_summary_template || '---' }}</span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="description" title="Mô tả" min-width="200">
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="editingData.description"
+                            class="vxe-input-minimal" />
+                        <span v-else>{{ row.description || '---' }}</span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="is_system" title="Hệ thống" width="100">
+                    <template #default="{ row }">
+                        <span v-if="row.is_system" class="badge badge-system">System</span>
+                        <span v-else class="badge badge-custom">Custom</span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="order" title="Thứ tự" width="100" sortable>
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model.number="editingData.order" type="number"
+                            class="vxe-input-minimal" />
+                        <span v-else>{{ row.order }}</span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column title="Hành động" width="180" fixed="right">
+                    <template #default="{ row }">
+                        <div class="flex gap-2">
+                            <template v-if="editingId === row.id">
+                                <button class="btn-action btn-save" @click="updateType">Lưu</button>
+                                <button class="btn-action btn-secondary" @click="editingId = null">Hủy</button>
+                            </template>
+                            <template v-else>
+                                <button class="btn-action btn-edit" @click="startEdit(row)">Sửa</button>
+                                <button class="btn-action btn-delete" :disabled="row.is_system"
+                                    @click="confirmDelete(row)"
+                                    :title="row.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
+                                    Xóa
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                </vxe-column>
+            </vxe-table>
         </div>
 
         <!-- Confirm Delete -->
@@ -172,41 +193,46 @@
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
-import { makeTableResizable } from '../../utils/resizable-table';
 import { errorHandlingMixin } from '../../utils/errorHandler';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
     name: 'AdminObjectTypes',
     components: { ConfirmModal },
-    mixins: [errorHandlingMixin],
+    mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
             types: [],
             newType: { code: '', name: '', description: '', identity_field_key: '', form_display_mode: null, layout_position: null, dynamic_summary_template: '', allow_relations: true, order: null },
             editingId: null,
             editingData: null,
+            filters: { search: '' },
             showDeleteModal: false,
             deleteTarget: null
         };
     },
+    computed: {
+        filteredTypes() {
+            return this.filterArray(this.types, this.filters, {
+                search: { type: 'text', fields: ['name', 'code'] }
+            });
+        },
+        sortedTypes() {
+            return this.sortArray(this.filteredTypes);
+        }
+    },
+    watch: {
+    },
     mounted() {
         this.fetchTypes();
-        this.initResizable();
     },
     methods: {
         async fetchTypes() {
             try {
                 const res = await axios.get(`${API_URL}/object-types/`);
                 this.types = res.data;
-                this.$nextTick(() => this.initResizable());
             } catch (e) {
                 this.showError(e, 'Lỗi tải danh sách loại đối tượng');
-            }
-        },
-        initResizable() {
-            const table = this.$el.querySelector('.data-table');
-            if (table) {
-                makeTableResizable(table, 'admin-object-types');
             }
         },
         getDisplayModeLabel(mode) {
@@ -258,5 +284,11 @@ export default {
             }
         }
     }
-};
+}
 </script>
+
+<style scoped>
+.data-table-vxe {
+    margin-top: 10px;
+}
+</style>

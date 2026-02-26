@@ -1,76 +1,105 @@
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
-        <div class="modal-content master-select-modal">
-            <div class="modal-header">
-                <h3>{{ title }}</h3>
-                <button class="btn-close" @click="$emit('close')">&times;</button>
+    <BaseModal :isOpen="isOpen" :title="title" :initialWidth="900" :isResizable="true" @close="close">
+        <div class="modal-body-content">
+            <div class="search-box mb-4">
+                <div class="input-group">
+                    <input v-model="searchQuery" :placeholder="searchPlaceholder" class="form-control"
+                        @keyup.enter="fetchItems">
+                    <button class="btn-action btn-primary" @click="fetchItems">
+                        <SvgIcon name="search" size="sm" />
+                        <span>Tìm kiếm</span>
+                    </button>
+                </div>
             </div>
 
-            <div class="modal-body">
-                <div class="search-box">
-                    <input v-model="searchQuery" :placeholder="searchPlaceholder" class="search-input"
-                        @keyup.enter="handleSearch">
-                    <button class="btn-search" @click="handleSearch">Tìm kiếm</button>
-                </div>
+            <div v-if="loading" class="loading-state">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <span class="ms-2">Đang tải dữ liệu...</span>
+            </div>
 
-                <div v-if="loading" class="loading">Đang tải dữ liệu...</div>
+            <div v-else class="data-table-vxe">
+                <vxe-table border round :data="items" :row-config="{ isHover: true }"
+                    :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" height="auto"
+                    class="select-table">
 
-                <div v-else class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Tên / Số hiệu</th>
-                                <th>Thông tin thêm</th>
-                                <th>Loại</th>
-                                <th>Ngày tạo</th>
-                                <th>Cập nhật gần nhất</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="item in filteredItems" :key="item.id">
-                                <td class="font-bold">
-                                    {{ item.ho_ten || item.so_giay_chung_nhan || item.display_name || '---' }}
-                                </td>
-                                <td>{{ getAdditionalInfo(item) }}</td>
-                                <td><span class="badge-type">{{ item.object_type_display }}</span></td>
-                                <td>{{ formatDate(item.created_at) }}</td>
-                                <td>
-                                    <div class="update-info">
-                                        <span>{{ formatDate(item.updated_at) }}</span>
-                                        <small class="text-muted" v-if="item.last_updated_by_name">by {{
-                                            item.last_updated_by_name }}</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button class="btn-select" @click="selectItem(item)">Chọn</button>
-                                </td>
-                            </tr>
-                            <tr v-if="filteredItems.length === 0">
-                                <td colspan="6" class="text-center">Không tìm thấy kết quả phù hợp.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <vxe-column field="display_name" title="Tên / Số hiệu" min-width="200" sortable>
+                        <template #default="{ row }">
+                            <strong class="font-bold">
+                                {{ row.ho_ten || row.so_giay_chung_nhan || row.display_name || '---' }}
+                            </strong>
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column field="additional_info" title="Thông tin thêm" min-width="250">
+                        <template #default="{ row }">
+                            {{ getAdditionalInfo(row) }}
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column field="object_type_display" title="Loại" width="120" sortable>
+                        <template #default="{ row }">
+                            <span class="status-badge draft">{{ row.object_type_display }}</span>
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column field="created_at" title="Ngày tạo" width="150" sortable>
+                        <template #default="{ row }">
+                            <span class="text-muted">{{ formatDate(row.created_at) }}</span>
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column field="updated_at" title="Cập nhật gần nhất" width="180" sortable>
+                        <template #default="{ row }">
+                            <div class="update-info">
+                                <span>{{ formatDate(row.updated_at) }}</span>
+                                <small class="text-muted" v-if="row.last_updated_by_name">
+                                    by {{ row.last_updated_by_name }}
+                                </small>
+                            </div>
+                        </template>
+                    </vxe-column>
+
+                    <vxe-column title="Thao tác" width="100" fixed="right" align="center">
+                        <template #default="{ row }">
+                            <button class="btn-action btn-success btn-sm" @click="selectItem(row)">Chọn</button>
+                        </template>
+                    </vxe-column>
+
+                    <template #empty>
+                        <div class="text-center py-8 text-muted italic">
+                            Không tìm thấy kết quả phù hợp.
+                        </div>
+                    </template>
+                </vxe-table>
             </div>
         </div>
-    </div>
+
+        <template #footer>
+            <button class="btn-action btn-secondary" @click="close">Hủy</button>
+        </template>
+    </BaseModal>
 </template>
 
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
-import { makeTableResizable } from '@/utils/resizable-table';
+import BaseModal from '@/components/BaseModal.vue';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 
 export default {
     name: 'ObjectSelectModal',
+    components: {
+        BaseModal,
+        SvgIcon
+    },
     props: {
         isOpen: Boolean,
         type: {
             type: String,
-            default: 'person' // 'person' or 'asset'
+            default: 'person' // 'person', 'attorney' or 'asset'
         }
     },
+    emits: ['close', 'select'],
     data() {
         return {
             items: [],
@@ -78,9 +107,6 @@ export default {
             searchQuery: '',
             loading: false
         };
-    },
-    mounted() {
-        this.fetchObjectTypes();
     },
     computed: {
         title() {
@@ -92,30 +118,22 @@ export default {
             if (this.type === 'person') return 'Tìm theo Tên hoặc CCCD...';
             if (this.type === 'attorney') return 'Tìm theo Tên hoặc Mã nhân viên...';
             return 'Tìm theo Số Giấy chứng nhận...';
-        },
-        filteredItems() {
-            if (!this.searchQuery) return this.items;
-            const query = this.searchQuery.toLowerCase();
-            return this.items.filter(item => {
-                const displayName = (item.display_name || '').toLowerCase();
-                const identityValue = (this.getIdentityValue(item) || '').toLowerCase();
-                const typeName = (item.object_type_display || '').toLowerCase();
-
-                return displayName.includes(query) ||
-                    identityValue.includes(query) ||
-                    typeName.includes(query);
-            });
         }
     },
     watch: {
         isOpen(val) {
             if (val) {
+                this.searchQuery = '';
                 this.fetchItems();
             }
         }
     },
     methods: {
+        close() {
+            this.$emit('close');
+        },
         async fetchObjectTypes() {
+            if (this.objectTypes.length > 0) return;
             try {
                 const response = await axios.get(`${API_URL}/object-types/`);
                 this.objectTypes = response.data;
@@ -126,10 +144,9 @@ export default {
         async fetchItems() {
             this.loading = true;
             try {
-                let types = '';
+                await this.fetchObjectTypes();
 
-                // NEW: Use the specific type if provided (DEDICATED_SECTION cases)
-                // BUT if type is person/attorney/asset we handle as before for now
+                let types = '';
                 if (this.type && !['person', 'attorney', 'asset'].includes(this.type)) {
                     types = this.type;
                 } else if (this.type === 'person') {
@@ -137,31 +154,25 @@ export default {
                 } else if (this.type === 'attorney') {
                     types = 'ATTORNEY';
                 } else {
-                    // Fetch all non-PERSON and non-ATTORNEY types (General Asset search)
                     types = this.objectTypes
                         .filter(t => t.form_display_mode === 'ASSET_LIST' && t.code !== 'PERSON')
                         .map(t => t.code)
                         .join(',');
-
-                    // Fallback
                     if (!types) types = 'ASSET,VEHICLE,REALESTATE,SAVINGS,CONTRACT';
                 }
 
-                const response = await axios.get(`${API_URL}/master-objects/?object_type=${types}`);
+                const url = `${API_URL}/master-objects/?object_type=${types}&search=${encodeURIComponent(this.searchQuery)}`;
+                const response = await axios.get(url);
 
-                // Flatten data for compatibility
                 this.items = response.data.map(item => ({
                     ...item,
                     ...item.field_values
                 }));
+
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu master:', error);
             } finally {
                 this.loading = false;
-                this.$nextTick(() => {
-                    const table = this.$el.querySelector('.data-table');
-                    if (table) makeTableResizable(table, 'object-select-modal');
-                });
             }
         },
         getIdentityValue(item) {
@@ -186,25 +197,20 @@ export default {
                 return result;
             }
 
-            // Fallback
-            if (item.object_type === 'PERSON') {
-                return item.cccd ? `CCCD: ${item.cccd}` : '---';
-            } else if (item.object_type === 'VEHICLE') {
-                return item.nhan_hieu_xe ? `Hãng: ${item.nhan_hieu_xe}` : '---';
-            } else if (item.object_type === 'REALESTATE') {
-                return item.so_vao_so ? `Số vào sổ: ${item.so_vao_so}` : '---';
-            } else if (item.object_type === 'BOND') {
-                return item.ky_han_trai_phieu ? `Kỳ hạn: ${item.ky_han_trai_phieu}` : '---';
-            } else if (item.object_type === 'SAVINGS') {
-                return item.so_tien_goi ? `Số tiền: ${item.so_tien_goi}` : '---';
-            } else if (item.object_type === 'ATTORNEY') {
-                return item.nguoi_dai_dien ? `Họ tên: ${item.nguoi_dai_dien}` : '---';
-            }
-            return item.owner_name || '---';
+            const fallbacks = {
+                'PERSON': item.cccd ? `CCCD: ${item.cccd}` : '---',
+                'VEHICLE': item.nhan_hieu_xe ? `Hãng: ${item.nhan_hieu_xe}` : '---',
+                'REALESTATE': item.so_vao_so ? `Số vào sổ: ${item.so_vao_so}` : '---',
+                'BOND': item.ky_han_trai_phieu ? `Kỳ hạn: ${item.ky_han_trai_phieu}` : '---',
+                'SAVINGS': item.so_tien_goi ? `Số tiền: ${item.so_tien_goi}` : '---',
+                'ATTORNEY': item.nguoi_dai_dien ? `Họ tên: ${item.nguoi_dai_dien}` : '---'
+            };
+
+            return fallbacks[item.object_type] || item.owner_name || '---';
         },
         selectItem(item) {
             this.$emit('select', item);
-            this.$emit('close');
+            this.close();
         },
         formatDate(dateString) {
             if (!dateString) return 'N/A';
@@ -215,128 +221,77 @@ export default {
 </script>
 
 <style scoped>
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-}
-
-.modal-content.master-select-modal {
-    background: white;
-    width: 70%;
-    max-width: 900px;
-    max-height: 80vh;
-    border-radius: 8px;
+.modal-body-content {
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
-.modal-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid #eee;
+.search-box .input-group {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: var(--spacing-sm);
 }
 
-.modal-body {
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.search-box {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.search-input {
+.form-control {
     flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    outline: none;
 }
 
-.btn-search {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
+.form-control:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
-.table-container {
-    border: 1px solid #eee;
-    border-radius: 4px;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-table th {
-    background: #f8f9fa;
-    text-align: left;
-    padding: 10px;
-    border-bottom: 2px solid #eee;
-}
-
-.data-table td {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+.data-table-vxe {
+    flex: 1;
+    min-height: 250px;
 }
 
 .update-info {
     display: flex;
     flex-direction: column;
+    font-size: var(--font-xs);
 }
 
-.btn-select {
-    background: #27ae60;
-    color: white;
-    border: none;
-    padding: 5px 12px;
-    border-radius: 4px;
-    cursor: pointer;
+.font-bold {
+    font-weight: 600;
+    color: var(--color-text);
 }
 
-.btn-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #999;
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-muted);
 }
 
-.badge-type {
-    background: #e8f4fd;
-    color: #3498db;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.8em;
-    font-weight: bold;
-    text-transform: uppercase;
+.text-muted {
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+}
+
+.ms-2 {
+    margin-left: var(--spacing-sm);
+}
+
+.mb-4 {
+    margin-bottom: var(--spacing-lg);
+}
+
+.py-8 {
+    padding-top: var(--spacing-xl);
+    padding-bottom: var(--spacing-xl);
 }
 
 .text-center {
     text-align: center;
 }
 
-.text-muted {
-    color: #888;
-    font-size: 0.8em;
-}
-
-.font-bold {
-    font-weight: bold;
+.italic {
+    font-style: italic;
 }
 </style>

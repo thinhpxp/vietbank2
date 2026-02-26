@@ -177,3 +177,100 @@ HỢP ĐỒNG TÍN DỤNG HẠN MỨC:
 1. **Chính xác tên biến**: Phải viết đúng 100% tên trong dấu `{{ }}`.
 2. **Dấu gạch dưới**: Sử dụng dấu gạch dưới `_` thay cho khoảng trắng.
 3. **Dữ liệu trống**: Nếu biến không có dữ liệu, hệ thống sẽ để trống vị trí đó.
+
+---
+
+## 4. Template cho chế độ Tách riêng file (Batch Export)
+
+### 4.1. Giới thiệu
+Tính năng **Batch Export** cho phép xuất **n file .docx riêng biệt** từ **1 template**, mỗi file ứng với **1 đối tượng** (VD: 3 thửa đất → 3 file).
+
+### 4.2. Cấu hình Template
+1. Vào **Admin > Quản lý Mẫu Hợp đồng**
+2. Khi upload hoặc sửa template, chọn **"Lặp theo"** = Loại đối tượng mong muốn (VD: Bất động sản)
+3. Template này giờ sẽ tự động tick chọn "Tách riêng" khi enduser xuất văn bản
+
+### 4.3. Cú pháp trong Template
+Thay vì dùng vòng lặp `{% for asset in REALESTATE %}`, sử dụng biến đơn:
+
+| Chế độ Gộp chung (Single) | Chế độ Tách riêng (Batch) |
+|---------------------------|---------------------------|
+| `{% for a in REALESTATE %}{{ a.thua_dat_so }}{% endfor %}` | `{{ thua_dat_so }}` hoặc `{{ current_asset.thua_dat_so }}` |
+
+**Các biến hỗ trợ nâng cao**:
+- `current_asset`: Chứa thông tin của đối tượng hiện tại.
+- `is_batch`: Trả về `True` nếu đang ở chế độ Tách riêng file.
+- `is_single`: Trả về `True` nếu đang ở chế độ Gộp chung (Single).
+
+**Mẹo cho Template "Vạn năng" (Dùng chung cho cả 2 chế độ)**:
+Nếu bạn muốn 1 template vừa có thể liệt kê tất cả tài sản (khi tải gộp), vừa có thể tách riêng từng file (khi tải tách):
+```jinja2
+{% set ds_tai_san = [current_asset] if is_batch else REALESTATE %}
+{% for asset in ds_tai_san %}
+- Tài sản: {{ asset.thua_dat_so }}
+{% endfor %}
+```
+
+**Lưu ý**: 
+- **Chế độ Thông minh**: Nếu bạn uncheck "Tách riêng" nhưng template có cấu hình "Lặp theo", hệ thống sẽ tự động lấy dữ liệu của **đối tượng đầu tiên** để hiển thị (thay vì để trống).
+- Các field của đối tượng được flatten ra context gốc để dùng trực tiếp (VD: `{{ thua_dat_so }}`).
+
+### 4.4. Lặp hàng trong Bảng (Tham chiếu: docxtpl v0.20.x)
+
+> [!IMPORTANT]
+> Tổng hợp từ mã nguồn `docxtpl/template.py` (hàm `patch_xml`, dòng 180-189).
+> Thẻ `{%tr %}` là cú pháp mở rộng riêng của docxtpl, KHÔNG phải Jinja2 chuẩn.
+
+#### Nguyên lý hoạt động
+- `{%tr jinja2_tag %}` yêu cầu docxtpl thao tác ở **cấp độ hàng** (`<w:tr>` trong XML).
+- Khi gặp thẻ `{%tr ... %}`, docxtpl sẽ **xóa toàn bộ hàng chứa thẻ đó** và thay bằng lệnh Jinja2 thuần.
+- **Không có khoảng trắng** giữa `%` và `tr`: viết `{%tr` chứ KHÔNG viết `{% tr`.
+
+#### Quy tắc bắt buộc
+1. **Mỗi hàng chỉ chứa TỐI ĐA MỘT thẻ `{%tr %}`.**
+2. `{%tr for %}` và `{%tr endfor %}` phải nằm ở **các hàng riêng biệt**.
+3. Hàng chứa thẻ `{%tr %}` sẽ **biến mất** trong file xuất ra.
+
+#### Cách làm trong Word (3 hàng)
+
+Tạo bảng gồm tiêu đề + **3 hàng** bên dưới:
+
+| STT | Địa chỉ tài sản | Giá trị (VND) |
+|-----|-----------------|---------------|
+| `{%tr for asset in ds_tai_san %}` | *(để trống)* | *(để trống)* |
+| `{{ loop.index }}` | `Thửa số {{ asset.thua_dat_so }}, tờ bản đồ {{ asset.to_ban_do }}...` | `{{ asset.dinh_gia \| format_currency }}` |
+| `{%tr endfor %}` | *(để trống)* | *(để trống)* |
+
+**Kết quả khi xuất file:**
+- **Hàng 1** (`{%tr for %}`) → Bị xóa, trở thành lệnh `{% for %}` trong XML
+- **Hàng 2** (dữ liệu) → Được nhân bản N lần (N = số tài sản)
+- **Hàng 3** (`{%tr endfor %}`) → Bị xóa, trở thành lệnh `{% endfor %}` trong XML
+
+**Nhớ bổ sung dòng `{% set %}` phía trên bảng:**
+```
+{% set ds_tai_san = [current_asset] if is_batch else REALESTATE %}
+```
+
+**Giải thích:**
+- `loop.index`: Trả về số thứ tự hiện tại (1, 2, 3...). 
+- Nếu **Tách riêng**: Danh sách chỉ có 1 phần tử (`[current_asset]`) ➔ STT luôn là 1.
+- Nếu **Gộp chung**: Danh sách có N tài sản (`REALESTATE`) ➔ STT tăng 1, 2, 3...
+
+### 4.5. Ví dụ Template BM01 (Bất động sản)
+```jinja2
+ĐĂNG KÝ THẾ CHẤP BẤT ĐỘNG SẢN
+
+Người thế chấp: {{ ho_ten }}
+CCCD: {{ cccd }}
+
+Thông tin thửa đất:
+- Thửa số: {{ thua_dat_so }}
+- Tờ bản đồ: {{ to_ban_do }}
+- Diện tích: {{ dien_tich_thua_dat }}
+```
+
+### 4.6. Quy tắc đặt tên file
+Tên file tự động: `TênTemplate_MãĐịnhDanh.docx`
+- Mã định danh lấy từ `identity_field_key` của loại đối tượng
+- VD: `BM01_012345678.docx` (CCCD), `BM02_123.docx` (ID thửa đất)
+

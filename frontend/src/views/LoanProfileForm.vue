@@ -44,7 +44,8 @@
           <div v-if="segment.type === 'GROUP'" class="panel-section orphan-group">
             <h3>{{ segment.name }}</h3>
             <DynamicForm :fields="segment.fields" v-model="generalFieldValues" :disabled="isReadOnly"
-              :idPrefix="`gen-l-${segment.id}-`" />
+              :idPrefix="`gen-l-${segment.id}-`" :allSections="fullProfileData"
+              @computed-update="handleComputedUpdate" />
           </div>
 
           <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
@@ -71,7 +72,8 @@
                 <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">&times;</button>
               </div>
               <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
-                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
+                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
+                :allSections="fullProfileData" @computed-update="handleComputedUpdate" />
 
               <RelationManager v-if="item.master_object && item.master_object.id"
                 :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
@@ -90,7 +92,8 @@
             <div v-for="(asset, index) in getAssetList()" :key="asset.master_object?.id || asset._uid">
               <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
                 :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
+                :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
+                @remove="removeAssetList(index)" @computed-update="handleComputedUpdate" />
             </div>
           </div>
 
@@ -106,8 +109,9 @@
             <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
               <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
                 :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
-                :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
+                :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
+                @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
+                @computed-update="handleComputedUpdate" />
             </div>
           </div>
         </template>
@@ -125,7 +129,8 @@
           <div v-if="segment.type === 'GROUP'" class="panel-section orphan-group">
             <h3>{{ segment.name }}</h3>
             <DynamicForm :fields="segment.fields" v-model="generalFieldValues" :disabled="isReadOnly"
-              :idPrefix="`gen-r-${segment.id}-`" />
+              :idPrefix="`gen-r-${segment.id}-`" :allSections="fullProfileData"
+              @computed-update="handleComputedUpdate" />
           </div>
 
           <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
@@ -152,7 +157,8 @@
                 <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">&times;</button>
               </div>
               <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
-                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`" />
+                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
+                :allSections="objectSections" @computed-update="handleComputedUpdate" />
 
               <RelationManager v-if="item.master_object && item.master_object.id"
                 :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
@@ -507,6 +513,13 @@ export default {
         return specialTypes.length === 0;
       }).sort((a, b) => a.order - b.order);
     },
+    // Dữ liệu hợp nhất toàn bộ hồ sơ để phục vụ tính toán công thức (Computed Fields)
+    fullProfileData() {
+      return {
+        ...this.objectSections,
+        _GENERAL_: this.generalFieldValues
+      };
+    }
   },
   async mounted() {
     await this.fetchFields();
@@ -539,6 +552,15 @@ export default {
     }
   },
   methods: {
+    // Nhận kết quả tính toán từ DynamicForm computed fields → cập nhật vào generalFieldValues
+    handleComputedUpdate(computedVals) {
+      Object.keys(computedVals).forEach(key => {
+        const val = computedVals[key];
+        if (val !== '' && val !== undefined && val !== null) {
+          this.generalFieldValues[key] = val;
+        }
+      });
+    },
     toggleSection(key) {
       // Toggle trạng thái: Nếu chưa có thì set true (collapsed), có rồi thì đảo ngược
       this.collapsedSections[key] = !this.collapsedSections[key];

@@ -83,7 +83,7 @@ class FieldSerializer(serializers.ModelSerializer):
     group_layout_position = serializers.CharField(source='group.layout_position', read_only=True)
     group_order = serializers.IntegerField(source='group.order', read_only=True)
     # Trả về danh sách ID (mặc định) để phục vụ UI Admin
-    allowed_object_types = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    allowed_object_types = serializers.PrimaryKeyRelatedField(many=True, queryset=MasterObjectType.objects.all(), required=False)
     group_allowed_object_types = serializers.SerializerMethodField()
     
     # Các trường mới phục vụ Rendering (dùng mã Code thay vì ID)
@@ -136,17 +136,47 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'is_staff', 'is_superuser', 'is_active', 'password', 'full_name', 'phone', 'workplace', 'department', 'note', 'groups', 'groups_details', 'permissions']
         extra_kwargs = {
-            'password': {'write_only': True, 'required': False},
-            'username': {'read_only': True}
+            'password': {'write_only': True, 'required': False}
         }
 
     def get_permissions(self, obj):
         # Trả về danh sách codename của tất cả các quyền mà user có (bao gồm quyền từ Group)
         return list(obj.get_all_permissions())
 
+    def create(self, validated_data):
+        # Tách dữ liệu profile
+        profile_data = validated_data.pop('profile', {})
+        
+        # Tách password
+        password = validated_data.pop('password', None)
+        
+        # Tách groups
+        groups = validated_data.pop('groups', [])
+        
+        # Tạo User
+        user = User.objects.create(**validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+            
+        # Gán groups
+        if groups:
+            user.groups.set(groups)
+            
+        # Cập nhật Profile (đã được tạo tự động qua Signal)
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        for attr, value in profile_data.items():
+            setattr(profile, attr, value)
+        profile.save()
+        
+        return user
+
     def update(self, instance, validated_data):
         # Tách dữ liệu profile (được source nén vào)
         profile_data = validated_data.pop('profile', {})
+        
+        # Ngăn chặn đổi username nếu đã có
+        validated_data.pop('username', None)
         
         # Cập nhật mật khẩu nếu có (thường Admin ít dùng qua update chung này)
         password = validated_data.pop('password', None)
@@ -233,10 +263,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 
 # 3. Serializer cho DocumentTemplate (Bắt buộc phải có)
-class DocumentTemplateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DocumentTemplate
-        fields = '__all__'
+
 
 
 # 4. Serializer cho LoanProfilePerson (Liên kết)
@@ -509,3 +536,17 @@ class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
         fields = '__all__'
+
+
+# Serializer cho DocumentTemplate (MỚI - cho Batch Export)
+class DocumentTemplateSerializer(serializers.ModelSerializer):
+    # Read-only fields để hiển thị thông tin loop_object_type
+    loop_object_type_code = serializers.CharField(source='loop_object_type.code', read_only=True, allow_null=True)
+    loop_object_type_name = serializers.CharField(source='loop_object_type.name', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = DocumentTemplate
+        fields = ['id', 'name', 'file', 'department', 'description', 'uploaded_at', 
+                  'loop_object_type', 'loop_object_type_code', 'loop_object_type_name']
+        read_only_fields = ['uploaded_at']
+

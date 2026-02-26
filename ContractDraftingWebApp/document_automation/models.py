@@ -142,6 +142,17 @@ class DocumentTemplate(models.Model):
     department = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bộ phận")
     description = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tải lên")
+    
+    # MỚI: Loại đối tượng để lặp khi xuất riêng lẻ (Batch Export)
+    loop_object_type = models.ForeignKey(
+        'MasterObjectType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='templates',
+        verbose_name="Loại đối tượng lặp",
+        help_text="Nếu chọn, template này có thể xuất riêng từng file cho mỗi đối tượng thuộc loại này"
+    )
 
     def __str__(self):
         return self.name

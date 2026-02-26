@@ -28,7 +28,7 @@
 
 /* Filter Bar */
 .filter-bar {
-    background: var(--slate-50);
+    background: #f1b553;
     padding: var(--spacing-lg);
     border-radius: var(--radius-lg);
     margin-bottom: var(--spacing-xl);

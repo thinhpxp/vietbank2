@@ -37,8 +37,15 @@
 
       <!-- Number Input -->
       <template v-else-if="field.data_type === 'NUMBER'">
+        <!-- Computed Field: Tự động tính toán, readonly -->
+        <div v-if="isComputedField(field)" class="computed-field-wrapper">
+          <input type="text" :id="idPrefix + field.placeholder_key"
+            :value="formatNumber(computedValues[field.placeholder_key])" class="input-control input-computed"
+            :class="inputClass" readonly title="Trường tự động tính toán" />
+          <span class="badge-computed">⚡ Tự động</span>
+        </div>
         <!-- Nếu bật phân tách hàng nghìn: Dùng text input để format linh hoạt -->
-        <input v-if="field.use_digit_grouping" type="text" :id="idPrefix + field.placeholder_key"
+        <input v-else-if="field.use_digit_grouping" type="text" :id="idPrefix + field.placeholder_key"
           :value="formatNumber(modelValue[field.placeholder_key])"
           @input="handleNumberInput(field.placeholder_key, $event.target.value)"
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
@@ -49,9 +56,9 @@
           @blur="handleBlur(field.placeholder_key, $event.target.value)" class="input-control" :class="inputClass"
           :disabled="disabled" />
 
-        <!-- Hiển thị số thành chữ (MỚI - Có thể bật/tắt) -->
-        <div v-if="field.show_amount_in_words && modelValue[field.placeholder_key]" class="amount-in-words">
-          {{ numberToWords(modelValue[field.placeholder_key]) }}
+        <!-- Hiển thị số thành chữ -->
+        <div v-if="field.show_amount_in_words && getDisplayValue(field)" class="amount-in-words">
+          {{ numberToWords(getDisplayValue(field)) }}
         </div>
       </template>
 
@@ -88,17 +95,38 @@
 export default {
   name: 'DynamicForm',
   props: {
-    idPrefix: { type: String, default: 'fld-' }, // Prefix để đảm bảo ID không trùng lặp khi có nhiều form
+    idPrefix: { type: String, default: 'fld-' },
     fields: { type: Array, required: true },
     modelValue: { type: Object, required: true },
     inputClass: { type: String, default: '' },
-    disabled: { type: Boolean, default: false }
+    disabled: { type: Boolean, default: false },
+    allSections: { type: Object, default: () => ({}) } // objectSections từ LoanProfileForm
   },
-  emits: ['update:modelValue', 'field-blur'],
+  emits: ['update:modelValue', 'field-blur', 'computed-update'],
   computed: {
     sortedFields() {
-      // Sắp xếp fields theo order tăng dần
       return [...this.fields].sort((a, b) => (a.order || 0) - (b.order || 0));
+    },
+    // Tính toán giá trị các computed fields (reactive — tự cập nhật khi allSections thay đổi)
+    computedValues() {
+      const result = {};
+      this.fields.forEach(field => {
+        if (this.isComputedField(field)) {
+          result[field.placeholder_key] = this.evaluateFormula(field.default_value, this.allSections);
+        }
+      });
+      return result;
+    }
+  },
+  watch: {
+    // Khi computed values thay đổi, emit lên parent để cập nhật generalFieldValues
+    computedValues: {
+      handler(newVals) {
+        if (Object.keys(newVals).length > 0) {
+          this.$emit('computed-update', newVals);
+        }
+      },
+      deep: true
     }
   },
   methods: {
@@ -227,7 +255,298 @@ export default {
       this.updateValue(key, formatted);
     },
     hasDynamicTemplate(field) {
-      return field.default_value && field.default_value.includes('{{');
+      return field.default_value && field.default_value.includes('{{') && !this.isComputedField(field);
+    },
+    isComputedField(field) {
+      return field.default_value && field.default_value.trim().startsWith('=');
+    },
+    // Lấy giá trị hiển thị: computed hoặc thường
+    getDisplayValue(field) {
+      if (this.isComputedField(field)) {
+        return this.computedValues[field.placeholder_key];
+      }
+      return this.modelValue[field.placeholder_key];
+    },
+    /**
+     * Formula Engine — Parse và tính toán công thức
+     * Cú pháp: =FUNC(TYPE.field, TYPE2.field, ...)
+     * Hỗ trợ: SUM, COUNT, AVG, MIN, MAX, CONCAT
+     */
+    evaluateFormula(formula, sections) {
+      if (!formula || !formula.trim().startsWith('=')) return null;
+      const expr = formula.trim().substring(1);
+      return this.evaluateSubExpr(expr, sections);
+    },
+    evaluateSubExpr(expr, sections) {
+      if (!expr) return null;
+      const match = expr.trim().match(/^(\w+)\((.*)\)$/s);
+      if (!match) return null;
+      const func = match[1].toUpperCase();
+      const argsRaw = match[2];
+      const args = this.parseFormulaArgs(argsRaw);
+
+      // Thu thập giá trị số từ các tham số (hỗ trợ Global Lookup & Aggregate Keywords)
+      // Thu thập giá trị thô (Số hoặc Chuỗi) từ context
+      const collectRaw = (argStr) => {
+        if (!argStr) return [];
+        const trimmed = argStr.trim();
+        if (trimmed.startsWith('"') || trimmed.startsWith("'")) {
+          return [trimmed.replace(/['"]/g, '')];
+        }
+
+        // Hỗ trợ gọi hàm đệ quy
+        if (trimmed.includes('(') && trimmed.includes(')')) {
+          const res = this.evaluateSubExpr(trimmed, sections);
+          return res !== null ? [res] : [];
+        }
+
+        let results = [];
+        let typeCode = null;
+        let fieldKey = trimmed;
+        if (trimmed.includes('.')) {
+          const parts = trimmed.split('.');
+          typeCode = parts[0].toUpperCase();
+          fieldKey = parts[1];
+        }
+
+        const extractFromObj = (obj, fk) => {
+          const fv = obj.individual_field_values || obj.field_values || obj;
+          const actualKey = Object.keys(fv).find(k => k.toLowerCase() === fk.toLowerCase());
+          return actualKey ? fv[actualKey] : null;
+        };
+
+        // Logic thu thập (Đồng bộ với Backend: Chống nhân bản)
+        if (typeCode === 'ASSET' || !typeCode) {
+          Object.keys(sections).forEach(sKey => {
+            // Chỉ quét các mảng đối tượng thực thụ, bỏ qua các danh sách _list thừa
+            if (sKey !== '_GENERAL_' && sKey !== 'PERSON' && Array.isArray(sections[sKey]) && !sKey.endsWith('_list')) {
+              sections[sKey].forEach(obj => {
+                const v = extractFromObj(obj, fieldKey);
+                if (v !== null && v !== undefined) results.push(v);
+              });
+            }
+          });
+        }
+        if (typeCode === 'PERSON' || (!typeCode && results.length === 0)) {
+          const people = sections['PERSON'] || sections['people'] || [];
+          if (Array.isArray(people)) {
+            people.forEach(obj => {
+              const v = extractFromObj(obj, fieldKey);
+              if (v !== null && v !== undefined) results.push(v);
+            });
+          }
+        }
+        if (typeCode === '_GENERAL_' || (!typeCode && results.length === 0)) {
+          const gen = sections['_GENERAL_'];
+          if (gen) {
+            const v = extractFromObj(gen, fieldKey);
+            if (v !== null && v !== undefined) results.push(v);
+          }
+        }
+        // Specific Type fallback
+        if (typeCode && !['ASSET', 'PERSON', '_GENERAL_'].includes(typeCode)) {
+          const sKey = Object.keys(sections).find(k => k.toUpperCase() === typeCode);
+          if (sKey && Array.isArray(sections[sKey])) {
+            sections[sKey].forEach(obj => {
+              const v = extractFromObj(obj, fieldKey);
+              if (v !== null && v !== undefined) results.push(v);
+            });
+          }
+        }
+        return results;
+      };
+
+      const toFloat = (val) => {
+        if (val === null || val === undefined || val === '') return 0;
+        if (typeof val === 'number') return val;
+        if (Array.isArray(val)) return toFloat(val[0]);
+
+        // Chuẩn hóa: loại bỏ khoảng trắng và không gian không ngắt
+        let s = String(val).replace(/\s/g, '').replace(/\u00a0/g, '').trim();
+        if (!s) return 0;
+
+        // Heuristic xử lý dấu phân cách nghìn/thập phân (Ưu tiên VN 1.000,50)
+        if (s.includes(',') && s.includes('.')) {
+          if (s.lastIndexOf(',') > s.lastIndexOf('.')) { // format VN
+            s = s.replace(/\./g, '').replace(/,/g, '.');
+          } else { // format US
+            s = s.replace(/,/g, '');
+          }
+        } else if (s.includes(',')) {
+          // Chỉ có dấu phẩy: 1,000,000 hoặc 1,5?
+          const count = (s.match(/,/g) || []).length;
+          const parts = s.split(',');
+          if (count > 1) s = s.replace(/,/g, '');
+          else if (parts[1].length === 3) s = s.replace(/,/g, ''); // 1,000 -> 1000
+          else s = s.replace(/,/g, '.'); // 1,5 -> 1.5
+        } else if (s.includes('.')) {
+          // Chỉ có dấu chấm: 1.000.000 hoặc 1.5?
+          const count = (s.match(/\./g) || []).length;
+          const parts = s.split('.');
+          if (count > 1) s = s.replace(/\./g, '');
+          else if (parts[1].length === 3) s = s.replace(/\./g, ''); // 1.000 -> 1000
+          // Ngược lại giữ nguyên (1.5 -> 1.5)
+        }
+
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+      };
+
+      const collectNumbers = (argList) => {
+        const nums = [];
+        argList.forEach(a => {
+          const raws = collectRaw(a);
+          if (raws.length === 0) {
+            // Thử parse trực tiếp nếu không phải field lookup (hỗ trợ hằng số 0,5)
+            nums.push(toFloat(a));
+          } else {
+            raws.forEach(r => nums.push(toFloat(r)));
+          }
+        });
+        return nums;
+      };
+
+      const collectTexts = (argList, separator) => {
+        const texts = [];
+        argList.forEach(a => {
+          const raws = collectRaw(a);
+          raws.forEach(r => { if (r !== null && r !== undefined) texts.push(String(r)); });
+        });
+        return texts.join(separator);
+      };
+
+      switch (func) {
+        case 'SUM': {
+          const vals = collectNumbers(args);
+          return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) : 0;
+        }
+        case 'PRODUCT':
+        case 'MUL': {
+          const vals = collectNumbers(args);
+          return vals.length > 0 ? vals.reduce((a, b) => a * b, 1) : 0;
+        }
+        case 'SUBTRACT':
+        case 'SUB': {
+          const vals = collectNumbers(args);
+          if (vals.length === 0) return 0;
+          let res = vals[0];
+          for (let i = 1; i < vals.length; i++) res -= vals[i];
+          return res;
+        }
+        case 'DIVIDE':
+        case 'DIV': {
+          const vals = collectNumbers(args);
+          if (vals.length === 0) return 0;
+          let res = vals[0];
+          for (let i = 1; i < vals.length; i++) {
+            if (vals[i] !== 0) res /= vals[i];
+          }
+          return res;
+        }
+        case 'ROUND': {
+          const vals = collectNumbers(args.slice(0, 1));
+          if (vals.length === 0) return 0;
+          const pRaw = args.length > 1 ? this.evaluateSubExpr(args[1], sections) || args[1] : 0;
+          const precision = parseInt(String(pRaw).replace(/['"]/g, ''));
+          const factor = Math.pow(10, isNaN(precision) ? 0 : precision);
+          return Math.round(vals[0] * factor) / factor;
+        }
+        case 'COUNT': {
+          let total = 0;
+          args.forEach(arg => {
+            const trimmed = arg.trim();
+            if (trimmed.startsWith('"') || trimmed.startsWith("'")) return;
+            const typeCode = trimmed.includes('.') ? trimmed.split('.')[0].toUpperCase() : trimmed.toUpperCase();
+            if (typeCode === 'ASSET') {
+              Object.keys(sections).forEach(k => {
+                if (k !== '_GENERAL_' && k !== 'PERSON' && Array.isArray(sections[k]) && !k.endsWith('_list')) {
+                  total += sections[k].length;
+                }
+              });
+            } else if (typeCode === 'PERSON') {
+              const p = sections['PERSON'] || sections['people'] || [];
+              if (Array.isArray(p)) total += p.length;
+            } else {
+              const sKey = Object.keys(sections).find(k => k.toUpperCase() === typeCode);
+              if (sKey && Array.isArray(sections[sKey])) total += sections[sKey].length;
+            }
+          });
+          return total;
+        }
+        case 'AVG': {
+          const vals = collectNumbers(args);
+          return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        }
+        case 'MIN': {
+          const vals = collectNumbers(args);
+          return vals.length > 0 ? Math.min(...vals) : 0;
+        }
+        case 'MAX': {
+          const vals = collectNumbers(args);
+          return vals.length > 0 ? Math.max(...vals) : 0;
+        }
+        case 'CONCAT': {
+          const sepArg = args.find(a => a.trim().startsWith('"') || a.trim().startsWith("'"));
+          const separator = sepArg ? sepArg.trim().replace(/["']/g, '') : ', ';
+          const fieldArgs = args.filter(a => a !== sepArg);
+          return collectTexts(fieldArgs, separator);
+        }
+        case 'IF': {
+          if (args.length < 3) return '';
+          const condRaw = args[0].trim();
+          let isTrue = false;
+          let ops = ['>=', '<=', '>', '<', '='];
+          let usedOp = ops.find(op => condRaw.includes(op));
+          if (usedOp) {
+            const [lS, rS] = condRaw.split(usedOp);
+            const lV = collectNumbers([lS.trim()])[0];
+            const rV = collectNumbers([rS.trim()])[0];
+
+            if (usedOp === '>=') isTrue = lV >= rV;
+            else if (usedOp === '<=') isTrue = lV <= rV;
+            else if (usedOp === '>') isTrue = lV > rV;
+            else if (usedOp === '<') isTrue = lV < rV;
+            else if (usedOp === '=') isTrue = Math.abs(lV - rV) < 0.000001 || String(lV) === String(rV);
+          } else {
+            const rawCond = collectRaw(condRaw);
+            isTrue = !!(rawCond[0] || condRaw.replace(/['"]/g, ''));
+          }
+          const resKey = isTrue ? args[1] : args[2];
+          const lookup = collectRaw(resKey);
+          return lookup.length > 0 ? lookup[0] : resKey.trim().replace(/['"]/g, '');
+        }
+        default:
+          return '';
+      }
+    },
+    // Tách tham số, tôn trọng string trong quotes
+    parseFormulaArgs(raw) {
+      if (!raw) return [];
+      const args = [];
+      let current = '';
+      let inQuote = false;
+      let quoteChar = '';
+      let depth = 0;
+      for (let i = 0; i < raw.length; i++) {
+        const ch = raw[i];
+        if ((ch === '"' || ch === "'") && !inQuote) {
+          inQuote = true; quoteChar = ch; current += ch;
+        } else if (ch === quoteChar && inQuote) {
+          inQuote = false; current += ch;
+        } else if (!inQuote) {
+          if (ch === '(') depth++;
+          else if (ch === ')') depth--;
+          if (ch === ',' && depth === 0) {
+            args.push(current.trim()); current = '';
+            continue;
+          }
+          current += ch;
+        } else {
+          current += ch;
+        }
+      }
+      if (current.trim()) args.push(current.trim());
+      return args;
     },
     applyTemplate(field) {
       const template = field.default_value;
@@ -236,8 +555,6 @@ export default {
     },
     renderTemplate(template, context) {
       return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key) => {
-        // Hỗ trợ cả key thuần (so_tien) và prefix (as.so_tien, p.ho_ten)
-        // Chúng ta sẽ bỏ qua prefix nếu có (về cơ bản lấy phần sau dấu chấm cuối cùng hoặc nguyên chuỗi)
         const pureKey = key.includes('.') ? key.split('.').pop() : key;
         return context[pureKey] !== undefined ? context[pureKey] : match;
       });
@@ -367,5 +684,31 @@ export default {
   background: #fdfdfd;
   padding: 2px 5px;
   border-left: 2px solid #42b983;
+}
+
+/* Computed Fields */
+.computed-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-computed {
+  background: #f0fdf4 !important;
+  border-style: dashed !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+  font-weight: 600;
+  cursor: default;
+}
+
+.badge-computed {
+  position: absolute;
+  right: 8px;
+  font-size: 0.7rem;
+  color: #16a34a;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
 }
 </style>

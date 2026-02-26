@@ -24,7 +24,8 @@
       </div>
 
       <DynamicForm :fields="filteredAssetFields" :modelValue="localAsset.individual_field_values" :disabled="disabled"
-        :idPrefix="`asset-${index}-`" @update:modelValue="onUpdateValues" @field-blur="handleFieldBlur" />
+        :idPrefix="`asset-${index}-`" :allSections="allSections" @update:modelValue="onUpdateValues"
+        @field-blur="handleFieldBlur" @computed-update="$emit('computed-update', $event)" />
       <div v-if="duplicateWarning" class="alert-warning">
         <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
       </div>
@@ -58,9 +59,10 @@ export default {
     // Full field definitions for detail modal
     allFields: { type: Array, default: () => [] },
     disabled: { type: Boolean, default: false },
-    refreshTrigger: { type: Number, default: 0 }
+    refreshTrigger: { type: Number, default: 0 },
+    allSections: { type: Object, default: () => ({}) }
   },
-  emits: ['update:asset', 'remove'],
+  emits: ['update:asset', 'remove', 'computed-update'],
   data() {
     return {
       localAsset: {

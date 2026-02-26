@@ -14,43 +14,46 @@
         </div>
 
         <!-- Danh sách -->
+        <div class="filter-bar mb-4">
+            <div class="filter-group">
+                <label>Tìm kiếm:</label>
+                <input v-model="filters.search" placeholder="Tìm theo tên hoặc mã..." class="admin-form-control"
+                    style="width: 300px">
+            </div>
+        </div>
         <div class="ui-table-wrapper">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Tên Form</th>
-                        <th>Mã (Slug)</th>
-                        <th>Ghi chú</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="f in forms" :key="f.id">
-                        <td>{{ f.id }}</td>
-                        <td>
-                            <input v-if="editingId === f.id" v-model="f.name">
-                            <span v-else>{{ f.name }}</span>
-                        </td>
-                        <td>
-                            <input v-if="editingId === f.id" v-model="f.slug">
-                            <span v-else>{{ f.slug }}</span>
-                        </td>
-                        <td>
-                            <input v-if="editingId === f.id" v-model="f.note">
-                            <span v-else>{{ f.note }}</span>
-                        </td>
-                        <td>
-                            <div class="flex gap-2">
-                                <button v-if="editingId === f.id" @click="updateForm(f)"
-                                    class="btn-action btn-save">Lưu</button>
-                                <button v-else @click="editingId = f.id" class="btn-action btn-edit">Sửa</button>
-                                <button @click="deleteForm(f.id)" class="btn-action btn-delete">Xóa</button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <vxe-table :data="filteredForms" border show-header-overflow show-overflow resizable
+                :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" class="data-table-vxe">
+                <vxe-column field="id" title="ID" width="80" sortable></vxe-column>
+                <vxe-column field="name" title="Tên Form" min-width="250" sortable>
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="row.name" class="vxe-input-minimal">
+                        <span v-else>{{ row.name }}</span>
+                    </template>
+                </vxe-column>
+                <vxe-column field="slug" title="Mã (Slug)" min-width="150" sortable>
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="row.slug" class="vxe-input-minimal">
+                        <span v-else>{{ row.slug }}</span>
+                    </template>
+                </vxe-column>
+                <vxe-column field="note" title="Ghi chú" min-width="200">
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="row.note" class="vxe-input-minimal">
+                        <span v-else>{{ row.note }}</span>
+                    </template>
+                </vxe-column>
+                <vxe-column title="Hành động" width="150" fixed="right">
+                    <template #default="{ row }">
+                        <div class="flex gap-2">
+                            <button v-if="editingId === row.id" @click="updateForm(row)"
+                                class="btn-action btn-save">Lưu</button>
+                            <button v-else @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
+                            <button @click="deleteForm(row.id)" class="btn-action btn-delete">Xóa</button>
+                        </div>
+                    </template>
+                </vxe-column>
+            </vxe-table>
         </div>
 
         <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
@@ -73,41 +76,41 @@
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
-import { makeTableResizable } from '../../utils/resizable-table';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
+import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
     components: { ConfirmModal },
-    mixins: [errorHandlingMixin],
+    mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
             forms: [],
             editingId: null,
+            filters: { search: '' },
             newForm: { name: '', slug: '', note: '' },
             showDeleteModal: false,
             deleteTargetId: null,
             deleteTargetName: ''
         }
     },
+    computed: {
+        filteredForms() {
+            return this.filterArray(this.forms, this.filters, {
+                search: { type: 'text', fields: ['name', 'slug'] }
+            });
+        }
+    },
     mounted() {
         this.fetchData();
-        this.initResizable();
     },
     methods: {
         async fetchData() {
             try {
                 const res = await axios.get(`${API_URL}/form-views/`);
                 this.forms = res.data;
-                this.$nextTick(() => this.initResizable());
             } catch (e) {
                 this.showError(e, 'Lỗi tải danh sách Form');
-            }
-        },
-        initResizable() {
-            const table = this.$el.querySelector('.data-table');
-            if (table) {
-                makeTableResizable(table, 'admin-forms');
             }
         },
         async addForm() {
@@ -156,3 +159,9 @@ export default {
     }
 }
 </script>
+
+<style scoped>
+.data-table-vxe {
+    margin-top: 10px;
+}
+</style>

@@ -15,21 +15,20 @@
         <h4 class="text-sm font-bold text-gray-700 uppercase mb-3 border-b pb-1 flex items-center gap-2">
           <span>📋</span> {{ $t('THONG_TIN_CHUNG') }}
         </h4>
-        <div class="ui-table-wrapper">
-          <table class="data-table allow-wrap w-full">
-            <tbody>
-              <tr>
-                <td class="font-medium text-gray-600 w-1/3">{{ $t('LOAI_DOI_TUONG') }}</td>
-                <td>
-                  <span class="badge badge-custom">{{ objectData.object_type_display }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td class="font-medium text-gray-600">{{ $t('TEN_HIEN_THI') }}</td>
-                <td class="font-bold break-all">{{ objectData.display_name }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="data-table-vxe">
+          <vxe-table border round :data="generalInfoList" :show-header="false" :column-config="{ resizable: true }">
+            <vxe-column field="label" width="150">
+              <template #default="{ row }">
+                <span class="font-medium text-gray-600">{{ row.label }}</span>
+              </template>
+            </vxe-column>
+            <vxe-column field="value">
+              <template #default="{ row }">
+                <span v-if="row.key === 'LOAI_DOI_TUONG'" class="badge badge-custom">{{ row.value }}</span>
+                <span v-else class="font-bold break-all">{{ row.value }}</span>
+              </template>
+            </vxe-column>
+          </vxe-table>
         </div>
       </div>
 
@@ -38,26 +37,21 @@
         <h4 class="text-sm font-bold text-gray-700 uppercase mb-3 border-b pb-1 flex items-center gap-2">
           <span>🔍</span> {{ $t('THUO_TINH_CHI_TIET') }}
         </h4>
-        <div class="ui-table-wrapper">
-          <table class="data-table allow-wrap w-full">
-            <thead>
-              <tr>
-                <th class="w-1/3">{{ $t('TRUONG_DU_LIEU') }}</th>
-                <th>{{ $t('GIA_TRI') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(value, key) in fieldValues" :key="key">
-                <td class="font-medium text-gray-600">{{ getLabel(key) }}</td>
-                <td class="break-all">{{ value }}</td>
-              </tr>
-              <tr v-if="Object.keys(fieldValues).length === 0">
-                <td colspan="2" class="py-6 text-center text-gray-400 italic">
-                  {{ $t('KHONG_CO_DU_LIEU_CHI_TIET') }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="data-table-vxe">
+          <vxe-table border round :data="attributeList" :column-config="{ resizable: true }"
+            :row-config="{ isHover: true }">
+            <vxe-column field="label" :title="$t('TRUONG_DU_LIEU')" width="150"></vxe-column>
+            <vxe-column field="value" :title="$t('GIA_TRI')">
+              <template #default="{ row }">
+                <div class="break-all">{{ row.value }}</div>
+              </template>
+            </vxe-column>
+            <template #empty>
+              <div class="py-6 text-center text-gray-400 italic">
+                {{ $t('KHONG_CO_DU_LIEU_CHI_TIET') }}
+              </div>
+            </template>
+          </vxe-table>
         </div>
       </div>
     </div>
@@ -140,6 +134,20 @@ export default {
       });
 
       return filtered;
+    },
+    generalInfoList() {
+      if (!this.objectData) return [];
+      return [
+        { key: 'LOAI_DOI_TUONG', label: this.$t('LOAI_DOI_TUONG'), value: this.objectData.object_type_display },
+        { key: 'TEN_HIEN_THI', label: this.$t('TEN_HIEN_THI'), value: this.objectData.display_name }
+      ];
+    },
+    attributeList() {
+      return Object.entries(this.fieldValues).map(([key, value]) => ({
+        key,
+        label: this.getLabel(key),
+        value
+      }));
     }
   },
   watch: {

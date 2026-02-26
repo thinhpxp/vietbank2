@@ -2,9 +2,12 @@
 trigger: always_on
 ---
 
+Thiết kế các đối tượng table
+
 Tài nguyên sẵn có:
 
-- frontend\src\mixins
+- frontend\src\mixins\FilterableTableMixin.js
+- frontend\src\mixins\SortableTableMixin.js
 - frontend\src\utils\resizable-table.js
 
 Yêu cầu: Khi thiết kế các thành phần liên quan đến bảng biểu, hãy ưu tiên việc kế thừa các tài nguyên này.

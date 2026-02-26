@@ -26,7 +26,8 @@
       <div class="dynamic-section" v-if="personFields.length > 0">
         <hr>
         <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values" :disabled="disabled"
-          :idPrefix="`person-${index}-`" @field-blur="handleFieldBlur" />
+          :idPrefix="`person-${index}-`" :allSections="allSections" @field-blur="handleFieldBlur"
+          @computed-update="$emit('computed-update', $event)" />
         <div v-if="duplicateWarning" class="alert-warning">
           <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
         </div>
@@ -62,9 +63,10 @@ export default {
     // Full field definitions
     allFields: { type: Array, default: () => [] },
     disabled: { type: Boolean, default: false },
-    refreshTrigger: { type: Number, default: 0 }
+    refreshTrigger: { type: Number, default: 0 },
+    allSections: { type: Object, default: () => ({}) }
   },
-  emits: ['update:person', 'remove'],
+  emits: ['update:person', 'remove', 'computed-update'],
   data() {
     return {
       localPerson: JSON.parse(JSON.stringify(this.person)),
