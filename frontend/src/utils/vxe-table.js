@@ -11,8 +11,7 @@ export function setupVxeTable(app) {
     VxeUI.setI18n('vi-VN', viVN)
     VxeUI.setLanguage('vi-VN')
 
-    // Register VxeUI and Table components
-    app.use(VxeUI)
+    // Register VxeTable components
     app.use(VxeTable)
     app.use(VxeColumn)
 }

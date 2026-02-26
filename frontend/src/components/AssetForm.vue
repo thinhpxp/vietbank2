@@ -1,33 +1,50 @@
 <template>
-  <div class="asset-card">
-    <div class="card-header" @click="isCollapsed = !isCollapsed">
+  <div class="premium-card theme-asset" :class="{ 'is-collapsed': isCollapsed }">
+    <div class="card-header-glass" @click="isCollapsed = !isCollapsed">
       <div class="header-left">
-        <span class="toggle-icon" :class="{ 'collapsed': isCollapsed }">▼</span>
-        <h4>{{ objectLabel }} #{{ index + 1 }} <span v-if="displayInfo" class="asset-info">- {{ displayInfo }}</span>
-        </h4>
-        <button v-if="!disabled" type="button" class="btn-search-master" @click.stop="isModalOpen = true"
-          title="Chọn từ danh sách đã có">🔍</button>
+        <SvgIcon name="chevron-down" size="xs" customClass="toggle-icon-svg" />
+        <h4>{{ objectLabel }} #{{ index + 1 }}</h4>
+        <span v-if="displayInfo" class="asset-info"> - {{ displayInfo }}</span>
       </div>
-      <button v-if="!disabled" class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
+      <div class="header-actions">
+        <button v-if="!disabled" type="button" class="btn-action btn-secondary btn-sm" @click.stop="isModalOpen = true"
+          title="Chọn từ danh sách đã có">
+          <SvgIcon name="search" size="xs" />
+          <span>Tìm & Chọn</span>
+        </button>
+        <button v-if="!disabled" class="btn-remove-mini" @click.stop="$emit('remove')" title="Xóa tài sản này">
+          <SvgIcon name="trash" size="sm" />
+        </button>
+      </div>
     </div>
 
-    <div v-if="!isCollapsed" class="card-body">
+    <div v-show="!isCollapsed" class="card-body-content">
       <!-- Type Selector -->
-      <div class="type-selector-row">
-        <label class="type-label">Phân loại đối tượng:</label>
-        <select v-model="selectedType" class="type-dropdown" @change="onTypeChange" :disabled="disabled">
-          <option :value="null">-- Chọn phân loại --</option>
-          <option v-for="type in assetTypes" :key="type.code" :value="type.code">
-            {{ type.name }}
-          </option>
-        </select>
+      <div class="type-selector-premium mb-4">
+        <label class="font-bold mb-2 block">Phân loại đối tượng:</label>
+        <div class="flex gap-2">
+          <select v-model="selectedType" class="admin-select" @change="onTypeChange" :disabled="disabled">
+            <option :value="null">-- Chọn phân loại --</option>
+            <option v-for="type in assetTypes" :key="type.code" :value="type.code">
+              {{ type.name }}
+            </option>
+          </select>
+        </div>
       </div>
 
-      <DynamicForm :fields="filteredAssetFields" :modelValue="localAsset.individual_field_values" :disabled="disabled"
-        :idPrefix="`asset-${index}-`" :allSections="allSections" @update:modelValue="onUpdateValues"
-        @field-blur="handleFieldBlur" @computed-update="$emit('computed-update', $event)" />
-      <div v-if="duplicateWarning" class="alert-warning">
-        <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
+      <div class="dynamic-section mt-4" v-if="selectedType">
+        <hr class="mb-4 opacity-10">
+        <DynamicForm :fields="filteredAssetFields" :modelValue="localAsset.individual_field_values" :disabled="disabled"
+          :idPrefix="`asset-${index}-`" :allSections="allSections" @update:modelValue="onUpdateValues"
+          @field-blur="handleFieldBlur" @computed-update="$emit('computed-update', $event)" />
+        <div v-if="duplicateWarning" class="alert-warning mt-4">
+          <SvgIcon name="alert" size="sm" class="mr-2" />
+          <span>{{ duplicateWarning }}</span>
+        </div>
+      </div>
+
+      <div v-else class="empty-state-standard">
+        Vui lòng chọn <strong>Phân loại đối tượng</strong> để nhập thông tin chi tiết.
       </div>
 
       <!-- Quản lý liên kết (Relations) -->
@@ -46,10 +63,11 @@ import { API_URL } from '@/store/auth';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
 import RelationManager from './RelationManager.vue';
+import SvgIcon from './common/SvgIcon.vue';
 
 export default {
   name: 'AssetForm',
-  components: { DynamicForm, ObjectSelectModal, RelationManager },
+  components: { DynamicForm, ObjectSelectModal, RelationManager, SvgIcon },
   props: {
     index: { type: Number, required: true },
     asset: { type: Object, required: true },
@@ -127,10 +145,15 @@ export default {
   watch: {
     asset: {
       handler(newVal) {
+        // Guard: Chỉ copy khi dữ liệu thực sự khác để tránh echo loop
+        const newStr = JSON.stringify(newVal);
+        const oldStr = JSON.stringify(this.localAsset);
+        if (newStr === oldStr) return;
         this.localAsset = {
           ...JSON.parse(JSON.stringify(newVal)),
           individual_field_values: newVal.individual_field_values || newVal.asset_field_values || {}
         };
+        this.selectedType = newVal.master_object?.object_type || null;
       },
       deep: true
     }
@@ -163,6 +186,7 @@ export default {
     },
     onTypeChange() {
       this.localAsset.master_object = {
+        ...this.localAsset.master_object,
         object_type: this.selectedType
       };
       this.$emit('update:asset', this.localAsset);
@@ -226,101 +250,40 @@ export default {
 </script>
 
 <style scoped>
-.asset-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.type-selector-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding: 15px;
-  background: #f0f8ff;
-  border-radius: 8px;
-  border: 2px solid #42b983;
-}
-
-.type-label {
-  font-weight: bold;
-  color: #2c3e50;
-  white-space: nowrap;
-}
-
-.type-dropdown {
-  flex: 1;
-  padding: 8px 12px;
-  font-size: 1rem;
-  border: 2px solid #42b983;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-}
-
-.type-dropdown:focus {
-  outline: none;
-  border-color: #369870;
-  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.1);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  background: #fdf6e3;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  user-select: none;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.card-header h4 {
-  margin: 0;
-  color: #e67e22;
-}
-
 .asset-info {
   font-weight: normal;
-  color: #888;
+  color: var(--slate-500);
   font-size: 0.9em;
+  font-style: italic;
 }
 
-
-.card-body {
-  padding: 15px;
-}
-
-
-/* Toggle Icon */
-.toggle-icon {
-  font-size: 12px;
-  transition: transform 0.2s;
-  color: #666;
-}
-
-.toggle-icon.collapsed {
-  transform: rotate(-90deg);
+.type-selector-premium {
+  background: var(--slate-50);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border-bottom: 2px solid var(--color-success);
 }
 
 .alert-warning {
   background: #fffbe6;
   border: 1px solid #ffe58f;
-  padding: 10px;
-  border-radius: 4px;
-  margin-top: 10px;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
   color: #856404;
   font-size: 0.9em;
-  text-align: left;
+  display: flex;
+  align-items: center;
+}
+
+.opacity-10 {
+  opacity: 0.1;
+}
+
+.block {
+  display: block;
+}
+
+.mt-4 {
+  margin-top: var(--spacing-lg);
 }
 </style>

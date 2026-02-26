@@ -45,73 +45,114 @@
             <h3>{{ segment.name }}</h3>
             <DynamicForm :fields="segment.fields" v-model="generalFieldValues" :disabled="isReadOnly"
               :idPrefix="`gen-l-${segment.id}-`" :allSections="fullProfileData"
-              @computed-update="handleComputedUpdate" />
+              @computed-update="handleComputedUpdate($event)" />
           </div>
 
           <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
-          <div v-if="segment.type === 'DEDICATED'" class="panel-section dedicated-section">
-            <div class="panel-header">
-              <h3>{{ segment.name }}</h3>
+          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated">
+            <div class="card-header-glass">
+              <div class="header-left">
+                <SvgIcon name="shield" size="sm" />
+                <h4>{{ segment.name }}</h4>
+              </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">🔍 Tìm &
-                  Chọn</button>
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">+ Thêm mới</button>
+                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">
+                  <SvgIcon name="search" size="xs" />
+                  <span>Tìm & Chọn</span>
+                </button>
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">
+                  <SvgIcon name="plus" size="xs" />
+                  <span>Thêm mới</span>
+                </button>
               </div>
             </div>
 
-            <!-- Trường hợp: Các đối tượng (Asset List/Dedicated List) -->
-            <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0" class="empty-state">
-              Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
-            </div>
-
-            <div v-for="(item, index) in objectSections[segment.code]"
-              :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
-              class="master-card generic-card">
-              <div class="card-header-mini">
-                <strong>{{ segment.name }} #{{ index + 1 }}</strong>
-                <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">&times;</button>
+            <div class="card-body-content">
+              <!-- Trường hợp: Các đối tượng (Asset List/Dedicated List) -->
+              <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0"
+                class="empty-state-standard">
+                Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hoặc 'Thêm mới' để nhập thông tin.
               </div>
-              <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
-                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
-                :allSections="fullProfileData" @computed-update="handleComputedUpdate" />
 
-              <RelationManager v-if="item.master_object && item.master_object.id"
-                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
-                :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                :disabled="isReadOnly" />
+              <div v-for="(item, index) in objectSections[segment.code]"
+                :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
+                class="premium-card theme-group mt-2">
+                <div class="card-header-glass">
+                  <div class="header-left">
+                    <SvgIcon name="file" size="xs" />
+                    <strong>{{ segment.name }} #{{ index + 1 }}</strong>
+                  </div>
+                  <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">
+                    <SvgIcon name="trash" size="sm" />
+                  </button>
+                </div>
+                <div class="card-body-content">
+                  <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
+                    :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
+                    :allSections="fullProfileData"
+                    @computed-update="handleComputedUpdate($event, segment.code, index)" />
+
+                  <RelationManager v-if="item.master_object && item.master_object.id"
+                    :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
+                    :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                    :disabled="isReadOnly" />
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Type: ASSET_LIST (Danh sách Tài sản) -->
-          <div v-else-if="segment.type === 'ASSET_LIST'">
-            <div class="panel-header">
-              <h3>Danh sách Tài sản</h3>
-              <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
+          <div v-else-if="segment.type === 'ASSET_LIST'" class="premium-card theme-asset">
+            <div class="card-header-glass">
+              <div class="header-left">
+                <SvgIcon name="shield" size="sm" />
+                <h3>Danh sách Tài sản</h3>
+              </div>
+              <div class="header-actions">
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity(null)">
+                  <SvgIcon name="plus" size="xs" />
+                  <span>Thêm Tài sản</span>
+                </button>
+              </div>
             </div>
-            <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
-            <div v-for="(asset, index) in getAssetList()" :key="asset.master_object?.id || asset._uid">
-              <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
-                @remove="removeAssetList(index)" @computed-update="handleComputedUpdate" />
+            <div class="card-body-content">
+              <div v-if="computedAssetList.length === 0" class="empty-state-standard">Chưa có tài sản nào.</div>
+              <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
+                <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
+                  :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                  :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
+                  @remove="removeAssetList(index)"
+                  @computed-update="handleComputedUpdate($event, asset._originalType, asset._originalIdx)" />
+              </div>
             </div>
           </div>
 
           <!-- Type: PERSON_LIST (Danh sách Người liên quan) -->
-          <div v-else-if="segment.type === 'PERSON_LIST'">
-            <div class="panel-header">
-              <h3>Danh sách Người liên quan</h3>
-              <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
+          <div v-else-if="segment.type === 'PERSON_LIST'" class="premium-card theme-person">
+            <div class="card-header-glass">
+              <div class="header-left">
+                <SvgIcon name="users" size="sm" />
+                <h3>Danh sách Người liên quan</h3>
+              </div>
+              <div class="header-actions">
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity('PERSON')">
+                  <SvgIcon name="plus" size="xs" />
+                  <span>Thêm Người</span>
+                </button>
+              </div>
             </div>
-            <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
-              Chưa có người nào.
-            </div>
-            <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
-              <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
-                :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
-                @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
-                @computed-update="handleComputedUpdate" />
+            <div class="card-body-content">
+              <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0"
+                class="empty-state-standard">
+                Chưa có người nào liên quan.
+              </div>
+              <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
+                <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+                  :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                  :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
+                  @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
+                  @computed-update="handleComputedUpdate($event, 'PERSON', index)" />
+              </div>
             </div>
           </div>
         </template>
@@ -130,71 +171,112 @@
             <h3>{{ segment.name }}</h3>
             <DynamicForm :fields="segment.fields" v-model="generalFieldValues" :disabled="isReadOnly"
               :idPrefix="`gen-r-${segment.id}-`" :allSections="fullProfileData"
-              @computed-update="handleComputedUpdate" />
+              @computed-update="handleComputedUpdate($event)" />
           </div>
 
           <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
-          <div v-if="segment.type === 'DEDICATED'" class="panel-section dedicated-section">
-            <div class="panel-header">
-              <h3>{{ segment.name }}</h3>
+          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated">
+            <div class="card-header-glass">
+              <div class="header-left">
+                <SvgIcon name="shield" size="sm" />
+                <h4>{{ segment.name }}</h4>
+              </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">🔍 Tìm &
-                  Chọn</button>
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">+ Thêm mới</button>
+                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">
+                  <SvgIcon name="search" size="xs" />
+                  <span>Tìm & Chọn</span>
+                </button>
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">
+                  <SvgIcon name="plus" size="xs" />
+                  <span>Thêm mới</span>
+                </button>
               </div>
             </div>
 
-            <!-- Trường hợp: Các đối tượng -->
-            <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0" class="empty-state">
-              Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hỗ trợ nhập nhanh.
-            </div>
-
-            <div v-for="(item, index) in objectSections[segment.code]"
-              :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
-              class="master-card generic-card">
-              <div class="card-header-mini">
-                <strong>{{ segment.name }} #{{ index + 1 }}</strong>
-                <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">&times;</button>
+            <div class="card-body-content">
+              <!-- Trường hợp: Các đối tượng -->
+              <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0"
+                class="empty-state-standard">
+                Chưa có thông tin {{ segment.name }}. Nhấn 'Tìm & Chọn' hoặc 'Thêm mới' để nhập thông tin.
               </div>
-              <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
-                :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
-                :allSections="objectSections" @computed-update="handleComputedUpdate" />
 
-              <RelationManager v-if="item.master_object && item.master_object.id"
-                :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
-                :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                :disabled="isReadOnly" />
+              <div v-for="(item, index) in objectSections[segment.code]"
+                :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
+                class="premium-card theme-group mt-2">
+                <div class="card-header-glass">
+                  <div class="header-left">
+                    <SvgIcon name="file" size="xs" />
+                    <strong>{{ segment.name }} #{{ index + 1 }}</strong>
+                  </div>
+                  <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">
+                    <SvgIcon name="trash" size="sm" />
+                  </button>
+                </div>
+                <div class="card-body-content">
+                  <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
+                    :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
+                    :allSections="fullProfileData"
+                    @computed-update="handleComputedUpdate($event, segment.code, index)" />
+
+                  <RelationManager v-if="item.master_object && item.master_object.id"
+                    :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
+                    :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                    :disabled="isReadOnly" />
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Type: ASSET_LIST (Danh sách Tài sản) -->
-          <div v-else-if="segment.type === 'ASSET_LIST'">
-            <div class="panel-header">
-              <h3>Danh sách Tài sản</h3>
-              <button class="btn-action btn-secondary" @click="addEntity(null)">+ Thêm Tài sản</button>
+          <div v-else-if="segment.type === 'ASSET_LIST'" class="premium-card theme-asset">
+            <div class="card-header-glass">
+              <div class="header-left">
+                <SvgIcon name="shield" size="sm" />
+                <h3>Danh sách Tài sản</h3>
+              </div>
+              <div class="header-actions">
+                <button class="btn-action btn-secondary btn-sm" @click="addEntity(null)">
+                  <SvgIcon name="plus" size="xs" />
+                  <span>Thêm Tài sản</span>
+                </button>
+              </div>
             </div>
-            <div v-if="getAssetList().length === 0" class="empty-state">Chưa có tài sản nào.</div>
-            <div v-for="(asset, index) in getAssetList()" :key="asset.master_object?.id || asset._uid">
-              <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                @update:asset="updateAssetList(index, $event)" @remove="removeAssetList(index)" />
+            <div class="card-body-content">
+              <div v-if="computedAssetList.length === 0" class="empty-state-standard">Chưa có tài sản nào.</div>
+              <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
+                <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
+                  :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                  :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
+                  @remove="removeAssetList(index)"
+                  @computed-update="handleComputedUpdate($event, asset._originalType, asset._originalIdx)" />
+              </div>
             </div>
           </div>
 
           <!-- Type: PERSON_LIST (Danh sách Người liên quan) -->
-          <div v-else-if="segment.type === 'PERSON_LIST'">
-            <div class="panel-header">
-              <h3>Danh sách Người liên quan</h3>
-              <button class="btn-action btn-secondary" @click="addEntity('PERSON')">+ Thêm Người</button>
+          <div v-else-if="segment.type === 'PERSON_LIST'" class="premium-card theme-person">
+            <div class="card-header-glass">
+              <div class="header-left">
+                <SvgIcon name="users" size="sm" />
+                <h3>Danh sách Người liên quan</h3>
+              </div>
+              <button class="btn-action btn-secondary btn-sm" @click="addEntity('PERSON')">
+                <SvgIcon name="plus" size="xs" />
+                <span>Thêm Người</span>
+              </button>
             </div>
-            <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0" class="empty-state">
-              Chưa có người nào.
-            </div>
-            <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
-              <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
-                :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)" />
+            <div class="card-body-content">
+              <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0"
+                class="empty-state-standard">
+                Chưa có người nào liên quan.
+              </div>
+              <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
+                <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
+                  :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                  :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
+                  @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
+                  @computed-update="handleComputedUpdate($event, 'PERSON', index)" />
+              </div>
             </div>
           </div>
         </template>
@@ -272,6 +354,7 @@ import ContractDownloader from '../components/ContractDownloader.vue';
 import ObjectSelectModal from '../components/ObjectSelectModal.vue';
 import RelationManager from '../components/RelationManager.vue';
 import HistoryTimeline from '../components/HistoryTimeline.vue';
+import SvgIcon from '../components/common/SvgIcon.vue';
 import { errorHandlingMixin } from '../utils/errorHandler';
 
 export default {
@@ -279,7 +362,7 @@ export default {
   components: {
     DynamicForm, PersonForm, AssetForm, ConfirmModal,
     InputModal, ContractDownloader, ObjectSelectModal,
-    RelationManager, HistoryTimeline
+    RelationManager, HistoryTimeline, SvgIcon
   },
   mixins: [errorHandlingMixin],
   props: ['id'],
@@ -297,6 +380,7 @@ export default {
       currentFormName: '', // MỚI: Tên hiển thị của form
       objectTypes: [], // List of MasterObjectTypes for AssetForm filtering
       autoSaveInterval: null, // MỚI: Bộ đếm thời gian tự động lưu
+      suppressComputedUpdate: false, // Cờ chặn computed-update khi reload dữ liệu
       // Resize logic
       leftPanelWidth: 50,
       isResizing: false,
@@ -519,6 +603,34 @@ export default {
         ...this.objectSections,
         _GENERAL_: this.generalFieldValues
       };
+    },
+    // Danh sách tài sản gộp từ tất cả objectSections (cached, không tạo object mới mỗi lần render)
+    computedAssetList() {
+      const list = [];
+      const seenTypes = new Set();
+
+      // Collect all assets from all relevant sections
+      this.assetListTypes.forEach(t => {
+        seenTypes.add(t);
+        if (this.objectSections[t]) {
+          this.objectSections[t].forEach((item, idx) => {
+            list.push({ ...item, _originalType: t, _originalIdx: idx });
+          });
+        }
+      });
+
+      if (this.objectSections['ASSET']) {
+        this.objectSections['ASSET'].forEach((item, idx) => {
+          list.push({ ...item, _originalType: 'ASSET', _originalIdx: idx });
+        });
+      }
+
+      // Sắp xếp theo _uid giảm dần (Mới nhất lên đầu)
+      return list.sort((a, b) => {
+        const valA = a._uid || a.master_object?.id || 0;
+        const valB = b._uid || b.master_object?.id || 0;
+        return valB - valA;
+      });
     }
   },
   async mounted() {
@@ -552,14 +664,50 @@ export default {
     }
   },
   methods: {
-    // Nhận kết quả tính toán từ DynamicForm computed fields → cập nhật vào generalFieldValues
-    handleComputedUpdate(computedVals) {
-      Object.keys(computedVals).forEach(key => {
-        const val = computedVals[key];
-        if (val !== '' && val !== undefined && val !== null) {
-          this.generalFieldValues[key] = val;
+    // Nhận kết quả tính toán từ DynamicForm computed fields → cập nhật vào đúng ngữ cảnh
+    handleComputedUpdate(computedVals, typeCode = null, index = null) {
+      // Guard: Không xử lý khi đang reload dữ liệu từ server
+      if (this.suppressComputedUpdate) return;
+      if (!computedVals || Object.keys(computedVals).length === 0) return;
+
+      let hasChange = false;
+
+      if (typeCode && index !== null) {
+        // Cập nhật cụ thể cho một đối tượng trong objectSections
+        if (!this.objectSections[typeCode] || !this.objectSections[typeCode][index]) return;
+
+        const item = this.objectSections[typeCode][index];
+        const currentFv = { ...item.individual_field_values };
+
+        Object.keys(computedVals).forEach(key => {
+          const newVal = computedVals[key];
+          // Kiểm tra giá trị thực sự khác biệt để tránh loop
+          if (newVal !== undefined && newVal !== null && currentFv[key] !== newVal) {
+            currentFv[key] = newVal;
+            hasChange = true;
+          }
+        });
+
+        if (hasChange) {
+          item.individual_field_values = currentFv;
+          // Trigger reactivity cho objectSections bằng cách clone nông
+          this.objectSections = { ...this.objectSections };
         }
-      });
+      } else {
+        // Cập nhật cho các trường thông tin chung (General)
+        const currentValues = { ...this.generalFieldValues };
+        Object.keys(computedVals).forEach(key => {
+          const newVal = computedVals[key];
+          if (newVal !== undefined && newVal !== null && currentValues[key] !== newVal) {
+            currentValues[key] = newVal;
+            hasChange = true;
+          }
+        });
+
+        if (hasChange) {
+          this.generalFieldValues = currentValues;
+        }
+      }
     },
     toggleSection(key) {
       // Toggle trạng thái: Nếu chưa có thì set true (collapsed), có rồi thì đảo ngược
@@ -752,34 +900,7 @@ export default {
     },
 
     // --- ASSET LIST COMPATIBILITY ---
-    getAssetList() {
-      const list = [];
-      const seenTypes = new Set();
-
-      // Collect all assets from all relevant sections
-      this.assetListTypes.forEach(t => {
-        seenTypes.add(t);
-        if (this.objectSections[t]) {
-          this.objectSections[t].forEach((item, idx) => {
-            list.push({ ...item, _originalType: t, _originalIdx: idx });
-          });
-        }
-      });
-
-      if (this.objectSections['ASSET']) {
-        this.objectSections['ASSET'].forEach((item, idx) => {
-          list.push({ ...item, _originalType: 'ASSET', _originalIdx: idx });
-        });
-      }
-
-      // Sắp xếp theo _uid giảm dần (Mới nhất lên đầu)
-      // Nếu không có _uid (đối tượng cũ), dùng master_object.id hoặc 0
-      return list.sort((a, b) => {
-        const valA = a._uid || a.master_object?.id || 0;
-        const valB = b._uid || b.master_object?.id || 0;
-        return valB - valA;
-      });
-    },
+    // getAssetList() đã được chuyển thành computed property: computedAssetList
     getAssetFields() {
       // Lấy tất cả các fields thuộc về bất kỳ loại tài sản nào trong assetListTypes
       return this.allFields.filter(f => {
@@ -802,14 +923,14 @@ export default {
       });
     },
     updateAssetList(index, updated) {
-      const list = this.getAssetList();
+      const list = this.computedAssetList;
       const target = list[index];
       if (target) {
         this.updateEntity(target._originalType, target._originalIdx, updated);
       }
     },
     removeAssetList(index) {
-      const list = this.getAssetList();
+      const list = this.computedAssetList;
       const target = list[index];
       if (target) {
         this.removeEntity(target._originalType, target._originalIdx);
@@ -878,6 +999,8 @@ export default {
         const data = response.data;
         this.profileName = data.name;
         this.profileStatus = data.status || 'DRAFT';
+        // Chặn computed-update khi gán dữ liệu mới từ server
+        this.suppressComputedUpdate = true;
         this.generalFieldValues = data.field_values || {};
 
         // MỚI: Load object_sections thay vì people/assets
@@ -889,6 +1012,7 @@ export default {
           });
         });
         this.objectSections = sections;
+        this.$nextTick(() => { this.suppressComputedUpdate = false; });
 
         // Cập nhật slug form từ hồ sơ (nếu có)
         if (data.form_view_slug) {
@@ -939,8 +1063,11 @@ export default {
           const data = response.data;
           this.profileName = data.name;
           this.profileStatus = data.status || 'DRAFT';
+          // Chặn computed-update khi gán dữ liệu mới từ server
+          this.suppressComputedUpdate = true;
           this.generalFieldValues = data.field_values || {};
           this.objectSections = data.object_sections || {};
+          this.$nextTick(() => { this.suppressComputedUpdate = false; });
         }
 
         if (!silent) {
@@ -981,7 +1108,7 @@ export default {
 
       // B. Kiểm tra trùng lặp Tài sản
       const assetIdentities = {};
-      const assetList = this.getAssetList();
+      const assetList = this.computedAssetList;
       for (const a of assetList) {
         const typeCode = a.master_object?.object_type || a._originalType;
         if (!typeCode) continue;
@@ -1122,124 +1249,68 @@ export default {
 
 /* Panels resizing */
 .resize-handle {
-  width: 5px;
-  background-color: #ddd;
+  width: 6px;
+  background-color: var(--slate-200);
   cursor: col-resize;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: var(--transition-fast);
+  z-index: 100;
 }
 
-.resize-handle:hover,
-.resize-handle:active {
-  background-color: #42b983;
+.resize-handle:hover {
+  background-color: var(--color-primary);
 }
 
-.left-panel {
-  overflow-y: auto;
-  padding-right: 5px;
+.handle-icon {
+  font-size: 10px;
+  color: var(--slate-400);
+  user-select: none;
 }
 
+.left-panel,
 .right-panel {
   overflow-y: auto;
-  padding-left: 5px;
+  padding: var(--spacing-md);
 }
 
-.panel-section {
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border: 1px solid #eee;
-}
-
-.panel-header {
+.form-layout {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
+  height: calc(100vh - 120px);
+  background-color: var(--slate-50);
 }
 
-.panel-section h3,
-.panel-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  border-bottom: 2px solid #42b983;
-  padding-bottom: 5px;
-  display: inline-block;
+.profile-id-badge {
+  background: var(--slate-200);
+  color: var(--slate-700);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
 }
 
-.empty-state {
-  padding: 40px;
-  text-align: center;
-  background: #eee;
-  color: #777;
-  border-radius: 8px;
-  border: 2px dashed #ccc;
-}
-
-.attorney-section {
-  border-left: 5px solid #3498db;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-sm {
-  padding: 5px 10px;
-  font-size: 0.85em;
-}
-
-.attorney-card,
-.generic-card {
-  background: #fff;
-  border: 1px solid #d1e9f9;
-  border-radius: 6px;
-  padding: 15px;
-  margin-top: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.dedicated-section {
-  border-left: 5px solid #3498db;
-}
-
-.card-header-mini {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  padding-bottom: 5px;
-  border-bottom: 1px dashed #3498db;
-  color: #3498db;
-}
-
-.btn-remove-mini {
-  background: none;
+.profile-name-input {
   border: none;
-  font-size: 1.5rem;
-  color: #e74c3c;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 5px;
+  background: transparent;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  width: 300px;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition-fast);
 }
 
-.btn-remove-mini:hover {
-  color: #c0392b;
-  transform: scale(1.2);
+.profile-name-input:focus {
+  outline: none;
+  border-bottom-color: var(--color-primary);
 }
 
 /* --- History Drawer Styles --- */
 .drawer-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.3);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
   z-index: 2000;
 }
 
@@ -1248,12 +1319,12 @@ export default {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 400px;
+  width: 450px;
   background: white;
   z-index: 2001;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-xl);
   transform: translateX(100%);
-  transition: transform 0.3s ease-in-out;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
 }
@@ -1263,36 +1334,37 @@ export default {
 }
 
 .drawer-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8f9fa;
+  background: var(--slate-50);
 }
 
 .drawer-header h3 {
   margin: 0;
-  font-size: 1.1rem;
-  color: #333;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--slate-800);
 }
 
 .btn-close-drawer {
   background: none;
   border: none;
   font-size: 1.5rem;
-  line-height: 1;
   cursor: pointer;
-  color: #999;
+  color: var(--slate-400);
+  transition: var(--transition-fast);
 }
 
 .btn-close-drawer:hover {
-  color: #333;
+  color: var(--color-danger);
 }
 
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 0;
+  background: white;
 }
 </style>

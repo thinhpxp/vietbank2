@@ -1,35 +1,45 @@
 <template>
-  <div class="person-card">
-    <div class="card-header" @click="isCollapsed = !isCollapsed">
+  <div class="premium-card theme-person" :class="{ 'is-collapsed': isCollapsed }">
+    <div class="card-header-glass" @click="isCollapsed = !isCollapsed">
       <div class="header-left">
-        <span class="toggle-icon" :class="{ 'collapsed': isCollapsed }">▼</span>
-        <h4>{{ personLabel }} #{{ index + 1 }} <span v-if="displayName" class="person-name">- {{ displayName }}</span>
-        </h4>
-        <button v-if="!disabled" type="button" class="btn-search-master" @click.stop="isModalOpen = true"
-          title="Chọn từ danh sách đã có">🔍</button>
+        <SvgIcon name="chevron-down" size="xs" customClass="toggle-icon-svg" />
+        <h4>{{ personLabel }} #{{ index + 1 }}</h4>
+        <span v-if="displayName" class="person-name"> - {{ displayName }}</span>
       </div>
-      <button v-if="!disabled" type="button" class="btn-remove" @click.stop="$emit('remove')">Xóa</button>
+      <div class="header-actions">
+        <button v-if="!disabled" type="button" class="btn-action btn-secondary btn-sm" @click.stop="isModalOpen = true"
+          title="Chọn từ danh sách đã có">
+          <SvgIcon name="search" size="xs" />
+          <span>Tìm & Chọn</span>
+        </button>
+        <button v-if="!disabled" type="button" class="btn-remove-mini" @click.stop="$emit('remove')"
+          title="Xóa người này">
+          <SvgIcon name="trash" size="sm" />
+        </button>
+      </div>
     </div>
 
-    <div class="card-body" v-show="!isCollapsed">
+    <div class="card-body-content" v-show="!isCollapsed">
       <!-- 2. Chọn Vai trò (Roles) -->
       <div class="roles-section">
-        <label>Vai trò trong hồ sơ:</label>
-        <div class="checkbox-group">
-          <label v-for="role in availableRoles" :key="role" class="checkbox-inline">
-            <input type="checkbox" :value="role" v-model="localPerson.roles" :disabled="disabled"> {{ role }}
+        <label class="font-bold mb-2 block">Vai trò trong hồ sơ:</label>
+        <div class="flex gap-4 items-center flex-wrap">
+          <label v-for="role in availableRoles" :key="role" class="admin-checkbox-label">
+            <input type="checkbox" :value="role" v-model="localPerson.roles" :disabled="disabled">
+            {{ role }}
           </label>
         </div>
       </div>
 
       <!-- 3. Các trường động của Người (Địa chỉ, SĐT...) -->
-      <div class="dynamic-section" v-if="personFields.length > 0">
-        <hr>
+      <div class="dynamic-section mt-4" v-if="personFields.length > 0">
+        <hr class="mb-4 opacity-10">
         <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values" :disabled="disabled"
           :idPrefix="`person-${index}-`" :allSections="allSections" @field-blur="handleFieldBlur"
           @computed-update="$emit('computed-update', $event)" />
-        <div v-if="duplicateWarning" class="alert-warning">
-          <strong>⚠️ Cảnh báo:</strong> {{ duplicateWarning }}
+        <div v-if="duplicateWarning" class="alert-warning mt-4">
+          <SvgIcon name="alert" size="sm" class="mr-2" />
+          <span>{{ duplicateWarning }}</span>
         </div>
       </div>
 
@@ -49,10 +59,11 @@ import { API_URL } from '@/store/auth';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
 import RelationManager from './RelationManager.vue';
+import SvgIcon from './common/SvgIcon.vue';
 
 export default {
   name: 'PersonForm',
-  components: { DynamicForm, ObjectSelectModal, RelationManager },
+  components: { DynamicForm, ObjectSelectModal, RelationManager, SvgIcon },
   props: {
     index: Number,
     person: Object,
@@ -96,6 +107,14 @@ export default {
     localPerson: {
       handler(newVal) {
         this.$emit('update:person', newVal);
+      },
+      deep: true
+    },
+    person: {
+      handler(newVal) {
+        // Guard: Chỉ copy khi dữ liệu thực sự khác để tránh echo loop
+        if (JSON.stringify(newVal) === JSON.stringify(this.localPerson)) return;
+        this.localPerson = JSON.parse(JSON.stringify(newVal));
       },
       deep: true
     }
@@ -163,102 +182,40 @@ export default {
 </script>
 
 <style scoped>
-.person-card {
-  border: 1px solid #ddd;
-  background: #fff;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.card-header {
-  background: #efcebc;
-  padding: 10px 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
-  user-select: none;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.card-header h4 {
-  margin: 0;
-  color: #333;
-}
-
 .person-name {
   font-weight: normal;
-  color: #555;
+  color: var(--slate-500);
   font-size: 0.9em;
-}
-
-.card-body {
-  padding: 15px;
-}
-
-
-.form-row {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-.col {
-  flex: 1;
-  text-align: left;
-}
-
-.col label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.input-control {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+  font-style: italic;
 }
 
 .roles-section {
+  background: var(--slate-50);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
   text-align: left;
-  margin-bottom: 15px;
-}
-
-.checkbox-inline {
-  margin-right: 15px;
-  cursor: pointer;
-}
-
-
-/* Toggle Icon */
-.toggle-icon {
-  font-size: 12px;
-  transition: transform 0.2s;
-  color: #666;
-}
-
-.toggle-icon.collapsed {
-  transform: rotate(-90deg);
 }
 
 .alert-warning {
   background: #fffbe6;
   border: 1px solid #ffe58f;
-  padding: 10px;
-  border-radius: 4px;
-  margin-top: 10px;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
   color: #856404;
   font-size: 0.9em;
-  text-align: left;
+  display: flex;
+  align-items: center;
+}
+
+.opacity-10 {
+  opacity: 0.1;
+}
+
+.block {
+  display: block;
+}
+
+.mt-4 {
+  margin-top: var(--spacing-lg);
 }
 </style>

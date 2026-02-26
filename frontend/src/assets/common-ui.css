@@ -43,8 +43,13 @@
     transition: var(--transition-normal);
     line-height: 1;
     vertical-align: middle;
-    box-sizing: border-box;
     font-family: var(--font-family);
+}
+
+.btn-sm {
+    height: 30px !important;
+    padding: 0 var(--spacing-md) !important;
+    font-size: var(--font-xs) !important;
 }
 
 .btn-action:hover {
@@ -147,6 +152,21 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    user-select: none;
+    cursor: default;
+}
+
+/* 3.1 vxe-table Specific Polish */
+.vxe-header--column {
+    user-select: none !important;
+}
+
+.vxe-header--column.col--sortable {
+    cursor: pointer !important;
+}
+
+.vxe-header--column:not(.col--sortable) {
+    cursor: default !important;
 }
 
 .data-table th:last-child {
@@ -434,4 +454,191 @@ body.is-resizing * {
     width: 16px;
     height: 16px;
     cursor: pointer;
+}
+
+/* 12. Premium Card System - Section UI */
+.premium-card {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+    overflow: hidden;
+    transition: var(--transition-normal);
+    box-shadow: var(--shadow-sm);
+}
+
+.premium-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header-glass {
+    padding: 0rem 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    /* Dàn trải hết chiều cao để tâm của left và actions đồng quy */
+    min-height: 48px;
+    cursor: pointer;
+    user-select: none;
+    transition: var(--transition-fast);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Reset typography inside headers to eliminate 'phantom' spacing */
+.card-header-glass h3,
+.card-header-glass h4,
+.card-header-glass strong {
+    margin: 0;
+    line-height: 1;
+    /* Tuyệt đối không để line-height tạo khoảng đệm */
+    display: flex;
+    align-items: center;
+    /* Căn giữa text trong chính box của nó */
+}
+
+.card-header-glass h4 {
+    font-size: var(--font-md);
+    font-weight: 700;
+    gap: var(--spacing-sm);
+}
+
+.card-header-glass h3 {
+    font-size: var(--font-lg);
+    font-weight: 700;
+}
+
+.card-header-glass .header-left {
+    display: flex;
+    align-items: center;
+    /* Trục tâm hình học */
+    gap: var(--spacing-md);
+    flex: 1;
+    min-width: 0;
+}
+
+.card-header-glass .header-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    /* Tuyệt đối cùng tâm với header-left */
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+    margin: 10px 0px 10px 0px;
+}
+
+/* Force block display and consistent sizing for all icons in header */
+.card-header-glass svg,
+.card-header-glass .svg-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Force block display for all icons in header to avoid baseline gap */
+.card-header-glass svg,
+.card-header-glass .svg-icon {
+    display: block;
+    flex-shrink: 0;
+}
+
+/* Khử khoảng trống phantom của SVG icon trong header */
+.card-header-glass svg,
+.card-header-glass .svg-icon {
+    display: block;
+    /* Loại bỏ inline baseline gap */
+    flex-shrink: 0;
+    /* Icon không bị co */
+}
+
+.card-body-content {
+    padding: 0.5rem;
+    transition: max-height 0.3s ease-out, opacity 0.2s ease;
+}
+
+/* --- Theme Variants --- */
+
+/* 12.1 Person Theme (Warm/Peach) */
+.theme-person {
+    border-left: 5px solid #ff8a65 !important;
+}
+
+.theme-person .card-header-glass {
+    background: linear-gradient(90deg, #fff3e0 0%, #ffe0b2 100%);
+    color: #e64a19;
+}
+
+/* 12.2 Asset Theme (Emerald/Fresh) */
+.theme-asset {
+    border-left: 5px solid var(--color-success) !important;
+}
+
+.theme-asset .card-header-glass {
+    background: linear-gradient(90deg, #ecfdf5 0%, #d1fae5 100%);
+    color: var(--emerald-700);
+}
+
+/* 12.3 Dedicated Theme (Blue/Corporate) */
+.theme-dedicated {
+    border-left: 5px solid var(--color-primary) !important;
+}
+
+.theme-dedicated .card-header-glass {
+    background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
+    color: var(--color-primary);
+}
+
+/* 12.4 Group Theme (Neutral/Slate) */
+.theme-group {
+    border-left: 5px solid var(--slate-400) !important;
+}
+
+.theme-group .card-header-glass {
+    background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+    color: var(--slate-700);
+}
+
+/* Interaction States */
+.btn-remove-mini {
+    background: transparent;
+    border: none;
+    color: var(--color-danger);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    height: 30px;
+    /* Khớp với btn-sm để đảm bảo optical center đồng quy */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+}
+
+.btn-remove-mini:hover {
+    background: rgba(239, 68, 68, 0.1);
+    transform: scale(1.1);
+}
+
+.toggle-icon-svg {
+    transition: transform 0.3s ease;
+    color: currentColor;
+    opacity: 0.7;
+}
+
+.is-collapsed .toggle-icon-svg {
+    transform: rotate(-90deg);
+}
+
+.empty-state-standard {
+    padding: var(--spacing-2xl);
+    text-align: center;
+    background: var(--slate-50);
+    color: var(--slate-500);
+    border: 2px dashed var(--slate-200);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-sm);
+    margin: var(--spacing-lg) 0;
 }

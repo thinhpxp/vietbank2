@@ -56,7 +56,7 @@
       <span class="ms-2">Đang tải dữ liệu...</span>
     </div>
     <div v-else class="data-table-vxe">
-      <vxe-table border round :data="sortedProfiles" :row-config="{ isHover: true }"
+      <vxe-table border round :data="filteredProfiles" :row-config="{ isHover: true }"
         :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }">
 
         <vxe-column field="id" title="ID" width="80" sortable></vxe-column>
@@ -371,7 +371,7 @@ export default {
 
 .premium-input,
 .premium-select {
-  width: 100%;
+  width: 80%;
   border: 1px solid var(--slate-200);
   border-radius: var(--radius-md);
   padding: 8px 12px;

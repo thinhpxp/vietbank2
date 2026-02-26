@@ -4,12 +4,4 @@ trigger: always_on
 
 Thiết kế các đối tượng table
 
-Tài nguyên sẵn có:
-
-- frontend\src\mixins\FilterableTableMixin.js
-- frontend\src\mixins\SortableTableMixin.js
-- frontend\src\utils\resizable-table.js
-
-Yêu cầu: Khi thiết kế các thành phần liên quan đến bảng biểu, hãy ưu tiên việc kế thừa các tài nguyên này.
-
-Kết quả cần đạt được: Sự đồng bộ về UX, UI trên toàn bộ chương trình. Giảm thiểu sự lặp lại mã nguồn. Dễ sửa lỗi và bảo trì. Bảng biểu sở hữu các tính năng tương tự Microsoft Excel và các bộ lọc tìm kiếm thông tin.
+Chương trình xử dụng thư viện vxe-table. Hãy thiết kế các đối tượng bảng biểu dựa vào thư viện này.

@@ -119,14 +119,44 @@ export default {
     }
   },
   watch: {
-    // Khi computed values thay đổi, emit lên parent để cập nhật generalFieldValues
+    // Khi computed values thay đổi, emit lên parent để cập nhật đúng context
     computedValues: {
-      handler(newVals) {
-        if (Object.keys(newVals).length > 0) {
+      handler(newVals, oldVals) {
+        if (!newVals) return;
+
+        // Nếu mới khởi tạo và chưa có giá trị cũ, hoặc rỗng, ta vẫn cần kiểm tra
+        const newKeys = Object.keys(newVals);
+        if (newKeys.length === 0) return;
+
+        // KIỂM TRA CHẶT CHẼ: Chỉ phát sự kiện nếu có ít nhất một giá trị thực sự thay đổi
+        let hasChanged = false;
+
+        // Trường hợp lần đầu (mount)
+        if (!oldVals) {
+          hasChanged = true;
+        } else {
+          for (const key of newKeys) {
+            const nv = newVals[key];
+            const ov = oldVals[key];
+            // So sánh giá trị (bao gồm cả việc ép kiểu hoặc handle null/undefined)
+            if (nv !== ov) {
+              // Phụ trợ thêm: check NaN (vì NaN !== NaN)
+              if (typeof nv === 'number' && typeof ov === 'number' && isNaN(nv) && isNaN(ov)) {
+                continue;
+              }
+              hasChanged = true;
+              break;
+            }
+          }
+        }
+
+        if (hasChanged) {
+          // Lưu ý: parent sẽ nhận kèm $event (newVals)
           this.$emit('computed-update', newVals);
         }
       },
-      deep: true
+      deep: true,
+      immediate: false // Không chạy ngay lúc mount để tránh loop khởi tạo
     }
   },
   methods: {

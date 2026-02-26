@@ -217,9 +217,6 @@ export default {
                 search: { type: 'text', fields: ['name', 'code'] }
             });
         },
-        sortedTypes() {
-            return this.sortArray(this.filteredTypes);
-        }
     },
     watch: {
     },

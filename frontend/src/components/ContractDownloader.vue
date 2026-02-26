@@ -15,7 +15,7 @@
       <div v-if="loadingTemplates" class="loading-text">Đang tải danh sách mẫu...</div>
 
       <div v-else class="data-table-vxe">
-        <vxe-table border round :data="sortedTemplates" :row-config="{ isHover: true }"
+        <vxe-table border round :data="filteredTemplates" :row-config="{ isHover: true }"
           :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }"
           @checkbox-change="handleCheckboxChange" @checkbox-all="handleCheckboxAll" ref="vxeTable" height="auto"
           class="downloader-table">
@@ -111,12 +111,9 @@ export default {
         search: { type: 'text', fields: ['name', 'department'] }
       });
     },
-    sortedTemplates() {
-      return this.sortArray(this.filteredTemplates);
-    },
     isAllSelected() {
-      return this.sortedTemplates.length > 0 &&
-        this.sortedTemplates.every(t => this.selectedTemplateIds.includes(t.id));
+      return this.filteredTemplates.length > 0 &&
+        this.filteredTemplates.every(t => this.selectedTemplateIds.includes(t.id));
     }
   },
   watch: {
@@ -155,7 +152,7 @@ export default {
     },
     handleCheckboxAll({ checked }) {
       if (checked) {
-        this.selectedTemplateIds = this.sortedTemplates.map(t => t.id);
+        this.selectedTemplateIds = this.filteredTemplates.map(t => t.id);
       } else {
         this.selectedTemplateIds = [];
       }
@@ -325,10 +322,9 @@ export default {
 .cell-note {
   color: var(--color-text-muted);
   font-style: italic;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 300px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .text-center {
