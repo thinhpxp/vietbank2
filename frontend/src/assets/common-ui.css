@@ -561,7 +561,7 @@ body.is-resizing * {
 
 /* 12.1 Person Theme (Warm/Peach) */
 .theme-person {
-    border-left: 5px solid #ff8a65 !important;
+    border-left: 2px solid #ff8a65 !important;
 }
 
 .theme-person .card-header-glass {
@@ -571,7 +571,7 @@ body.is-resizing * {
 
 /* 12.2 Asset Theme (Emerald/Fresh) */
 .theme-asset {
-    border-left: 5px solid var(--color-success) !important;
+    border-left: 2px solid var(--color-success) !important;
 }
 
 .theme-asset .card-header-glass {
@@ -581,7 +581,7 @@ body.is-resizing * {
 
 /* 12.3 Dedicated Theme (Blue/Corporate) */
 .theme-dedicated {
-    border-left: 5px solid var(--color-primary) !important;
+    border-left: 2px solid var(--color-primary) !important;
 }
 
 .theme-dedicated .card-header-glass {
@@ -591,7 +591,7 @@ body.is-resizing * {
 
 /* 12.4 Group Theme (Neutral/Slate) */
 .theme-group {
-    border-left: 5px solid var(--slate-400) !important;
+    border-left: 2px solid var(--slate-400) !important;
 }
 
 .theme-group .card-header-glass {
