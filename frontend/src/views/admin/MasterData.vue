@@ -214,7 +214,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                            }}</span>
+                                        }}</span>
                                     </div>
 
                                 </div>
@@ -668,25 +668,15 @@ export default {
 </script>
 
 <style scoped>
+/* Redundant styles moved to admin.css / common-ui.css */
 .tab-content {
     margin-top: 10px;
-}
-
-.row-selected {
-    background-color: #eff6ff !important;
 }
 
 /* Custom override for unified side body */
 .unified-side-body {
     padding: 0;
     background: #f8fafc;
-}
-
-.loading-state {
-    text-align: center;
-    padding: 60px;
-    color: #94a3b8;
-    font-style: italic;
 }
 
 /* Audit Timeline */

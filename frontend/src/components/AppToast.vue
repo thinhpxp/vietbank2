@@ -62,11 +62,11 @@ export default {
 <style scoped>
 .toast-container {
     position: fixed;
-    top: 24px;
-    right: 24px;
+    bottom: 24px;
+    left: 24px;
     z-index: 10000;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     gap: 12px;
     width: 100%;
     max-width: 400px;
@@ -78,10 +78,10 @@ export default {
     position: relative;
     overflow: hidden;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(78, 239, 175, 0.85);
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(124, 3, 3, 0.3);
     box-shadow:
         0 4px 6px -1px rgba(0, 0, 0, 0.1),
         0 10px 15px -3px rgba(0, 0, 0, 0.1),
@@ -210,12 +210,12 @@ export default {
 /* List Transitions */
 .toast-list-enter-from {
     opacity: 0;
-    transform: translateX(40px) scale(0.9);
+    transform: translateX(-40px) scale(0.9);
 }
 
 .toast-list-leave-to {
     opacity: 0;
-    transform: translateX(20px) scale(0.9);
+    transform: translateX(-20px) scale(0.9);
 }
 
 .toast-list-leave-active {

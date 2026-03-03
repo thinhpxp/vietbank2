@@ -777,3 +777,8 @@ body.is-resizing * {
     background: var(--color-warning-light);
     border-color: var(--color-warning-text);
 }
+
+.row-selected {
+    background-color: #eff6ff !important;
+    /* Standardized Blue highlight */
+}

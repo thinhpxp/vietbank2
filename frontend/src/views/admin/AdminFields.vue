@@ -467,42 +467,6 @@ export default {
   margin-right: 3px;
 }
 
-/* Premium Filter Bar Styles */
-.premium-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  color: var(--slate-600);
-  margin-bottom: 6px;
-  text-transform: none !important;
-}
-
-.premium-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.premium-input,
-.premium-select {
-  width: 100%;
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  background-color: white;
-  transition: all 0.2s ease;
-}
-
-.premium-input:focus,
-.premium-select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  outline: none;
-}
-
-.btn-secondary {
-  padding: 10px 16px !important;
-  border-radius: var(--radius-md) !important;
-}
+/* Premium Filter Bar Styles - Refactored to admin.css */
+/* .btn-secondary - inherited from common-ui.css */
 </style>

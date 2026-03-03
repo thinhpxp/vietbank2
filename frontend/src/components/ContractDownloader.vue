@@ -1,6 +1,6 @@
 <template>
-  <BaseModal :isOpen="isOpen" :title="'Xuất Hợp đồng: ' + profileName" :initialWidth="1200" :isResizable="true"
-    @close="close">
+  <BaseModal :isOpen="isOpen" :title="'Xuất Hợp đồng: ' + profileName" :initialWidth="1200" :initial-height="700"
+    :isResizable="true" @close="close">
     <div class="downloader-content">
       <p class="text-muted mb-4">Chọn các mẫu hợp đồng muốn xuất cho hồ sơ.</p>
 

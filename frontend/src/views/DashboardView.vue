@@ -365,42 +365,4 @@ export default {
   color: var(--slate-500);
   margin-top: 2px;
 }
-
-.premium-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  color: var(--slate-600);
-  margin-bottom: 6px;
-  font-size: var(--font-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.premium-input,
-.premium-select {
-  width: 80%;
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
-  background-color: white;
-  transition: all 0.2s ease;
-  font-size: var(--font-sm);
-}
-
-.premium-input:focus,
-.premium-select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  outline: none;
-}
-
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-2xl);
-  color: var(--color-text-muted);
-}
 </style>

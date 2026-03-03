@@ -48,7 +48,7 @@
 .filter-group label {
     font-size: var(--font-xs);
     font-weight: 600;
-    color: var(--slate-500);
+    color: #ffffff;
     text-transform: uppercase;
     letter-spacing: 0.025em;
 }
@@ -496,4 +496,63 @@
 .btn-danger {
     background-color: var(--color-danger);
     color: white;
+}
+
+/* ==========================================================================
+   PREMIUM UI COMPONENTS (Refactored from Components)
+   ========================================================================== */
+
+.premium-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: #ffffff;
+    /* Standardized to white as requested */
+    margin-bottom: 6px;
+    font-size: var(--font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.premium-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.premium-input,
+.premium-select {
+    width: 100%;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    background-color: white;
+    transition: all 0.2s ease;
+    font-size: var(--font-sm);
+}
+
+.premium-input:focus,
+.premium-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    outline: none;
+}
+
+/* Utilities */
+.mt-sm {
+    margin-top: 10px !important;
+}
+
+.mb-sm {
+    margin-bottom: 10px !important;
+}
+
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-2xl);
+    color: var(--color-text-muted);
+    font-style: italic;
 }
