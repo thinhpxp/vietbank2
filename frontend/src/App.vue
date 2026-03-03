@@ -14,6 +14,7 @@
       </div>
 
       <div v-if="isAuthenticated" class="user-info">
+        <NotificationPanel />
         <router-link to="/profile" class="user-profile-link">
           <span class="user-avatar">
             <SvgIcon name="user" size="md" />
@@ -42,13 +43,14 @@
 <script>
 import AppToast from './components/AppToast.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
+import NotificationPanel from './components/common/NotificationPanel.vue'
 import auth from './store/auth'
 import eventBus, { EVENTS } from './utils/eventBus'
 import { formatError } from './utils/errorHandler'
 
 export default {
   name: 'App',
-  components: { AppToast, ConfirmModal },
+  components: { AppToast, ConfirmModal, NotificationPanel },
   data() {
     return {
       // Global Error Modal State

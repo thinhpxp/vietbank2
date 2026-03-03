@@ -1,4 +1,4 @@
-import { VxeUI } from 'vxe-pc-ui'
+import { VxeUI, VxeSwitch, VxeInput, VxeSelect, VxeOption, VxeTextarea, VxeModal } from 'vxe-pc-ui'
 import { VxeTable, VxeColumn } from 'vxe-table'
 import viVN from 'vxe-table/lib/locale/lang/vi-VN'
 
@@ -14,4 +14,12 @@ export function setupVxeTable(app) {
     // Register VxeTable components
     app.use(VxeTable)
     app.use(VxeColumn)
+
+    // Register VxeUI components
+    app.use(VxeSwitch)
+    app.use(VxeInput)
+    app.use(VxeSelect)
+    app.use(VxeOption)
+    app.use(VxeTextarea)
+    app.use(VxeModal)
 }

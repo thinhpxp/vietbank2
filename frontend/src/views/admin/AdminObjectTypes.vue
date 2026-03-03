@@ -45,7 +45,9 @@
                     <input type="checkbox" v-model="newType.allow_relations"> Cho phép liên kết đến đối tượng khác
                 </label>
 
-                <button @click="addType" class="btn-action btn-create">Thêm Loại</button>
+                <button @click="addType" class="btn-action btn-create btn-icon-only" title="Thêm Loại đối tượng">
+                    <SvgIcon name="plus" size="sm" />
+                </button>
             </div>
         </div>
 
@@ -154,15 +156,24 @@
                     <template #default="{ row }">
                         <div class="flex gap-2">
                             <template v-if="editingId === row.id">
-                                <button class="btn-action btn-save" @click="updateType">Lưu</button>
-                                <button class="btn-action btn-secondary" @click="editingId = null">Hủy</button>
+                                <button class="btn-action btn-save btn-icon-only" @click="updateType"
+                                    title="Lưu thay đổi">
+                                    <SvgIcon name="save" size="sm" />
+                                </button>
+                                <button class="btn-action btn-secondary btn-icon-only" @click="editingId = null"
+                                    title="Hủy bỏ">
+                                    <SvgIcon name="x" size="sm" />
+                                </button>
                             </template>
                             <template v-else>
-                                <button class="btn-action btn-edit" @click="startEdit(row)">Sửa</button>
-                                <button class="btn-action btn-delete" :disabled="row.is_system"
+                                <button class="btn-action btn-edit btn-icon-only" @click="startEdit(row)"
+                                    title="Chỉnh sửa">
+                                    <SvgIcon name="edit" size="sm" />
+                                </button>
+                                <button class="btn-action btn-delete btn-icon-only" :disabled="row.is_system"
                                     @click="confirmDelete(row)"
                                     :title="row.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
-                                    Xóa
+                                    <SvgIcon name="trash" size="sm" />
                                 </button>
                             </template>
                         </div>

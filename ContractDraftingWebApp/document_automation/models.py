@@ -83,7 +83,7 @@ class Field(models.Model):
         verbose_name="Loại dữ liệu"
     )
     group = models.ForeignKey(FieldGroup, on_delete=models.CASCADE, related_name='fields', verbose_name="Nhóm",
-                              null=True)
+                               null=True)
     # --- Layout Configuration ---
     order = models.IntegerField(default=0, verbose_name="Thứ tự")
     width_cols = models.IntegerField(default=12, verbose_name="Độ rộng (1-12)")
@@ -96,7 +96,7 @@ class Field(models.Model):
     default_value = models.TextField(blank=True, null=True, verbose_name="Giá trị mặc định")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='fields', verbose_name="Hiển thị ở Form")
     allowed_object_types = models.ManyToManyField('MasterObjectType', blank=True, related_name='fields',
-                                                  verbose_name="Loại Đối tượng áp dụng")  # MỚI
+                                                   verbose_name="Loại Đối tượng áp dụng")  # MỚI
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
 
     def __str__(self):
@@ -429,3 +429,36 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
+
+# 9. Global Notification System
+class AdminNotification(models.Model):
+    TYPE_CHOICES = [
+        ('INFO', 'Thông tin'),
+        ('WARN', 'Cảnh báo'),
+        ('DANGER', 'Khẩn cấp')
+    ]
+    title = models.CharField(max_length=200, verbose_name="Tiêu đề")
+    content = models.TextField(verbose_name="Nội dung")
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='INFO', verbose_name="Loại")
+    is_active = models.BooleanField(default=True, verbose_name="Đang hoạt động")
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name="Ngày hết hạn")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Người tạo")
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = "Thông báo Quản trị"
+        verbose_name_plural = "Thông báo Quản trị"
+        ordering = ['-created_at']
+
+class NotificationRead(models.Model):
+    notification = models.ForeignKey(AdminNotification, on_delete=models.CASCADE, related_name='read_stats')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications_read')
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('notification', 'user')
+        verbose_name = "Đánh dấu đã đọc"
+        verbose_name_plural = "Đánh dấu đã đọc"

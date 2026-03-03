@@ -7,11 +7,14 @@
                     @click="confirmBulkDelete">
                     <SvgIcon name="trash" size="sm" /> Xóa hàng loạt ({{ selectedIds.length }})
                 </button>
-                <button class="btn-action btn-secondary" @click="fetchData" :disabled="loading">
-                    <span v-if="loading">⏳...</span>
-                    <span v-else>🔄 Làm mới</span>
+                <button class="btn-action btn-refresh btn-icon-only" @click="fetchData" :disabled="loading"
+                    title="Làm mới">
+                    <SvgIcon name="refresh" size="sm" :class="{ 'animate-spin': loading }" />
                 </button>
-                <button class="btn-action btn-create" @click="openCreateModal()">+ Thêm mới</button>
+                <button class="btn-action btn-create btn-icon-only" @click="openCreateModal()"
+                    title="Thêm mới đối tượng">
+                    <SvgIcon name="plus" size="sm" />
+                </button>
             </div>
         </div>
 
@@ -87,9 +90,17 @@
                     <vxe-column title="Hành động" width="250" fixed="right">
                         <template #default="{ row }">
                             <div class="flex gap-2">
-                                <button class="btn-action btn-secondary" @click="viewRelated(row)">Liên kết</button>
-                                <button class="btn-action btn-edit" @click="editObject(row)">Sửa</button>
-                                <button class="btn-action btn-delete" @click="confirmDelete(row)">Xóa</button>
+                                <button class="btn-action btn-secondary btn-icon-only" @click="viewRelated(row)"
+                                    title="Xem liên kết">
+                                    <SvgIcon name="users" size="sm" />
+                                </button>
+                                <button class="btn-action btn-edit btn-icon-only" @click="editObject(row)" title="Sửa">
+                                    <SvgIcon name="edit" size="sm" />
+                                </button>
+                                <button class="btn-action btn-delete btn-icon-only" @click="confirmDelete(row)"
+                                    title="Xóa">
+                                    <SvgIcon name="trash" size="sm" />
+                                </button>
                             </div>
                         </template>
                     </vxe-column>
@@ -203,7 +214,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
                                 </div>

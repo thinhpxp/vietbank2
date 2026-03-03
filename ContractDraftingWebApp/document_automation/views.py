@@ -36,7 +36,8 @@ from .models import (
     Field, LoanProfile, FieldValue, 
     DocumentTemplate, FieldGroup, Role, 
     FormView, MasterObject, LoanProfileObjectLink,
-    MasterObjectType, MasterObjectRelation, AuditLog # ADDED
+    MasterObjectType, MasterObjectRelation, AuditLog,
+    AdminNotification, NotificationRead # ADDED
 )
 
 # Import Serializers
@@ -47,7 +48,8 @@ from .serializers import (
     UserSerializer, RegistrationSerializer, PasswordChangeSerializer, 
     FormViewSerializer, MasterObjectSerializer, 
     LoanProfileObjectLinkSerializer, MasterObjectTypeSerializer,
-    MasterObjectRelationSerializer, AuditLogSerializer # ADDED
+    MasterObjectRelationSerializer, AuditLogSerializer,
+    AdminNotificationSerializer # ADDED
 )
 # --- CÁC HÀM HỖ TRỢ JINJA2 (FORMAT TIỀN, NGÀY, CHỮ) ---
 def format_currency_filter(value):
@@ -1836,3 +1838,56 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
                 'form_name': form_name
             })
         return Response(data)
+
+# 10. ViewSet cho System Notifications
+class AdminNotificationViewSet(viewsets.ModelViewSet):
+    queryset = AdminNotification.objects.all().order_by('-created_at')
+    serializer_class = AdminNotificationSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminOrManager()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        
+        # If not ROOT/Staff/Manager (IsAdminOrManager permission implies change/view perms), 
+        # strictly show only active and non-expired ones
+        is_admin_or_manager = self.request.user.is_staff or self.request.user.is_superuser or \
+                             self.request.user.groups.filter(name__in=['Admin', 'Manager']).exists()
+        
+        if not is_admin_or_manager:
+            now = timezone.now()
+            qs = qs.filter(is_active=True).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+        log_action(self.request.user, 'CREATE', 'AdminNotification', None, f"Tạo thông báo: {serializer.validated_data.get('title')}")
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        read_obj, created = NotificationRead.objects.get_or_create(
+            notification=notification,
+            user=request.user
+        )
+        return Response({"status": "Success", "created": created})
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        now = timezone.now()
+        notifications = AdminNotification.objects.filter(
+            is_active=True
+        ).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+        )
+        
+        read_ids = NotificationRead.objects.filter(
+            user=self.request.user
+        ).values_list('notification_id', flat=True)
+        
+        unread = notifications.exclude(id__in=read_ids).count()
+        return Response({"unread_count": unread})

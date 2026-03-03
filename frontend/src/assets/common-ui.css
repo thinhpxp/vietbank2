@@ -101,6 +101,32 @@
     color: white;
 }
 
+/* Icon-only Button Utilities */
+.btn-icon-only {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0 !important;
+    border-radius: var(--radius-md) !important;
+    min-width: unset !important;
+}
+
+.btn-icon-only.btn-sm {
+    width: 28px;
+    height: 28px;
+}
+
+.btn-icon-only svg {
+    margin: 0 !important;
+}
+
+/* Tooltip style enhancement (Native title) */
+[title] {
+    cursor: help;
+}
+
 .btn-copy {
     background-color: var(--color-warning);
     color: white;
@@ -109,6 +135,33 @@
 .btn-doc {
     background-color: var(--color-info);
     color: white;
+}
+
+.btn-refresh {
+    background-color: #f59e0b;
+    /* Orange 500 */
+    color: white;
+}
+
+.btn-refresh:hover {
+    background-color: #d97706;
+    /* Orange 600 */
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+/* Utility: Animations */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* 3. Data Table & Scroll Wrapper */

@@ -96,13 +96,21 @@
         <vxe-column title="Hành động" width="350" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-action btn-edit"
-                @click="editProfile(row.id)">Sửa</button>
-              <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-copy"
-                @click="openDuplicateModal(row)">Sao chép</button>
-              <button class="btn-action btn-doc" @click="openDownloadModal(row)">Xuất HĐ</button>
-              <button v-if="auth.hasPermission('document_automation.delete_loanprofile')" class="btn-action btn-delete"
-                @click="deleteProfile(row.id)">Xóa</button>
+              <button v-if="auth.hasPermission('document_automation.change_loanprofile')"
+                class="btn-action btn-edit btn-icon-only" @click="editProfile(row.id)" title="Sửa hồ sơ">
+                <SvgIcon name="edit" size="sm" />
+              </button>
+              <button v-if="auth.hasPermission('document_automation.add_loanprofile')"
+                class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal(row)" title="Sao chép hồ sơ">
+                <SvgIcon name="copy" size="sm" />
+              </button>
+              <button class="btn-action btn-doc btn-icon-only" @click="openDownloadModal(row)" title="Xuất Hợp đồng">
+                <SvgIcon name="download" size="sm" />
+              </button>
+              <button v-if="auth.hasPermission('document_automation.delete_loanprofile')"
+                class="btn-action btn-delete btn-icon-only" @click="deleteProfile(row.id)" title="Xóa hồ sơ">
+                <SvgIcon name="trash" size="sm" />
+              </button>
             </div>
           </template>
         </vxe-column>

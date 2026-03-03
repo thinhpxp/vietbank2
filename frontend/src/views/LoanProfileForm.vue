@@ -18,17 +18,31 @@
         </div>
       </div>
       <div class="header-buttons">
-        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-action btn-lock"
-          @click="lockProfile">🔒 Khóa hồ
-          sơ</button>
-        <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock" @click="unlockProfile">🔓 Mở
-          khóa</button>
-        <button v-if="id || currentId" class="btn-action btn-doc" @click="openDownloadModal">Xuất HĐ</button>
-        <button v-if="id || currentId" class="btn-action btn-secondary" @click="showHistoryDrawer = true">🕒 Nhật
-          ký</button>
-        <button v-if="id || currentId" class="btn-action btn-copy" @click="openDuplicateModal">Nhân bản</button>
-        <button class="btn-action btn-primary" @click="saveProfile(false)" :disabled="isSaving || isReadOnly">
-          {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
+        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-action btn-lock btn-icon-only"
+          @click="lockProfile" title="Khóa hồ sơ">
+          <SvgIcon name="lock" size="sm" />
+        </button>
+        <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock btn-icon-only" @click="unlockProfile"
+          title="Mở khóa hồ sơ">
+          <SvgIcon name="unlock" size="sm" />
+        </button>
+        <button v-if="id || currentId" class="btn-action btn-doc btn-icon-only" @click="openDownloadModal"
+          title="Xuất Hợp đồng">
+          <SvgIcon name="download" size="sm" />
+        </button>
+        <button v-if="id || currentId" class="btn-action btn-secondary btn-icon-only" @click="showHistoryDrawer = true"
+          title="Nhật ký thay đổi">
+          <SvgIcon name="calendar" size="sm" />
+        </button>
+        <button v-if="id || currentId" class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal"
+          title="Nhân bản hồ sơ">
+          <SvgIcon name="copy" size="sm" />
+        </button>
+        <button class="btn-action btn-primary" @click="saveProfile(false)" :disabled="isSaving || isReadOnly"
+          :title="isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ'">
+          <SvgIcon v-if="isSaving" name="loading" size="sm" class="spinning" />
+          <SvgIcon v-else name="save" size="sm" />
+          <span>{{ isSaving ? '...' : 'Lưu' }}</span>
         </button>
       </div>
     </header>
@@ -65,13 +79,13 @@
                 <h4>{{ segment.name }}</h4>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">
-                  <SvgIcon name="search" size="xs" />
-                  <span>Tìm & Chọn</span>
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="openSelectModal(segment.code)"
+                  title="Tìm & Chọn đối tượng">
+                  <SvgIcon name="search" size="sm" />
                 </button>
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">
-                  <SvgIcon name="plus" size="xs" />
-                  <span>Thêm mới</span>
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(segment.code)"
+                  title="Thêm mới đối tượng">
+                  <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
@@ -118,9 +132,9 @@
                 <h3>Danh sách Tài sản</h3>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity(null)">
-                  <SvgIcon name="plus" size="xs" />
-                  <span>Thêm Tài sản</span>
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(null)"
+                  title="Thêm Tài sản">
+                  <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
@@ -144,9 +158,9 @@
                 <h3>Danh sách Người liên quan</h3>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity('PERSON')">
-                  <SvgIcon name="plus" size="xs" />
-                  <span>Thêm Người</span>
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity('PERSON')"
+                  title="Thêm Người">
+                  <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
@@ -191,13 +205,13 @@
                 <h4>{{ segment.name }}</h4>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="openSelectModal(segment.code)">
-                  <SvgIcon name="search" size="xs" />
-                  <span>Tìm & Chọn</span>
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="openSelectModal(segment.code)"
+                  title="Tìm & Chọn đối tượng">
+                  <SvgIcon name="search" size="sm" />
                 </button>
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity(segment.code)">
-                  <SvgIcon name="plus" size="xs" />
-                  <span>Thêm mới</span>
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(segment.code)"
+                  title="Thêm mới đối tượng">
+                  <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
@@ -244,9 +258,9 @@
                 <h3>Danh sách Tài sản</h3>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm" @click="addEntity(null)">
-                  <SvgIcon name="plus" size="xs" />
-                  <span>Thêm Tài sản</span>
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(null)"
+                  title="Thêm Tài sản">
+                  <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>

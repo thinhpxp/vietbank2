@@ -14,6 +14,7 @@ import AdminForms from '../views/admin/AdminForms.vue';
 import AdminObjectTypes from '../views/admin/AdminObjectTypes.vue';
 import MasterData from '../views/admin/MasterData.vue';
 import AdminAuditLog from '../views/admin/AdminAuditLog.vue'; // ADDED
+import AdminNotifications from '../views/admin/AdminNotifications.vue'; // ADDED
 import Login from '../views/Login.vue';
 import Register from '../views/Register.vue';
 import auth from '@/store/auth';
@@ -61,6 +62,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/all-notifications',
+    name: 'AllNotifications',
+    component: () => import('@/views/AllNotifications.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin',
     component: AdminLayout,
     meta: { requiresAuth: true, requiresAdmin: true },
@@ -74,6 +81,7 @@ const routes = [
       { path: 'object-types', component: AdminObjectTypes },
       { path: 'master-data', component: MasterData },
       { path: 'audit-logs', component: AdminAuditLog }, // ADDED
+      { path: 'notifications', component: AdminNotifications }, // ADDED
       { path: '', redirect: '/admin/groups' }
     ]
   }

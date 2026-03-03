@@ -5,7 +5,7 @@ from .views import (
     FieldGroupViewSet, UserViewSet, RoleViewSet, FormViewViewSet, 
     MasterObjectViewSet, MasterObjectTypeViewSet,
     MasterObjectRelationViewSet, GroupViewSet, PermissionViewSet,
-    AuditLogViewSet, RegistrationView, ProfileView, ChangePasswordView # ADDED
+    AuditLogViewSet, AdminNotificationViewSet, RegistrationView, ProfileView, ChangePasswordView # ADDED
 )
 
 router = DefaultRouter()
@@ -22,6 +22,7 @@ router.register(r'form-views', FormViewViewSet)
 router.register(r'object-types', MasterObjectTypeViewSet)
 router.register(r'master-objects', MasterObjectViewSet, basename='master-objects')
 router.register(r'master-relations', MasterObjectRelationViewSet)
+router.register(r'notifications', AdminNotificationViewSet, basename='notifications')
 
 urlpatterns = [
     path('', include(router.urls)),

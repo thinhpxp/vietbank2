@@ -29,8 +29,9 @@
                         <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..."
                             class="admin-form-control" />
                     </div>
-                    <button @click="createNewUser" class="btn-action btn-primary">
-                        <SvgIcon name="plus" size="sm" /> Thêm
+                    <button @click="createNewUser" class="btn-action btn-primary btn-icon-only"
+                        title="Thêm Người dùng mới">
+                        <SvgIcon name="plus" size="sm" />
                     </button>
                 </div>
 
@@ -71,7 +72,10 @@
 
                         <vxe-column title="Hành động" width="120" fixed="right">
                             <template #default="{ row }">
-                                <button class="btn-action btn-edit" @click.stop="editUser(row)">Sửa / Quyền</button>
+                                <button class="btn-action btn-edit btn-icon-only" @click.stop="editUser(row)"
+                                    title="Sửa thông tin & Quyền">
+                                    <SvgIcon name="edit" size="sm" />
+                                </button>
                             </template>
                         </vxe-column>
                     </vxe-table>
@@ -85,7 +89,7 @@
                 <div v-if="selectedUser" class="editor-container">
                     <div class="pane-header admin-row">
                         <h3 class="flex-1">{{ isCreating ? 'Tạo người dùng mới' : `Chi tiết: ${selectedUser.username}`
-                            }}</h3>
+                        }}</h3>
                         <div class="actions">
                             <span v-if="selectedUser.is_superuser" class="superuser-warning">
                                 🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
@@ -94,11 +98,15 @@
                                 :disabled="isSaving">
                                 <SvgIcon name="check" size="sm" /> Tạo người dùng
                             </button>
-                            <button v-else @click="saveUser" class="btn-success"
-                                :disabled="isSaving || (selectedUser.is_superuser && !auth.isSuperuser)">
-                                Lưu thay đổi
+                            <button v-else @click="saveUser" class="btn-success flex items-center gap-2"
+                                :disabled="isSaving || (selectedUser.is_superuser && !auth.isSuperuser)"
+                                title="Lưu thay đổi">
+                                <SvgIcon name="save" size="sm" /> <span>Lưu thay đổi</span>
                             </button>
-                            <button v-if="isCreating" @click="cancelCreate" class="btn-secondary ml-2">Hủy</button>
+                            <button v-if="isCreating" @click="cancelCreate" class="btn-secondary ml-2 btn-icon-only"
+                                title="Hủy bỏ">
+                                <SvgIcon name="x" size="sm" />
+                            </button>
                         </div>
                     </div>
 
@@ -188,7 +196,7 @@
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
                                     class="admin-perm-tags">
                                     <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -227,8 +235,8 @@
                         <input type="text" v-model="groupSearch" placeholder="Tìm kiếm nhóm..."
                             class="admin-input w-full" />
                     </div>
-                    <button @click="createNewGroup" class="btn-primary">
-                        <SvgIcon name="plus" size="sm" /> Tạo Nhóm
+                    <button @click="createNewGroup" class="btn-primary btn-icon-only" title="Tạo Nhóm mới">
+                        <SvgIcon name="plus" size="sm" />
                     </button>
                 </div>
                 <div class="data-table-vxe">
@@ -246,7 +254,10 @@
 
                         <vxe-column title="Hành động" width="120" fixed="right">
                             <template #default="{ row }">
-                                <button class="btn-action btn-edit" @click.stop="selectGroup(row)">Sửa</button>
+                                <button class="btn-action btn-edit btn-icon-only" @click.stop="selectGroup(row)"
+                                    title="Sửa nhóm">
+                                    <SvgIcon name="edit" size="sm" />
+                                </button>
                             </template>
                         </vxe-column>
                     </vxe-table>
@@ -262,7 +273,10 @@
                         <input type="text" v-model="selectedGroup.name" class="admin-form-control h3-input flex-1"
                             placeholder="Tên nhóm..." />
                         <div class="actions">
-                            <button @click="saveGroup" class="btn-success" :disabled="isSaving">Lưu Nhóm</button>
+                            <button @click="saveGroup" class="btn-success flex items-center gap-2" :disabled="isSaving"
+                                title="Lưu cấu hình Nhóm">
+                                <SvgIcon name="save" size="sm" /> <span>Lưu Nhóm</span>
+                            </button>
                             <button @click="confirmDeleteGroup" class="btn-icon danger">
                                 <SvgIcon name="trash" size="sm" />
                             </button>

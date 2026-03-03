@@ -155,7 +155,8 @@ export default {
 }
 
 .modal-header {
-    padding: 15px 25px;
+    padding: 5px 25px;
+    margin-bottom: 0px;
     border-bottom: 1px solid #eee;
     display: flex;
     justify-content: space-between;
@@ -187,7 +188,7 @@ export default {
 
 .modal-body {
     flex: 1;
-    padding: 25px;
+    padding: 5px 25px;
     overflow-y: auto;
 }
 

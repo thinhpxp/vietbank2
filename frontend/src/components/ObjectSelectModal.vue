@@ -30,7 +30,7 @@
                         </template>
                     </vxe-column>
 
-                    <vxe-column field="additional_info" title="Thông tin thêm" min-width="250">
+                    <vxe-column field="additional_info" title="Thông tin thêm" width="200">
                         <template #default="{ row }">
                             {{ getAdditionalInfo(row) }}
                         </template>

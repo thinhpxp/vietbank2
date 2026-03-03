@@ -9,7 +9,9 @@
                 <input v-model="newForm.name" placeholder="Tên Form (VD: Tín dụng tiêu dùng)" class="admin-input">
                 <input v-model="newForm.slug" placeholder="Mã định danh (VD: loan-consumer)" class="admin-input">
                 <input v-model="newForm.note" placeholder="Ghi chú" class="admin-input">
-                <button @click="addForm" class="btn-action btn-create">Thêm</button>
+                <button @click="addForm" class="btn-action btn-create btn-icon-only" title="Thêm Form mới">
+                    <SvgIcon name="plus" size="sm" />
+                </button>
             </div>
         </div>
 
@@ -47,9 +49,16 @@
                     <template #default="{ row }">
                         <div class="flex gap-2">
                             <button v-if="editingId === row.id" @click="updateForm(row)"
-                                class="btn-action btn-save">Lưu</button>
-                            <button v-else @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
-                            <button @click="deleteForm(row.id)" class="btn-action btn-delete">Xóa</button>
+                                class="btn-action btn-save btn-icon-only" title="Lưu thay đổi">
+                                <SvgIcon name="save" size="sm" />
+                            </button>
+                            <button v-else @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
+                                title="Sửa">
+                                <SvgIcon name="edit" size="sm" />
+                            </button>
+                            <button @click="deleteForm(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                                <SvgIcon name="trash" size="sm" />
+                            </button>
                         </div>
                     </template>
                 </vxe-column>

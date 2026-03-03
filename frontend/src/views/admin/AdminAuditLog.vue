@@ -3,7 +3,10 @@
     <div class="page-header">
       <h2>📜 Nhật ký hệ thống (System Audit Log)</h2>
       <div class="header-actions">
-        <button class="btn-primary" @click="fetchLogs">🔄 Làm mới</button>
+        <button class="btn-action btn-refresh btn-icon-only" @click="fetchLogs" :disabled="loading"
+          title="Làm mới dữ liệu">
+          <SvgIcon name="refresh" size="sm" :class="{ 'animate-spin': loading }" />
+        </button>
       </div>
     </div>
 

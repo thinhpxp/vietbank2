@@ -6,7 +6,7 @@ from django.contrib.auth.models import User, Group, Permission
 from .models import (
     Field, FieldGroup, LoanProfile, FieldValue, DocumentTemplate, 
     Role, FormView, UserProfile, MasterObject, LoanProfileObjectLink, MasterObjectType,
-    MasterObjectRelation, AuditLog # ADDED
+    MasterObjectRelation, AuditLog, AdminNotification, NotificationRead # ADDED
 )
 
 # 0. Serializer cho Role (MỚI)
@@ -255,21 +255,6 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError("Mật khẩu cũ không chính xác.")
         return value
 
-# Person and Asset serializers removed
-
-
-
-
-
-
-# 3. Serializer cho DocumentTemplate (Bắt buộc phải có)
-
-
-
-# 4. Serializer cho LoanProfilePerson (Liên kết)
-# LoanProfilePersonSerializer removed
-
-
 # 5. Serializer cho FieldValue
 class FieldValueSerializer(serializers.ModelSerializer):
     field = FieldSerializer(read_only=True)
@@ -340,7 +325,7 @@ class LoanProfileSerializer(serializers.ModelSerializer):
         """
         sections = {}
         # Lấy tất cả các loại đối tượng để biết mode
-        type_configs = {t.code: t.form_display_mode for t in MasterObjectType.objects.all()}
+        # type_configs = {t.code: t.form_display_mode for t in MasterObjectType.objects.all()}
         
         links = obj.object_links.all().select_related('master_object')
         
@@ -396,11 +381,6 @@ class LoanProfileSerializer(serializers.ModelSerializer):
                         "roles": item["roles"]
                     })
         return result
-
-# LoanProfileAssetSerializer removed
-
-# 7. Serializers phục vụ Master Data (Quản lý tập trung)
-# Legacy Master Data serializers removed
 
 
 # --- UNIVERSAL ENTITY SERIALIZERS (New Architecture) ---
@@ -550,3 +530,17 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
                   'loop_object_type', 'loop_object_type_code', 'loop_object_type_name']
         read_only_fields = ['uploaded_at']
 
+# 10. Serializers cho Notification System (MỚI)
+class AdminNotificationSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    is_read = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AdminNotification
+        fields = ['id', 'title', 'content', 'type', 'is_active', 'expires_at', 'created_at', 'created_by_name', 'is_read']
+
+    def get_is_read(self, obj):
+        user = self.context.get('request').user if 'request' in self.context else None
+        if user and user.is_authenticated:
+            return obj.read_stats.filter(user=user).exists()
+        return False

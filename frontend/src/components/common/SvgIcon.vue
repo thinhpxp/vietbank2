@@ -146,6 +146,15 @@ const icons = {
     h('line', { x1: '8', y1: '2', x2: '8', y2: '6' }),
     h('line', { x1: '3', y1: '10', x2: '21', y2: '10' })
   ]),
+  bell: () => h('g', [
+    h('path', { d: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9' }),
+    h('path', { d: 'M13.73 21a2 2 0 0 1-3.46 0' })
+  ]),
+
+  refresh: () => h('g', [
+    h('path', { d: 'M23 4v6h-6' }),
+    h('path', { d: 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10' })
+  ]),
 };
 
 export default defineComponent({

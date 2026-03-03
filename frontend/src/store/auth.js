@@ -64,7 +64,7 @@ const store = {
             'user', 'group', 'permission',
             'field', 'fieldgroup', 'formview',
             'documenttemplate', 'role',
-            'masterobjecttype', 'auditlog'
+            'masterobjecttype', 'auditlog', 'adminnotification'
         ];
 
         // Check if any permission string contains "view_" + module OR just "view_user" etc.

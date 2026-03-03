@@ -36,7 +36,9 @@
           <option :value="null">-- Chọn nhóm --</option>
           <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
         </select>
-        <button @click="addField" class="btn-action btn-create">Thêm</button>
+        <button @click="addField" class="btn-action btn-create btn-icon-only" title="Thêm trường dữ liệu mới">
+          <SvgIcon name="plus" size="sm" />
+        </button>
       </div>
     </div>
 
@@ -222,13 +224,24 @@
           <template #default="{ row }">
             <div class="flex gap-2">
               <template v-if="editingId === row.id">
-                <button @click="updateField(row)" class="btn-action btn-save">Lưu</button>
-                <button @click="editingId = null" class="btn-action btn-secondary">Hủy</button>
+                <button @click="updateField(row)" class="btn-action btn-save btn-icon-only" title="Lưu thay đổi">
+                  <SvgIcon name="save" size="sm" />
+                </button>
+                <button @click="editingId = null" class="btn-action btn-secondary btn-icon-only" title="Hủy bỏ">
+                  <SvgIcon name="x" size="sm" />
+                </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
-                <button @click="copyField(row)" class="btn-action btn-copy">Copy</button>
-                <button v-if="!row.is_protected" @click="deleteField(row.id)" class="btn-action btn-delete">Xóa</button>
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Chỉnh sửa">
+                  <SvgIcon name="edit" size="sm" />
+                </button>
+                <button @click="copyField(row)" class="btn-action btn-copy btn-icon-only" title="Sao chép">
+                  <SvgIcon name="copy" size="sm" />
+                </button>
+                <button v-if="!row.is_protected" @click="deleteField(row.id)"
+                  class="btn-action btn-delete btn-icon-only" title="Xóa">
+                  <SvgIcon name="trash" size="sm" />
+                </button>
                 <span v-else class="protected-badge">🔒</span>
               </template>
             </div>

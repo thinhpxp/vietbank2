@@ -18,6 +18,7 @@
         <router-link to="/admin/master-data">🗂️ Dữ liệu gốc</router-link>
         <router-link to="/admin/audit-logs">📜 Nhật ký hệ thống</router-link>
         <router-link to="/admin/users">🛡️ Quản lý Truy cập</router-link>
+        <router-link v-if="hasNotificationAccess" to="/admin/notifications">🔔 Quản lý Thông báo</router-link>
         <hr />
         <router-link to="/">🏠 Dashboard</router-link>
       </nav>
@@ -38,12 +39,19 @@
 
 
 <script>
+import auth from '@/store/auth';
+
 export default {
   name: 'AdminLayout',
   data() {
     return {
       isCollapsed: false
     };
+  },
+  computed: {
+    hasNotificationAccess() {
+      return auth.hasPermission('document_automation.view_adminnotification');
+    }
   }
 };
 </script>
@@ -125,7 +133,7 @@ export default {
 ========================= */
 .layout-toggle {
   position: fixed;
-  top: 15px;
+  bottom: 100px;
   left: var(--sidebar-width);
   transform: translateX(-50%);
   width: var(--toggle-size);

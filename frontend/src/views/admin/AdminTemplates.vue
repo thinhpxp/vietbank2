@@ -19,15 +19,17 @@
         </select>
 
         <div class="admin-file-upload">
-          <label for="template-file" class="btn-action btn-secondary whitespace-nowrap">
-            📁 {{ selectedFile ? 'Chọn lại' : 'Chọn tệp (.docx)' }}
+          <label for="template-file" class="btn-action btn-secondary whitespace-nowrap"
+            title="Chọn tệp DOCX từ máy tính">
+            <SvgIcon name="folder" size="sm" />
+            <span>{{ selectedFile ? 'Chọn lại' : 'Chọn tệp (.docx)' }}</span>
           </label>
           <input id="template-file" class="admin-hidden-input" type="file" ref="fileInput" @change="handleFileChange">
           <span v-if="selectedFile" class="admin-file-name" :title="selectedFile.name">{{ selectedFile.name }}</span>
         </div>
 
-        <button @click="uploadTemplate" class="btn-action btn-success">
-          🚀 Upload Mẫu
+        <button @click="uploadTemplate" class="btn-action btn-success btn-icon-only" title="Tải lên Mẫu Hợp đồng">
+          <SvgIcon name="upload" size="sm" />
         </button>
       </div>
     </div>
@@ -82,10 +84,20 @@
         <vxe-column title="Hành động" width="220" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button v-if="editingId === row.id" @click="updateTemplate(row)" class="btn-action btn-save">Lưu</button>
-              <button v-else @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
-              <a :href="row.file" target="_blank" class="btn-action btn-doc no-underline">Tải về</a>
-              <button @click="deleteTemplate(row.id)" class="btn-action btn-delete">Xóa</button>
+              <button v-if="editingId === row.id" @click="updateTemplate(row)" class="btn-action btn-save btn-icon-only"
+                title="Lưu thay đổi">
+                <SvgIcon name="save" size="sm" />
+              </button>
+              <button v-else @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                <SvgIcon name="edit" size="sm" />
+              </button>
+              <a :href="row.file" target="_blank" class="btn-action btn-doc btn-icon-only no-underline"
+                title="Tải mẫu về máy">
+                <SvgIcon name="download" size="sm" />
+              </a>
+              <button @click="deleteTemplate(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                <SvgIcon name="trash" size="sm" />
+              </button>
             </div>
           </template>
         </vxe-column>

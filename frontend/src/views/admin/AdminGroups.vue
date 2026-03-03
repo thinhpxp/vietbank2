@@ -13,7 +13,9 @@
         <input v-model="newGroup.note" placeholder="Ghi chú (Tùy chọn)" class="admin-input">
         <input v-model.number="newGroup.order" placeholder="Thứ tự" type="number" style="max-width: 100px"
           class="admin-input">
-        <button @click="addGroup" class="btn-action btn-create">Thêm Nhóm</button>
+        <button @click="addGroup" class="btn-action btn-create btn-icon-only" title="Thêm Nhóm mới">
+          <SvgIcon name="plus" size="sm" />
+        </button>
       </div>
     </div>
 
@@ -100,9 +102,16 @@
         <vxe-column title="Hành động" width="160" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button v-if="editingId === row.id" @click="updateGroup(row)" class="btn-action btn-save">Lưu</button>
-              <button v-else @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
-              <button @click="deleteGroup(row.id)" class="btn-action btn-delete">Xóa</button>
+              <button v-if="editingId === row.id" @click="updateGroup(row)" class="btn-action btn-save btn-icon-only"
+                title="Lưu thay đổi">
+                <SvgIcon name="save" size="sm" />
+              </button>
+              <button v-else @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                <SvgIcon name="edit" size="sm" />
+              </button>
+              <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                <SvgIcon name="trash" size="sm" />
+              </button>
             </div>
           </template>
         </vxe-column>
