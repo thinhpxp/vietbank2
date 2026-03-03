@@ -7,12 +7,15 @@ class MasterObjectSerializer(serializers.ModelSerializer):
     field_values = serializers.SerializerMethodField()
     object_type_display = serializers.CharField(source='get_object_type_display', read_only=True)
 
+    locked_by_name = serializers.CharField(source='editing_by.username', read_only=True, allow_null=True)
+    
     class Meta:
         model = MasterObject
         fields = [
             'id', 'object_type', 'object_type_display', 'display_name', 
             'created_at', 'updated_at', 'last_updated_by_name', 
-            'profiles_count', 'field_values'
+            'profiles_count', 'field_values',
+            'editing_by', 'editing_since', 'locked_by_name'
         ]
 
     def get_display_name(self, obj):

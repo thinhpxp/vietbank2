@@ -27,11 +27,20 @@
         <button v-if="id || currentId" class="btn-action btn-secondary" @click="showHistoryDrawer = true">🕒 Nhật
           ký</button>
         <button v-if="id || currentId" class="btn-action btn-copy" @click="openDuplicateModal">Nhân bản</button>
-        <button class="btn-action btn-primary" @click="saveProfile(false)" :disabled="isSaving">
+        <button class="btn-action btn-primary" @click="saveProfile(false)" :disabled="isSaving || isReadOnly">
           {{ isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ' }}
         </button>
       </div>
     </header>
+
+    <div v-if="editingLockedBy" class="lock-banner">
+      <div class="lock-content">
+        <SvgIcon name="lock" size="sm" />
+        <span>Hồ sơ này đang được chỉnh sửa bởi <strong>{{ editingLockedBy }}</strong>. Bạn đang ở chế độ <strong>Chỉ
+            xem (Read-only)</strong>.</span>
+        <button class="btn-retry" @click="fetchProfileData(currentId || id)">Thử lại</button>
+      </div>
+    </div>
 
     <div v-if="loading">Đang tải cấu hình...</div>
 
@@ -319,12 +328,71 @@
     <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="Number(currentId || id)" :profileName="profileName"
       @close="isDownloadModalOpen = false" />
 
-    <!-- Modal tìm kiếm vạn năng -->
     <ObjectSelectModal :isOpen="showUniversalSelect" :type="currentSelectType" @select="handleUniversalSelect"
       @close="showUniversalSelect = false" />
-    <!-- Modal tìm kiếm vạn năng -->
-    <ObjectSelectModal :isOpen="showUniversalSelect" :type="currentSelectType" @select="handleUniversalSelect"
-      @close="showUniversalSelect = false" />
+
+    <!-- MANDATORY DUPLICATE CONFIRMATION MODAL -->
+    <ConfirmModal :visible="showDuplicateConfirmModal" type="warning" mode="confirm"
+      title="Cảnh báo trùng lặp định danh" message="" confirmText="Vẫn lưu - Tôi hiểu rõ"
+      cancelText="Hủy - Quay lại chỉnh sửa" @confirm="performSaveProfile(pendingSaveSilent)"
+      @cancel="showDuplicateConfirmModal = false">
+      <template #default>
+        <div class="duplicate-confirm-content">
+          <div class="info-box warning">
+            <div class="info-box-icon">
+              <SvgIcon name="alert" size="sm" />
+            </div>
+            <div class="info-box-content">
+              <strong>Bạn đang lưu thông tin định danh (CCCD/Mã định danh) trùng với dữ liệu gốc đã tồn tại:</strong>
+            </div>
+          </div>
+
+          <table class="duplicate-comparison-table data-table">
+            <thead>
+              <tr>
+                <th>Loại đối tượng</th>
+                <th>Thông tin bạn vừa nhập</th>
+                <th>Dữ liệu hiện có (Master Data)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in duplicateConfirmList" :key="idx">
+                <td>{{ item.type }}</td>
+                <td class="current-input">{{ item.value }}</td>
+                <td class="master-data">
+                  <div class="master-name">{{ item.name }}</div>
+                  <div class="master-id">ID: #{{ item.master_object?._duplicateMasterId }}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="info-box info">
+            <div class="info-box-icon">
+              <SvgIcon name="info" size="sm" />
+            </div>
+            <div class="info-box-content">
+              <span class="info-box-title">💡 Giải thích về tính năng Bảo toàn dữ liệu (Snapshot):</span>
+              <div class="mb-2">
+                <strong>Dữ liệu này là Bản chụp (Snapshot):</strong>
+                Hệ thống sẽ lưu chính xác thông tin bạn vừa nhập <strong>chỉ dành riêng cho hồ sơ này</strong> để phục
+                vụ in ấn và pháp lý tại thời điểm hiện tại.
+              </div>
+              <div class="mb-2">
+                <strong>KHÔNG ghi đè Dữ liệu Gốc:</strong>
+                Hành động này <strong>KHÔNG</strong> cập nhật hay làm thay đổi thông tin trong danh mục Dữ liệu Gốc
+                (Master Data).
+              </div>
+              <div>
+                <strong>Cách sửa Dữ liệu Gốc:</strong>
+                Nếu bạn muốn thay đổi thông tin chính thức của đối tượng này cho toàn hệ thống, vui lòng truy cập menu
+                <strong>Quản lý → Dữ liệu Gốc</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </ConfirmModal>
 
     <!-- HISTORY DRAWER (Slide-over) -->
     <Teleport to="body">
@@ -395,6 +463,10 @@ export default {
       isDownloadModalOpen: false,
 
       // Duplicate Modal
+      showDuplicateConfirmModal: false,
+      duplicateConfirmList: [],
+      lastConfirmedDuplicateValues: {}, // Key: _uid, Value: identifier value
+      pendingSaveSilent: false,
       showDuplicateModal: false,
       duplicateDefaultName: '',
 
@@ -414,11 +486,15 @@ export default {
 
       // History Drawer
       showHistoryDrawer: false,
+
+      // Locking
+      editingLockedBy: null,
+      heartbeatInterval: null,
     };
   },
   computed: {
     isReadOnly() {
-      return this.profileStatus === 'FINALIZED';
+      return this.profileStatus === 'FINALIZED' || !!this.editingLockedBy;
     },
     historyApiUrl() {
       const pid = this.currentId || this.id;
@@ -662,6 +738,9 @@ export default {
     if (this.autoSaveInterval) {
       clearInterval(this.autoSaveInterval);
     }
+    window.removeEventListener('beforeunload', this.onBeforeUnload);
+    this.stopHeartbeat();
+    this.releaseLock();
   },
   methods: {
     // Nhận kết quả tính toán từ DynamicForm computed fields → cập nhật vào đúng ngữ cảnh
@@ -997,8 +1076,12 @@ export default {
         this.loading = true;
         const response = await axios.get(`${API_URL}/loan-profiles/${id}/`);
         const data = response.data;
-        this.profileName = data.name;
+        this.profileName = data.name || '';
         this.profileStatus = data.status || 'DRAFT';
+
+        // 3. Acquire Lock (New Phase 3)
+        await this.acquireLock();
+
         // Chặn computed-update khi gán dữ liệu mới từ server
         this.suppressComputedUpdate = true;
         this.generalFieldValues = data.field_values || {};
@@ -1041,6 +1124,48 @@ export default {
         if (!silent) this.showWarning('Vui lòng nhập tên hồ sơ!', 'Thiếu thông tin');
         return;
       }
+
+      // 1. Kiểm tra TRÙNG LẶP MASTER (Phase 1.3 - Snapshot principle)
+      // LUÔN kiểm tra, kể cả khi auto-save (silent) để đảm bảo không "lén" lưu đối tượng trùng mà không xác nhận
+      const dupes = [];
+      Object.keys(this.objectSections).forEach(typeCode => {
+        const items = this.objectSections[typeCode] || [];
+        items.forEach(item => {
+          if (item.master_object?._duplicateMasterId) {
+            const val = item.master_object._duplicateValue;
+            // Chỉ bắt xác nhận nếu giá trị này KHÁC với giá trị đã được xác nhận lần trước cho đối tượng này
+            if (this.lastConfirmedDuplicateValues[item._uid] !== val) {
+              dupes.push({
+                _uid: item._uid,
+                type: this.objectTypes.find(t => t.code === typeCode)?.name || typeCode,
+                value: val,
+                name: item.master_object._duplicateDisplayName,
+                master_object: item.master_object
+              });
+            }
+          }
+        });
+      });
+
+      if (dupes.length > 0) {
+        this.duplicateConfirmList = dupes;
+        this.pendingSaveSilent = silent;
+        // Nếu là auto-save, ta vẫn hiện modal để ép người dùng phải đối mặt với việc trùng lặp
+        this.showDuplicateConfirmModal = true;
+        return; // Dừng lại chờ xác nhận
+      }
+
+      await this.performSaveProfile(silent);
+    },
+    async performSaveProfile(silent = false) {
+      // Đánh dấu các giá trị trùng lặp này đã được xác nhận để không hiện modal lần sau (cho đến khi đổi giá trị)
+      this.duplicateConfirmList.forEach(dupe => {
+        if (dupe._uid && dupe.value) {
+          this.lastConfirmedDuplicateValues[dupe._uid] = dupe.value;
+        }
+      });
+
+      this.showDuplicateConfirmModal = false;
       if (!silent) this.isSaving = true;
       try {
         let targetId = this.currentId;
@@ -1079,8 +1204,13 @@ export default {
         // Refresh relations to ensure latest links are shown
         this.relationRefreshTrigger++;
       } catch (error) {
-        if (!silent) this.showError(error, 'Lỗi khi lưu');
-        else console.error("Auto-save failed:", error);
+        if (error.response && error.response.status === 423) {
+          this.editingLockedBy = error.response.data.locked_by;
+          if (!silent) this.$toast.error(`Không thể lưu! Hồ sơ hiện đang bị chỉnh sửa bởi ${this.editingLockedBy}`);
+        } else {
+          if (!silent) this.showError(error, 'Lỗi khi lưu');
+          else console.error("Auto-save failed:", error);
+        }
       } finally {
         if (!silent) this.isSaving = false;
       }
@@ -1169,6 +1299,48 @@ export default {
       } catch (e) {
         this.showUnlockPasswordModal = false;
         this.showError(e, 'Lỗi khi mở khóa');
+      }
+    },
+    async acquireLock() {
+      if (!this.id && !this.currentId) return;
+      const pid = this.id || this.currentId;
+      try {
+        const res = await axios.post(`${API_URL}/loan-profiles/${pid}/acquire_lock/`);
+        if (res.data.locked) {
+          this.editingLockedBy = res.data.locked_by;
+          this.stopHeartbeat();
+        } else {
+          this.editingLockedBy = null;
+          this.startHeartbeat(pid);
+        }
+      } catch (e) {
+        if (e.response && e.response.status === 423) {
+          this.editingLockedBy = e.response.data.locked_by;
+        }
+      }
+    },
+    startHeartbeat(pid) {
+      if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = setInterval(async () => {
+        try {
+          await axios.post(`${API_URL}/loan-profiles/${pid}/heartbeat/`);
+        } catch (e) {
+          console.error("Heartbeat failed", e);
+          this.stopHeartbeat();
+        }
+      }, 300000); // 5 minutes
+    },
+    stopHeartbeat() {
+      if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    },
+    async releaseLock() {
+      if (this.editingLockedBy || (!this.id && !this.currentId)) return;
+      const pid = this.id || this.currentId;
+      try {
+        await axios.post(`${API_URL}/loan-profiles/${pid}/release_lock/`);
+      } catch (e) {
+        console.error("Release lock failed", e);
       }
     }
   }
@@ -1366,5 +1538,30 @@ export default {
   flex: 1;
   overflow-y: auto;
   background: white;
+}
+
+/* Standardized styles are now using global classes from common-ui.css */
+.duplicate-comparison-table.data-table {
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-lg);
+}
+
+.current-input {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.master-data {
+  background: var(--slate-50);
+}
+
+.master-name {
+  font-weight: 600;
+  color: var(--slate-900);
+}
+
+.master-id {
+  font-size: 0.8rem;
+  color: var(--slate-500);
 }
 </style>

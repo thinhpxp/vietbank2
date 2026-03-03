@@ -150,7 +150,7 @@
                     </template>
                 </vxe-column>
 
-                <vxe-column title="Hành động" width="180" fixed="right">
+                <vxe-column title="Hành động" width="160" fixed="right">
                     <template #default="{ row }">
                         <div class="flex gap-2">
                             <template v-if="editingId === row.id">

@@ -37,7 +37,7 @@
         <DynamicForm :fields="personFields" v-model="localPerson.individual_field_values" :disabled="disabled"
           :idPrefix="`person-${index}-`" :allSections="allSections" @field-blur="handleFieldBlur"
           @computed-update="$emit('computed-update', $event)" />
-        <div v-if="duplicateWarning" class="alert-warning mt-4">
+        <div v-if="duplicateWarning" class="alert-warning mt-4 clickable-warning" @click="linkDuplicate">
           <SvgIcon name="alert" size="sm" class="mr-2" />
           <span>{{ duplicateWarning }}</span>
         </div>
@@ -83,7 +83,8 @@ export default {
       localPerson: JSON.parse(JSON.stringify(this.person)),
       isCollapsed: false,
       isModalOpen: false,
-      duplicateWarning: null
+      duplicateWarning: null,
+      duplicateId: null
     }
   },
   computed: {
@@ -169,12 +170,34 @@ export default {
             this.duplicateWarning = null;
             return;
           }
-          this.duplicateWarning = `Mã định danh '${value}' đã tồn tại trong Dữ liệu gốc (Đối tượng: ${res.data.display_name}). Khi lưu, hồ sơ sẽ tự động liên kết với dữ liệu đã có.`;
+          this.duplicateWarning = ` Mã định danh '${value}' đã tồn tại trong Dữ liệu gốc: "${res.data.display_name}". Bấm để chọn thay vì tạo mới.`;
+          this.duplicateId = res.data.id;
+          if (!this.localPerson.master_object) this.localPerson.master_object = {};
+          this.localPerson.master_object._duplicateMasterId = res.data.id;
+          this.localPerson.master_object._duplicateDisplayName = res.data.display_name;
+          this.localPerson.master_object._duplicateValue = value;
         } else {
           this.duplicateWarning = null;
+          this.duplicateId = null;
+          if (this.localPerson.master_object) {
+            delete this.localPerson.master_object._duplicateMasterId;
+            delete this.localPerson.master_object._duplicateDisplayName;
+            delete this.localPerson.master_object._duplicateValue;
+          }
         }
       } catch (error) {
         console.error('Lỗi kiểm tra định danh:', error);
+      }
+    },
+    async linkDuplicate() {
+      if (!this.duplicateId) return;
+      try {
+        const res = await axios.get(`${API_URL}/master-objects/${this.duplicateId}/`);
+        this.onPersonSelect(res.data);
+        this.duplicateWarning = null;
+        this.duplicateId = null;
+      } catch (error) {
+        console.error('Lỗi khi liên kết đối tượng trùng:', error);
       }
     }
   }
@@ -197,14 +220,27 @@ export default {
 }
 
 .alert-warning {
-  background: #fffbe6;
-  border: 1px solid #ffe58f;
+  background: #efc83d;
+  border: 1px solid #060606;
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
-  color: #856404;
+  color: var(--color-warning-text);
   font-size: 0.9em;
   display: flex;
   align-items: center;
+  gap: var(--spacing-sm);
+  transition: all 0.2s;
+}
+
+.clickable-warning {
+  cursor: pointer;
+}
+
+.clickable-warning:hover {
+  background: white;
+  border-color: var(--color-warning-text);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .opacity-10 {

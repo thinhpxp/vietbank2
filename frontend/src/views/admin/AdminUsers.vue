@@ -30,7 +30,7 @@
     <!-- Danh sách User -->
     <div class="data-table-vxe">
       <vxe-table border round :data="filteredUsers" :row-config="{ isHover: true }" :column-config="{ resizable: true }"
-        :sort-config="{ trigger: 'cell' }">
+        :sort-config="{ trigger: 'cell', defaultSort: { field: 'id', order: 'desc' } }">
         <vxe-column field="id" title="ID" width="60" sortable></vxe-column>
         <vxe-column field="username" title="Username" min-width="150" sortable>
           <template #default="{ row }">
@@ -76,7 +76,7 @@
             </template>
           </template>
         </vxe-column>
-        <vxe-column title="Hành động" width="150" fixed="right">
+        <vxe-column title="Hành động" width="160" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
               <template v-if="editingId === row.id">

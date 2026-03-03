@@ -97,7 +97,7 @@
             <span v-else>{{ getFormNames(row.allowed_forms) }}</span>
           </template>
         </vxe-column>
-        <vxe-column title="Hành động" width="150" fixed="right">
+        <vxe-column title="Hành động" width="160" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
               <button v-if="editingId === row.id" @click="updateGroup(row)" class="btn-action btn-save">Lưu</button>

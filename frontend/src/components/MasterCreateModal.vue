@@ -1,21 +1,28 @@
 <template>
     <BaseModal :isOpen="isOpen" :title="title" @close="close">
-        <div class="sync-note">
-            <span class="icon">ℹ️</span>
-            Khi cập nhật, thông tin mới chỉ được áp dụng cho các hồ sơ nháp. Các hồ sơ đã khóa không bị
-            ảnh hưởng.
+        <div class="info-box info">
+            <div class="info-box-icon">
+                <SvgIcon name="info" size="sm" />
+            </div>
+            <div class="info-box-content">
+                Khi cập nhật, thông tin mới chỉ được áp dụng cho các hồ sơ nháp. Các hồ sơ đã khóa không bị ảnh hưởng.
+            </div>
         </div>
         <div v-if="loadingFields" class="loading-state">Đang tải cấu hình trường...</div>
         <div v-else>
             <div v-for="(fields, groupName) in groupedFields" :key="groupName" class="admin-form-section">
                 <h4>{{ groupName }}</h4>
-                <DynamicForm :fields="fields" v-model="formData" inputClass="admin-input" />
+                <DynamicForm :fields="fields" v-model="formData" :disabled="readOnly" inputClass="admin-input" />
             </div>
         </div>
 
         <template #footer>
+            <div v-if="readOnly" class="text-warning text-sm mr-auto font-bold flex items-center gap-2">
+                <SvgIcon name="alert" size="sm" />
+                <span>Bạn hiện chỉ xem được thông tin, vì người khác đang chỉnh sửa đối tượng này</span>
+            </div>
             <button class="btn-action btn-secondary" @click="close">Hủy</button>
-            <button class="btn-action btn-primary" @click="handleSave" :disabled="isSaving">
+            <button v-if="!readOnly" class="btn-action btn-primary" @click="handleSave" :disabled="isSaving">
                 {{ isSaving ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Tạo mới') }}
             </button>
         </template>
@@ -27,15 +34,17 @@ import axios from 'axios';
 import { API_URL } from '@/store/auth';
 import DynamicForm from './DynamicForm.vue';
 import BaseModal from './BaseModal.vue';
+import SvgIcon from './common/SvgIcon.vue';
 
 export default {
     name: 'MasterCreateModal',
-    components: { DynamicForm, BaseModal },
+    components: { DynamicForm, BaseModal, SvgIcon },
     props: {
         isOpen: Boolean,
         type: String, // 'PERSON', 'ASSET', 'SAVINGS'
         typeName: { type: String, default: 'Đối tượng' },
-        editObject: Object // Null if creating
+        editObject: Object, // Null if creating
+        readOnly: { type: Boolean, default: false }
     },
     emits: ['close', 'success'],
     data() {
@@ -51,7 +60,7 @@ export default {
             return !!this.editObject;
         },
         title() {
-            const action = this.isEdit ? 'Cập nhật' : 'Thêm mới';
+            const action = this.readOnly ? 'Xem thông tin' : (this.isEdit ? 'Cập nhật' : 'Thêm mới');
             return `${action} ${this.typeName}`;
         },
         groupedFields() {
@@ -170,23 +179,7 @@ export default {
 </script>
 
 <style scoped>
-.sync-note {
-    background: #e8f4fd;
-    border-left: 4px solid #3498db;
-    padding: 12px 15px;
-    margin-bottom: 25px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    color: #2980b9;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    line-height: 1.4;
-}
-
-.sync-note .icon {
-    font-size: 1.2rem;
-}
+/* Standardized styles are now using global .info-box from common-ui.css */
 
 .loading-state {
     text-align: center;

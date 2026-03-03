@@ -69,7 +69,7 @@
                             </template>
                         </vxe-column>
 
-                        <vxe-column title="Hành động" width="110" fixed="right">
+                        <vxe-column title="Hành động" width="120" fixed="right">
                             <template #default="{ row }">
                                 <button class="btn-action btn-edit" @click.stop="editUser(row)">Sửa / Quyền</button>
                             </template>
@@ -85,7 +85,7 @@
                 <div v-if="selectedUser" class="editor-container">
                     <div class="pane-header admin-row">
                         <h3 class="flex-1">{{ isCreating ? 'Tạo người dùng mới' : `Chi tiết: ${selectedUser.username}`
-                        }}</h3>
+                            }}</h3>
                         <div class="actions">
                             <span v-if="selectedUser.is_superuser" class="superuser-warning">
                                 🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
@@ -188,7 +188,7 @@
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
                                     class="admin-perm-tags">
                                     <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -244,7 +244,7 @@
                             </template>
                         </vxe-column>
 
-                        <vxe-column title="Hành động" width="100" fixed="right">
+                        <vxe-column title="Hành động" width="120" fixed="right">
                             <template #default="{ row }">
                                 <button class="btn-action btn-edit" @click.stop="selectGroup(row)">Sửa</button>
                             </template>

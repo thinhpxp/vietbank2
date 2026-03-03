@@ -95,7 +95,8 @@
     <!-- Danh sách -->
     <div class="data-table-vxe">
       <vxe-table border round :data="filteredFields" :row-config="{ isHover: true }"
-        :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }">
+        :column-config="{ resizable: true }"
+        :sort-config="{ trigger: 'cell', defaultSort: { field: 'id', order: 'desc' } }">
 
         <vxe-column field="id" title="ID" width="60" sortable></vxe-column>
 
@@ -217,7 +218,7 @@
           </template>
         </vxe-column>
 
-        <vxe-column title="Hành động" width="180" fixed="right">
+        <vxe-column title="Hành động" width="220" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
               <template v-if="editingId === row.id">

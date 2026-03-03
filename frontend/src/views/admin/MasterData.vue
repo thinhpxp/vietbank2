@@ -22,6 +22,9 @@
                 <input v-model="filters.search" placeholder="Tìm theo tên, số hiệu..." class="admin-form-control"
                     style="width: 300px">
             </div>
+            <div v-if="editingLockedBy" class="indicator-tag indicator-danger ml-auto">
+                ⚠️ Hệ thống đang ở chế độ xem. Đối tượng đang bị khóa bởi: {{ editingLockedBy }}
+            </div>
         </div>
 
         <!-- TABS -->
@@ -36,12 +39,13 @@
             <div v-if="loading" class="loading-state">Đang tải dữ liệu...</div>
             <div v-else class="data-table-vxe">
                 <vxe-table border round :data="filteredItems" :row-config="{ isHover: true }"
-                    :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }"
+                    :column-config="{ resizable: true }"
+                    :sort-config="{ trigger: 'cell', defaultSort: { field: 'id', order: 'desc' } }"
                     @checkbox-change="handleCheckboxChange" @checkbox-all="handleCheckboxAll">
 
                     <vxe-column v-if="auth.isSuperuser" type="checkbox" width="50"></vxe-column>
 
-                    <vxe-column field="id" title="ID" width="80" sortable>
+                    <vxe-column field="id" title="ID" width="120" sortable>
                         <template #default="{ row }">
                             {{ row.id }}
                             <div v-if="row.profiles_count === 0" class="indicator-tag indicator-warning mt-1">
@@ -49,7 +53,7 @@
                         </template>
                     </vxe-column>
 
-                    <vxe-column field="display_name" title="Tên / Số hiệu" min-width="200" sortable>
+                    <vxe-column field="display_name" title="Tên / Số hiệu" width="300" sortable>
                         <template #default="{ row }">
                             <span class="font-bold">
                                 {{ row.ho_ten || row.so_giay_chung_nhan || $t(row.display_name) || '---' }}
@@ -57,7 +61,7 @@
                         </template>
                     </vxe-column>
 
-                    <vxe-column title="Thông tin thêm" min-width="200">
+                    <vxe-column title="Thông tin thêm" width="350">
                         <template #default="{ row }">
                             {{ getDynamicSummary(row, activeTab) }}
                         </template>
@@ -80,7 +84,7 @@
                         </template>
                     </vxe-column>
 
-                    <vxe-column title="Hành động" width="220" fixed="right">
+                    <vxe-column title="Hành động" width="250" fixed="right">
                         <template #default="{ row }">
                             <div class="flex gap-2">
                                 <button class="btn-action btn-secondary" @click="viewRelated(row)">Liên kết</button>
@@ -206,6 +210,28 @@
                             </div>
                         </div>
 
+                        <!-- SECTION 4: AUDIT HISTORY -->
+                        <div class="side-section">
+                            <h4 class="section-title">
+                                <SvgIcon name="clock" size="xs" /> Lịch sử thay đổi ({{ auditLogs.length }})
+                            </h4>
+                            <div v-if="auditLogs.length === 0" class="empty-mini">Chưa có lịch sử thay đổi.</div>
+                            <div class="audit-timeline">
+                                <div v-for="log in auditLogs" :key="log.id" class="audit-item">
+                                    <div class="audit-meta">
+                                        <span class="audit-user">👤 {{ log.user_name }}</span>
+                                        <span class="audit-time">{{ formatDate(log.timestamp) }}</span>
+                                    </div>
+                                    <div class="audit-action" :class="log.action.toLowerCase()">
+                                        {{ log.action_display }}
+                                    </div>
+                                    <div v-if="log.details" class="audit-details">
+                                        <pre>{{ log.details }}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -236,7 +262,7 @@
         <!-- CREATE/EDIT MODAL -->
         <MasterCreateModal :isOpen="showCreateModal" :type="tempOverrideType || activeTab"
             :typeName="tempOverrideTypeName || currentTypeName" :editObject="targetEditObject"
-            :key="targetEditObject ? targetEditObject.id : 'new'" @close="showCreateModal = false"
+            :readOnly="!!editingLockedBy" :key="targetEditObject ? targetEditObject.id : 'new'" @close="closeEditModal"
             @success="fetchData" />
     </div>
 </template>
@@ -264,6 +290,11 @@ export default {
             selectedIds: [], // Selected IDs for bulk actions
             auth, // Auth store for role checking
 
+            // Filtering
+            filters: {
+                search: ''
+            },
+
             // Related Modal
             showRelatedModal: false,
             relatedType: '', // PERSON or other
@@ -278,22 +309,21 @@ export default {
 
             // Delete
             showDeleteModal: false,
+            targetDeleteObject: null,
             showBulkDeleteModal: false,
-            deleteTarget: null,
-            // deleteTargetType: '', // Không cần nữa, dùng activeTab code
 
-            // Create/Edit
+            // Edit
             showCreateModal: false,
             targetEditObject: null,
+            tempOverrideType: '',
+            tempOverrideTypeName: '',
 
-            // Resizing (cleaned up)
-            sideModalWidth: 500,
-            isResizing: false,
+            // Audit Logs
+            auditLogs: [],
 
-            // Modal Type Override (for viewing cross-type relations)
-            tempOverrideType: null,
-            tempOverrideTypeName: null,
-            filters: { search: '' }
+            // Locking
+            heartbeatInterval: null,
+            editingLockedBy: null // If someone else is editing
         };
     },
     computed: {
@@ -319,6 +349,9 @@ export default {
     },
     async mounted() {
         await this.fetchObjectTypes();
+    },
+    beforeUnmount() {
+        this.stopHeartbeat();
     },
     methods: {
         getDynamicSummary(item, typeCode) {
@@ -394,7 +427,6 @@ export default {
                     detail.relations_in.forEach(r => allRelsRaw.push({ ...r, isSource: false }));
                 }
 
-                // Deduplicate by ID to avoid overlapping or redundant entries
                 const uniqueRelsMap = new Map();
                 allRelsRaw.forEach(r => {
                     if (!uniqueRelsMap.has(r.id)) {
@@ -403,14 +435,18 @@ export default {
                 });
                 const allRels = Array.from(uniqueRelsMap.values());
 
-                // Categorize by OWNER type or others
                 this.ownershipRelations = allRels.filter(r => r.relation_type === 'OWNER');
                 this.otherRelations = allRels.filter(r => r.relation_type !== 'OWNER');
-
-                // New: Get related profiles directly from the detail
                 this.relatedProfiles = detail.related_profiles || [];
 
-
+                // 3. Fetch Audit Logs
+                const logRes = await axios.get(`${API_URL}/audit-logs/`, {
+                    params: {
+                        target_model: `MasterObject:${obj.object_type}`,
+                        target_id: obj.id
+                    }
+                });
+                this.auditLogs = logRes.data.results || logRes.data;
 
             } catch (error) {
                 this.showError(error, 'Lỗi khi tải dữ liệu liên quan');
@@ -443,10 +479,10 @@ export default {
             }
         },
         handleCheckboxChange({ selection }) {
-            this.selectedIds = selection.map(row => row.id);
+            this.selectedIds = (selection || []).map(row => row.id);
         },
         handleCheckboxAll({ selection }) {
-            this.selectedIds = selection.map(row => row.id);
+            this.selectedIds = (selection || []).map(row => row.id);
         },
         confirmBulkDelete() {
             this.showBulkDeleteModal = true;
@@ -481,11 +517,61 @@ export default {
             }
             this.showCreateModal = true;
         },
-        editObject(obj) {
+        async editObject(obj) {
             this.tempOverrideType = null;
             this.tempOverrideTypeName = null;
-            this.targetEditObject = obj;
+            this.editingLockedBy = null;
+
+            try {
+                // Toàn cục: thử lấy khóa (acquire lock)
+                const lockRes = await axios.post(`${API_URL}/master-objects/${obj.id}/acquire_lock/`);
+                if (lockRes.data.locked) {
+                    this.editingLockedBy = lockRes.data.locked_by;
+                } else {
+                    this.startHeartbeat(obj.id);
+                }
+            } catch (e) {
+                if (e.response && e.response.status === 423) {
+                    this.editingLockedBy = e.response.data.locked_by;
+                } else {
+                    console.error("Lock error", e);
+                }
+            }
+
+            this.targetEditObject = JSON.parse(JSON.stringify(obj));
             this.showCreateModal = true;
+        },
+        startHeartbeat(id) {
+            this.stopHeartbeat();
+            this.heartbeatInterval = setInterval(async () => {
+                try {
+                    await axios.post(`${API_URL}/master-objects/${id}/heartbeat/`);
+                } catch (e) {
+                    console.error("Heartbeat failed", e);
+                    this.stopHeartbeat();
+                }
+            }, 300000); // 5 minutes
+        },
+        stopHeartbeat() {
+            if (this.heartbeatInterval) {
+                clearInterval(this.heartbeatInterval);
+                this.heartbeatInterval = null;
+            }
+        },
+        async releaseLock(id) {
+            try {
+                await axios.post(`${API_URL}/master-objects/${id}/release_lock/`);
+            } catch (e) {
+                console.error("Release lock failed", e);
+            }
+        },
+        closeEditModal() {
+            if (this.targetEditObject && !this.editingLockedBy && this.showCreateModal) {
+                this.releaseLock(this.targetEditObject.id);
+            }
+            this.stopHeartbeat();
+            this.editingLockedBy = null;
+            this.showCreateModal = false;
         },
         goToProfile(id) {
             // Open in new tab as requested
@@ -590,5 +676,74 @@ export default {
     padding: 60px;
     color: #94a3b8;
     font-style: italic;
+}
+
+/* Audit Timeline */
+.audit-timeline {
+    margin-top: 15px;
+    border-left: 2px solid #e2e8f0;
+    padding-left: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.audit-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.audit-item::before {
+    content: '';
+    position: absolute;
+    left: -26px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.audit-meta {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.audit-user {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.audit-time {
+    float: right;
+}
+
+.audit-action {
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.audit-action.update {
+    color: #3b82f6;
+}
+
+.audit-action.create {
+    color: #10b981;
+}
+
+.audit-action.delete {
+    color: #ef4444;
+}
+
+.audit-details pre {
+    background: #f1f5f9;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-top: 5px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    color: #475569;
 }
 </style>

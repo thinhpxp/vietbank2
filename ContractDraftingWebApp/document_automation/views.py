@@ -436,7 +436,7 @@ def log_user_logout(sender, request, user, **kwargs):
     log_action(user, 'LOGOUT', 'User', user.id, f"Người dùng {user.username} đăng xuất")
 # 1.1 ViewSet cho FieldGroup
 class FieldGroupViewSet(viewsets.ModelViewSet):
-    queryset = FieldGroup.objects.all().order_by('order')
+    queryset = FieldGroup.objects.all().order_by('order', '-id')
     serializer_class = FieldGroupSerializer
     permission_classes = [IsAdminOrManager]
 
@@ -462,7 +462,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 
 # 1.2 ViewSet cho Field
 class FieldViewSet(viewsets.ModelViewSet):
-    queryset = Field.objects.all()
+    queryset = Field.objects.all().order_by('-id')
     serializer_class = FieldSerializer
     permission_classes = [IsAdminOrManager]
 
@@ -541,13 +541,13 @@ class FieldViewSet(viewsets.ModelViewSet):
 
 # 3.1 ViewSet cho DocumentTemplate
 class DocumentTemplateViewSet(viewsets.ModelViewSet):
-    queryset = DocumentTemplate.objects.all()
+    queryset = DocumentTemplate.objects.all().order_by('-id')
     serializer_class = DocumentTemplateSerializer
     permission_classes = [IsAdminOrManager]
 
 # 3.2 ViewSet cho User (Nâng cấp)
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all().select_related('profile').prefetch_related('groups').order_by('username')
+    queryset = User.objects.all().select_related('profile').prefetch_related('groups').order_by('-id')
     serializer_class = UserSerializer
     permission_classes = [IsAdminOrManager]
 
@@ -700,8 +700,17 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         log_action(user, 'CREATE', 'LoanProfile', instance.id, f"Tạo hồ sơ: {instance.name}")
 
     def perform_update(self, serializer):
+        user = self.request.user if self.request.user.is_authenticated else None
+        instance = self.get_object()
+        
+        # 1. KIỂM TRA KHÓA (Pessimistic Lock check)
+        if instance.editing_by and instance.editing_by != user:
+            if (timezone.now() - instance.editing_since).total_seconds() < 900:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied(f"Hồ sơ này đang được chỉnh sửa bởi {instance.editing_by.username}")
+
         instance = serializer.save()
-        log_action(self.request.user, 'UPDATE', 'LoanProfile', instance.id, f"Cập nhật hồ sơ: {instance.name}")
+        log_action(user, 'UPDATE', 'LoanProfile', instance.id, f"Cập nhật hồ sơ: {instance.name}")
 
     def perform_destroy(self, instance):
         p_id = instance.id
@@ -816,17 +825,63 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         return Response({"status": "success", "message": "Hồ sơ đã được mở khóa."})
 
     @action(detail=True, methods=['post'])
+    def acquire_lock(self, request, pk=None):
+        obj = self.get_object()
+        now = timezone.now()
+        
+        if obj.editing_by and obj.editing_by != request.user:
+            if (now - obj.editing_since).total_seconds() < 900:
+                return Response({
+                    "locked": True,
+                    "locked_by": obj.editing_by.username,
+                    "since": obj.editing_since
+                }, status=423)
+        
+        obj.editing_by = request.user
+        obj.editing_since = now
+        obj.save(update_fields=['editing_by', 'editing_since'])
+        return Response({"locked": False, "message": "Lock acquired"})
+
+    @action(detail=True, methods=['post'])
+    def release_lock(self, request, pk=None):
+        obj = self.get_object()
+        if obj.editing_by == request.user:
+            obj.editing_by = None
+            obj.editing_since = None
+            obj.save(update_fields=['editing_by', 'editing_since'])
+        return Response({"message": "Lock released"})
+
+    @action(detail=True, methods=['post'])
+    def heartbeat(self, request, pk=None):
+        obj = self.get_object()
+        if obj.editing_by == request.user:
+            obj.editing_since = timezone.now()
+            obj.save(update_fields=['editing_since'])
+            return Response({"status": "Extended"})
+        return Response({"error": "Lock not owned"}, status=403)
+
+    @action(detail=True, methods=['post'])
     def save_form_data(self, request, pk=None):
         """
         API lưu dữ liệu tổng hợp (Generic for Universal Entity)
         """
         loan_profile = self.get_object()
+        updating_user = request.user if request.user.is_authenticated else None
         
+        # 0. CHECK LOCK (Pessimistic Lock)
+        if loan_profile.editing_by and loan_profile.editing_by != updating_user:
+            if (timezone.now() - loan_profile.editing_since).total_seconds() < 900:
+                return Response({
+                    "error": "Hồ sơ đang bị khóa bởi người khác.",
+                    "locked_by": loan_profile.editing_by.username,
+                    "code": "locked"
+                }, status=423)
+
         if loan_profile.status == 'FINALIZED':
             return Response({"error": "Hồ sơ đã bị khóa, không thể chỉnh sửa."}, status=403)
 
         data = request.data
-        updating_user = request.user if request.user.is_authenticated else None
+        is_auto_save = str(data.get('is_auto_save', 'False')).lower() == 'true'
 
         try:
             with transaction.atomic():
@@ -888,12 +943,19 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                         # DEDUPLICATION LOGIC: Nếu chưa có id, thử tìm theo mã định danh (CCCD, Biển số...)
                         if not master_obj:
                             master_obj = find_existing_master_object(actual_type, fields_dict)
+                            if not master_obj:
+                                master_obj = MasterObject.objects.create(
+                                    object_type=actual_type,
+                                    last_updated_by=updating_user,
+                                    is_draft=is_auto_save
+                                )
+                                # INITIAL POPULATION: Only for NEW master objects
+                                save_master_field_values(master_obj, fields_dict)
                         
-                        if not master_obj:
-                            master_obj = MasterObject.objects.create(
-                                object_type=actual_type,
-                                last_updated_by=updating_user
-                            )
+                        # NEW: If manual save, ensure object is NOT a draft anymore
+                        if not is_auto_save and getattr(master_obj, 'is_draft', False):
+                            master_obj.is_draft = False
+                            master_obj.save(update_fields=['is_draft'])
 
                         processed_master_ids.append(master_obj.id)
                         print(f"  DEBUG: Item {actual_type} -> Master:{master_obj.id} Ident:{fields_dict.get('chung_nhan_qsdd', 'N/A')}")
@@ -919,15 +981,6 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
 
                                 FieldValue.objects.update_or_create(
                                     loan_profile=loan_profile,
-                                    master_object=master_obj,
-                                    field=f_obj,
-                                    defaults={'value': str(f_val)}
-                                )
-
-                                # 4. Update Canonical Master Data (loan_profile=None)
-                                # This ensures the object appears correctly in Master Data Management
-                                FieldValue.objects.update_or_create(
-                                    loan_profile=None,
                                     master_object=master_obj,
                                     field=f_obj,
                                     defaults={'value': str(f_val)}
@@ -1002,7 +1055,6 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 ).delete()
 
             # Ghi log Audit sau khi commit thành công (chỉ khi không phải auto-save)
-            is_auto_save = str(data.get('is_auto_save', 'False')).lower() == 'true'
             if not is_auto_save:
                 log_action(
                     updating_user, 
@@ -1122,15 +1174,12 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 'id': master.id,
                 'roles': link.roles,
             }
-            p_data.update(master_fvs)
             for fv in specific_fvs:
                 p_data[fv.field.placeholder_key] = fv.value
             
             # Inject relations
             p_data.update(get_relations_for_object(master.id))
             
-            if 'ho_ten' not in p_data: p_data['ho_ten'] = master_fvs.get('ho_ten', "")
-            if 'cccd_so' not in p_data: p_data['cccd_so'] = master_fvs.get('cccd_so', "")
             people_list.append(p_data)
 
         context['people'] = people_list
@@ -1159,7 +1208,6 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
                 'id': master.id,
                 '_object_type': obj_type_str
             }
-            a_data.update(master_fvs)
             for fv in specific_fvs:
                 a_data[fv.field.placeholder_key] = fv.value
             
@@ -1523,24 +1571,7 @@ def save_master_field_values(instance, field_values):
             )
         except Field.DoesNotExist:
             continue
-
-    # 2. ĐỒNG BỘ: Cập nhật cho các Hồ sơ vay liên quan (Chỉ những hồ sơ DRAFT)
-    from .models import LoanProfileObjectLink
-    links = LoanProfileObjectLink.objects.filter(master_object=instance, loan_profile__status='DRAFT')
-    
-    for link in links:
-        profile = link.loan_profile
-        for key, val in field_values.items():
-            try:
-                field_obj = Field.objects.get(placeholder_key=key)
-                FieldValue.objects.update_or_create(
-                    master_object=instance,
-                    loan_profile=profile,
-                    field=field_obj,
-                    defaults={'value': str(val)}
-                )
-            except Field.DoesNotExist:
-                continue
+    # Removed: Sync to DRAFT profiles (Isolation Principle - Snapshot)
 
 def find_existing_master_object(object_type, field_values):
     """
@@ -1616,25 +1647,42 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
 # --- UNIVERSAL ENTITY VIEWSETS ---
 
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
-    queryset = MasterObjectType.objects.all().order_by('code')
+    queryset = MasterObjectType.objects.all().order_by('-id')
     serializer_class = MasterObjectTypeSerializer
     permission_classes = [IsAdminOrManager] 
     # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
 
 
 class MasterObjectViewSet(viewsets.ModelViewSet):
-    queryset = MasterObject.objects.all().order_by('-id')
     serializer_class = MasterObjectSerializer
     permission_classes = [IsAuthenticated]
 
-    @action(detail=False, methods=['post'], url_path='bulk-delete')
-    def bulk_delete(self, request):
-        """
-        Xóa hàng loạt đối tượng Master. Chỉ ROOT (superuser) mới có quyền này.
-        """
-        if not request.user.is_superuser:
-            return Response({"error": "Bạn không có quyền thực hiện hành động này."}, status=status.HTTP_403_FORBIDDEN)
+    def get_queryset(self):
+        """Filter by object_type, is_draft, and hide soft-deleted items"""
+        qs = MasterObject.objects.filter(deleted_at__isnull=True).order_by('-id')
         
+        # Mặc định lọc bỏ các bản nháp (Auto-save) để tránh rác trong danh sách chính
+        include_drafts = self.request.query_params.get('include_drafts', 'false').lower() == 'true'
+        
+        # Nếu là lấy chi tiết (pk), cũng cho phép lấy Draft
+        if getattr(self, 'detail', False):
+            return MasterObject.objects.all()
+
+        if not include_drafts:
+            qs = qs.filter(is_draft=False)
+
+        # Filter by object_type
+        object_types = self.request.query_params.get('object_type', None)
+        if object_types:
+            codes = [c.strip() for c in object_types.split(',') if c.strip()]
+            if codes:
+                qs = qs.filter(object_type__in=codes)
+                
+        return qs
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminOrManager])
+    def bulk_delete(self, request):
+        """Xóa hàng loạt đối tượng Master. Yêu cầu quyền Admin/Manager."""
         ids = request.data.get('ids', [])
         if not ids:
             return Response({"error": "Danh sách ID không hợp lệ."}, status=status.HTTP_400_BAD_REQUEST)
@@ -1642,24 +1690,53 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 # Xóa hờ các đối tượng (Soft Delete)
-                deleted_count = MasterObject.objects.filter(id__in=ids).update(deleted_at=timezone.now())
-                
+                deleted_count = MasterObject.objects.filter(id__in=ids, deleted_at__isnull=True).update(deleted_at=timezone.now())
                 # Log hành động
-                log_action(request.user, 'DELETE', 'MasterObject:BULK', 0, f"Xóa hàng loạt {deleted_count} đối tượng (Soft Delete): {ids}")
+                log_action(request.user, 'DELETE', 'MasterObject:BULK', 0, f"Xóa hàng loạt {deleted_count} đối tượng: {ids}")
                 
                 return Response({"status": "success", "message": f"Đã xóa {deleted_count} đối tượng thành công."})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def get_queryset(self):
-        """Filter by object_type and hide soft-deleted items"""
-        queryset = MasterObject.objects.filter(deleted_at__isnull=True).order_by('-id')
-        object_types = self.request.query_params.get('object_type', None)
-        if object_types:
-            codes = [c.strip() for c in object_types.split(',') if c.strip()]
-            if codes:
-                queryset = queryset.filter(object_type__in=codes)
-        return queryset
+    @action(detail=True, methods=['post'])
+    def acquire_lock(self, request, pk=None):
+        obj = self.get_object()
+        now = timezone.now()
+        
+        # 1. Kiểm tra nếu đang bị khóa bởi người khác
+        if obj.editing_by and obj.editing_by != request.user:
+            # Nếu khóa vẫn còn hiệu lực (dưới 15 phút)
+            if (now - obj.editing_since).total_seconds() < 900:
+                return Response({
+                    "locked": True,
+                    "locked_by": obj.editing_by.username,
+                    "since": obj.editing_since
+                }, status=423) # HTTP 423 Locked
+        
+        # 2. Cấp khóa
+        obj.editing_by = request.user
+        obj.editing_since = now
+        obj.save(update_fields=['editing_by', 'editing_since'])
+        return Response({"locked": False, "message": "Lock acquired"})
+
+    @action(detail=True, methods=['post'])
+    def release_lock(self, request, pk=None):
+        obj = self.get_object()
+        if obj.editing_by == request.user:
+            obj.editing_by = None
+            obj.editing_since = None
+            obj.save(update_fields=['editing_by', 'editing_since'])
+        return Response({"message": "Lock released"})
+
+    @action(detail=True, methods=['post'])
+    def heartbeat(self, request, pk=None):
+        obj = self.get_object()
+        if obj.editing_by == request.user:
+            obj.editing_since = timezone.now()
+            obj.save(update_fields=['editing_since'])
+            return Response({"status": "Extended"})
+        return Response({"error": "Lock not owned"}, status=403)
+
 
     def perform_create(self, serializer):
         object_type = self.request.data.get('object_type')
@@ -1678,10 +1755,38 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
+        instance = self.get_object()
+        
+        # 1. KIỂM TRA KHÓA (Pessimistic Lock check)
+        if instance.editing_by and instance.editing_by != user:
+            # Nếu khóa vẫn còn hiệu lực
+            if (timezone.now() - instance.editing_since).total_seconds() < 900:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied(f"Đối tượng này đang bị khóa bởi {instance.editing_by.username}")
+
+        # 2. SNAPSHOT OLD VALUES FOR AUDIT LOG
+        from .models import FieldValue
+        old_fvs = {fv.field.placeholder_key: fv.value 
+                   for fv in FieldValue.objects.filter(master_object=instance, loan_profile__isnull=True)}
+        
+        # 3. SAVE DATA
         instance = serializer.save(last_updated_by=user)
         field_values = self.request.data.get('field_values', {})
         save_master_field_values(instance, field_values)
-        log_action(user, 'UPDATE', f'MasterObject:{instance.object_type}', instance.id, f"Cập nhật dữ liệu gốc")
+        
+        # 4. LOG DIFF
+        changed = {}
+        for k, v in field_values.items():
+            old_v = old_fvs.get(k, '')
+            if str(old_v) != str(v):
+                changed[k] = {"from": old_v, "to": v}
+        
+        if changed:
+            log_action(user, 'UPDATE', f'MasterObject:{instance.object_type}', 
+                       instance.id, f"Cập nhật thông tin: {changed}")
+        else:
+            log_action(user, 'UPDATE', f'MasterObject:{instance.object_type}', 
+                       instance.id, f"Cập nhật MasterObject")
 
     def perform_destroy(self, instance):
         o_id = instance.id

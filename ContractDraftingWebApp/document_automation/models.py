@@ -176,6 +176,13 @@ class LoanProfile(models.Model):
     form_view = models.ForeignKey(FormView, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Cấu hình Form")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name="Trạng thái")
     lock_password = models.CharField(max_length=100, blank=True, null=True, verbose_name="Mật khẩu khóa (Dev)")
+    
+    # Pessimistic Locking fields
+    editing_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='locked_profiles', verbose_name="Đang được chỉnh sửa bởi"
+    )
+    editing_since = models.DateTimeField(null=True, blank=True, verbose_name="Thời điểm bắt đầu chỉnh sửa")
 
     def __str__(self):
         return self.name
@@ -240,10 +247,18 @@ class MasterObject(models.Model):
         # choices=OBJECT_TYPE_CHOICES, # Removed hardcoded choices to allow dynamic types
         verbose_name="Loại đối tượng"
     )
+    is_draft = models.BooleanField(default=False, db_index=True, verbose_name="Bản nháp (Auto-save)")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Ngày cập nhật")
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời điểm xóa")
     last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người cập nhật")
+
+    # Pessimistic Locking fields
+    editing_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='locked_master_objects', verbose_name="Đang được chỉnh sửa bởi"
+    )
+    editing_since = models.DateTimeField(null=True, blank=True, verbose_name="Thời điểm bắt đầu chỉnh sửa")
 
     def __str__(self):
         # Fallback string representation

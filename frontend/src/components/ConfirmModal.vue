@@ -7,7 +7,8 @@
                     <h3>{{ title }}</h3>
                 </div>
                 <div class="modal-body">
-                    <p class="modal-message">{{ message }}</p>
+                    <p v-if="message" class="modal-message">{{ message }}</p>
+                    <slot />
 
                     <!-- Error Code (nếu có) -->
                     <div v-if="errorCode" class="error-code">

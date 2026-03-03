@@ -195,8 +195,7 @@ export default defineComponent({
     });
 
     const iconComponent = computed(() => {
-      const iconFn = icons[props.name];
-      return iconFn ? iconFn() : null;
+      return icons[props.name] || null;
     });
 
     return {

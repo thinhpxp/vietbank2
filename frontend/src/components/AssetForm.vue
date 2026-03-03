@@ -37,7 +37,7 @@
         <DynamicForm :fields="filteredAssetFields" :modelValue="localAsset.individual_field_values" :disabled="disabled"
           :idPrefix="`asset-${index}-`" :allSections="allSections" @update:modelValue="onUpdateValues"
           @field-blur="handleFieldBlur" @computed-update="$emit('computed-update', $event)" />
-        <div v-if="duplicateWarning" class="alert-warning mt-4">
+        <div v-if="duplicateWarning" class="alert-warning mt-4 clickable-warning" @click="linkDuplicate">
           <SvgIcon name="alert" size="sm" class="mr-2" />
           <span>{{ duplicateWarning }}</span>
         </div>
@@ -92,7 +92,8 @@ export default {
       isModalOpen: false,
       assetTypes: [],
       selectedType: this.asset.master_object?.object_type || null,
-      duplicateWarning: null
+      duplicateWarning: null,
+      duplicateId: null
     };
   },
   computed: {
@@ -237,12 +238,34 @@ export default {
             this.duplicateWarning = null;
             return;
           }
-          this.duplicateWarning = `Tài sản có mã '${value}' đã tồn tại trong Dữ liệu gốc (Đối tượng: ${res.data.display_name}). Khi lưu, hồ sơ sẽ tự động liên kết với dữ liệu đã có.`;
+          this.duplicateWarning = `⚠️ Mã định danh '${value}' đã tồn tại trong Dữ liệu gốc: "${res.data.display_name}". Bấm để chọn thay vì tạo mới.`;
+          this.duplicateId = res.data.id;
+          if (!this.localAsset.master_object) this.localAsset.master_object = {};
+          this.localAsset.master_object._duplicateMasterId = res.data.id;
+          this.localAsset.master_object._duplicateDisplayName = res.data.display_name;
+          this.localAsset.master_object._duplicateValue = value;
         } else {
           this.duplicateWarning = null;
+          this.duplicateId = null;
+          if (this.localAsset.master_object) {
+            delete this.localAsset.master_object._duplicateMasterId;
+            delete this.localAsset.master_object._duplicateDisplayName;
+            delete this.localAsset.master_object._duplicateValue;
+          }
         }
       } catch (error) {
         console.error('Lỗi kiểm tra định danh tài sản:', error);
+      }
+    },
+    async linkDuplicate() {
+      if (!this.duplicateId) return;
+      try {
+        const res = await axios.get(`${API_URL}/master-objects/${this.duplicateId}/`);
+        this.onAssetSelect(res.data);
+        this.duplicateWarning = null;
+        this.duplicateId = null;
+      } catch (error) {
+        console.error('Lỗi khi liên kết đối tượng tài sản trùng:', error);
       }
     }
   }
@@ -265,14 +288,27 @@ export default {
 }
 
 .alert-warning {
-  background: #fffbe6;
-  border: 1px solid #ffe58f;
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning-border);
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
-  color: #856404;
+  color: var(--color-warning-text);
   font-size: 0.9em;
   display: flex;
   align-items: center;
+  gap: var(--spacing-sm);
+  transition: all 0.2s;
+}
+
+.clickable-warning {
+  cursor: pointer;
+}
+
+.clickable-warning:hover {
+  background: white;
+  border-color: var(--color-warning-text);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .opacity-10 {

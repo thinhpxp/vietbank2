@@ -57,11 +57,12 @@
     </div>
     <div v-else class="data-table-vxe">
       <vxe-table border round :data="filteredProfiles" :row-config="{ isHover: true }"
-        :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }">
+        :column-config="{ resizable: true }"
+        :sort-config="{ trigger: 'cell', defaultSort: { field: 'created_at', order: 'desc' } }">
 
         <vxe-column field="id" title="ID" width="80" sortable></vxe-column>
 
-        <vxe-column field="name" title="Tên Hồ sơ" min-width="200" sortable></vxe-column>
+        <vxe-column field="name" title="Tên Hồ sơ" width="250" sortable></vxe-column>
 
         <vxe-column field="created_by_user_name" title="Người tạo" width="180" sortable>
           <template #default="{ row }">
@@ -92,7 +93,7 @@
           </template>
         </vxe-column>
 
-        <vxe-column title="Hành động" width="280" fixed="right">
+        <vxe-column title="Hành động" width="350" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
               <button v-if="auth.hasPermission('document_automation.change_loanprofile')" class="btn-action btn-edit"

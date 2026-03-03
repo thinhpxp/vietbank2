@@ -40,7 +40,7 @@
       <div v-if="loading" class="loading-state">Đang tải dữ liệu...</div>
 
       <vxe-table v-else border round :data="filteredLogs" :row-config="{ isHover: true }"
-        :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" height="auto" class="audit-table">
+        :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" class="audit-table">
 
         <vxe-column field="id" title="ID" width="70" sortable>
           <template #default="{ row }">
@@ -89,10 +89,11 @@
     </div>
 
     <!-- Pagination (Simple Previous/Next based on DRF) -->
-    <div class="pagination-controls" v-if="nextPage || prevPage">
-      <button :disabled="!prevPage" @click="loadPage(prevPage)" class="btn-secondary btn-sm">Previous</button>
-      <span class="page-info">Trang hiện tại</span>
-      <button :disabled="!nextPage" @click="loadPage(nextPage)" class="btn-secondary btn-sm">Next</button>
+    <div class="pagination-controls">
+      <button :disabled="!prevPage" @click="loadPage(prevPage, 'prev')" class="btn-action btn-secondary">◀
+        Trước</button>
+      <span class="page-info">Trang {{ currentPage }}/{{ totalPages || 1 }}</span>
+      <button :disabled="!nextPage" @click="loadPage(nextPage, 'next')" class="btn-action btn-secondary">Sau ▶</button>
     </div>
 
   </div>
@@ -116,12 +117,18 @@ export default {
       fromDate: format(subDays(new Date(), 15), 'yyyy-MM-dd'),
       toDate: format(new Date(), 'yyyy-MM-dd'),
       nextPage: null,
-      prevPage: null
+      prevPage: null,
+      currentPage: 1,
+      totalCount: 0,
+      pageSize: 15
     };
   },
   computed: {
     filteredLogs() {
       return this.logs;
+    },
+    totalPages() {
+      return Math.ceil(this.totalCount / this.pageSize);
     }
   },
   created() {
@@ -144,13 +151,18 @@ export default {
 
         const response = await axios.get(url, { params });
 
+        // Reset to first page
+        this.currentPage = 1;
+
         // DRF Pagination support
         if (response.data.results) {
           this.logs = response.data.results;
           this.nextPage = response.data.next;
           this.prevPage = response.data.previous;
+          this.totalCount = response.data.count || 0;
         } else {
           this.logs = response.data;
+          this.totalCount = this.logs.length || 0;
         }
 
         // Removed client-side filtering as backend now handles it efficiently via indexing.
@@ -161,7 +173,7 @@ export default {
         this.loading = false;
       }
     },
-    async loadPage(url) {
+    async loadPage(url, direction) {
       if (!url) return;
       this.loading = true;
       try {
@@ -170,6 +182,10 @@ export default {
           this.logs = response.data.results;
           this.nextPage = response.data.next;
           this.prevPage = response.data.previous;
+          this.totalCount = response.data.count || 0;
+
+          if (direction === 'next') this.currentPage++;
+          else if (direction === 'prev') this.currentPage--;
         }
       } catch (error) {
         this.showError(error);
