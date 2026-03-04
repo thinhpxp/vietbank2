@@ -48,7 +48,7 @@
 
                         <vxe-column field="full_name" title="Họ tên" min-width="150" sortable>
                             <template #default="{ row }">
-                                {{ row.first_name }} {{ row.last_name }}
+                                {{ row.full_name }}
                             </template>
                         </vxe-column>
 
@@ -89,22 +89,22 @@
                 <div v-if="selectedUser" class="editor-container">
                     <div class="pane-header admin-row">
                         <h3 class="flex-1">{{ isCreating ? 'Tạo người dùng mới' : `Chi tiết: ${selectedUser.username}`
-                        }}</h3>
+                            }}</h3>
                         <div class="actions">
                             <span v-if="selectedUser.is_superuser" class="superuser-warning">
                                 🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
                             </span>
-                            <button v-if="isCreating" @click="handleCreateUser" class="btn-success"
+                            <button v-if="isCreating" @click="handleCreateUser" class="btn-action btn-success"
                                 :disabled="isSaving">
                                 <SvgIcon name="check" size="sm" /> Tạo người dùng
                             </button>
-                            <button v-else @click="saveUser" class="btn-success flex items-center gap-2"
+                            <button v-else @click="saveUser" class="btn-action btn-success flex items-center gap-2"
                                 :disabled="isSaving || (selectedUser.is_superuser && !auth.isSuperuser)"
                                 title="Lưu thay đổi">
                                 <SvgIcon name="save" size="sm" /> <span>Lưu thay đổi</span>
                             </button>
-                            <button v-if="isCreating" @click="cancelCreate" class="btn-secondary ml-2 btn-icon-only"
-                                title="Hủy bỏ">
+                            <button v-if="isCreating" @click="cancelCreate"
+                                class="btn-action btn-secondary ml-2 btn-icon-only" title="Hủy bỏ">
                                 <SvgIcon name="x" size="sm" />
                             </button>
                         </div>
@@ -196,7 +196,7 @@
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
                                     class="admin-perm-tags">
                                     <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -207,13 +207,13 @@
                         <section class="admin-form-section danger-zone">
                             <h4>Vùng nguy hiểm</h4>
                             <div class="action-row">
-                                <button @click="confirmResetPassword" class="btn-warning"
-                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">🔄 Reset mật
-                                    khẩu</button>
-                                <button @click="confirmDeleteUser" class="btn-danger"
+                                <button @click="confirmResetPassword" class="btn-action btn-warning"
                                     :disabled="selectedUser.is_superuser && !auth.isSuperuser">
-                                    <SvgIcon name="trash" size="sm" /> Xóa tài
-                                    khoản
+                                    <SvgIcon name="refresh" size="sm" /> Reset mật khẩu
+                                </button>
+                                <button @click="confirmDeleteUser" class="btn-action btn-danger"
+                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">
+                                    <SvgIcon name="trash" size="sm" /> Xóa tài khoản
                                 </button>
                             </div>
                         </section>
@@ -235,7 +235,7 @@
                         <input type="text" v-model="groupSearch" placeholder="Tìm kiếm nhóm..."
                             class="admin-input w-full" />
                     </div>
-                    <button @click="createNewGroup" class="btn-primary btn-icon-only" title="Tạo Nhóm mới">
+                    <button @click="createNewGroup" class="btn-action btn-primary btn-icon-only" title="Tạo Nhóm mới">
                         <SvgIcon name="plus" size="sm" />
                     </button>
                 </div>
@@ -246,11 +246,6 @@
 
                         <vxe-column field="name" title="Tên nhóm" min-width="150" sortable></vxe-column>
 
-                        <vxe-column field="name" title="Mã (Slug)" width="150" sortable>
-                            <template #default="{ row }">
-                                <code>{{ row.name }}</code>
-                            </template>
-                        </vxe-column>
 
                         <vxe-column title="Hành động" width="120" fixed="right">
                             <template #default="{ row }">
@@ -272,12 +267,13 @@
                     <div class="pane-header admin-row">
                         <input type="text" v-model="selectedGroup.name" class="admin-form-control h3-input flex-1"
                             placeholder="Tên nhóm..." />
-                        <div class="actions">
-                            <button @click="saveGroup" class="btn-success flex items-center gap-2" :disabled="isSaving"
-                                title="Lưu cấu hình Nhóm">
+                        <div class="actions flex items-center gap-2">
+                            <button @click="saveGroup" class="btn-action btn-success flex items-center gap-2"
+                                :disabled="isSaving" title="Lưu cấu hình Nhóm">
                                 <SvgIcon name="save" size="sm" /> <span>Lưu Nhóm</span>
                             </button>
-                            <button @click="confirmDeleteGroup" class="btn-icon danger">
+                            <button @click="confirmDeleteGroup" class="btn-action btn-danger btn-icon-only"
+                                title="Xóa nhóm">
                                 <SvgIcon name="trash" size="sm" />
                             </button>
                         </div>
@@ -708,15 +704,16 @@ export default {
     /* Fix flexbox growth in some browsers */
 }
 
+/* Refactored styles using global variables and utilities */
 .editor-content {
     flex: 1;
     overflow-y: auto;
-    padding: 1rem;
+    padding: var(--spacing-lg);
     max-width: 100%;
 }
 
 .pane-left {
-    border-right: 1px solid #f1f5f9;
+    border-right: 1px solid var(--slate-100);
 }
 
 .scrollable {
@@ -726,85 +723,68 @@ export default {
 
 .divider {
     width: 4px;
-    background: #f1f5f9;
+    background: var(--slate-100);
     cursor: col-resize;
     transition: background 0.2s;
 }
 
 .divider:hover {
-    background: #3b82f6;
+    background: var(--color-primary);
 }
 
 .pane-header {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-lg);
     position: sticky;
     top: 0;
-    background: #fff;
+    background: white;
     z-index: 10;
-    padding-bottom: 10px;
-    /*border-bottom: 1px solid #f1f5f9;*/
-    flex-wrap: wrap;
-    gap: 10px;
+    padding-bottom: var(--spacing-sm);
+    flex-wrap: nowrap;
+    gap: var(--spacing-md);
     flex-shrink: 0;
-    /* Đảm bảo header không bị co lại */
+    border-bottom: 1px solid var(--slate-100);
 }
 
 .pane-header h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--font-md);
     white-space: nowrap;
 }
 
 .pane-header input.h3-input {
-    font-size: 1.1rem;
+    font-size: var(--font-lg);
     font-weight: bold;
-    border: 1px solid transparent;
-    padding: 4px 8px;
-    border-radius: 4px;
+    border: 1px solid var(--slate-200);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
     transition: all 0.2s;
-    background: transparent;
-    width: 100%;
-    min-width: 150px;
-}
-
-.pane-header input.form-control {
-    width: 100%;
-    min-width: 300px;
+    background: var(--slate-50);
+    max-width: 400px;
 }
 
 .pane-header input.h3-input:hover,
 .pane-header input.h3-input:focus {
-    border-color: #cbd5e1;
-    background: #fff;
+    border-color: var(--slate-200);
+    background: white;
     outline: none;
 }
 
 .data-table-vxe {
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
     height: calc(100% - 60px);
 }
 
-/* Badges - Migrated to admin.css */
-
-/* Legend - Migrated to admin.css */
-
-/* Effective Permissions - Migrated to admin.css */
-
-/* Forms - Migrated to admin.css */
-
-/* Groups & Permissions - Migrated to admin.css */
-
+/* Permission Manager */
 .permission-manager {
     display: flex;
     flex-direction: column;
     flex: 1;
     overflow: hidden;
-    /* Ràng buộc để con cuộn được */
-    border-top: 1px solid #f1f5f9;
-    padding-top: 1rem;
+    border-top: 1px solid var(--slate-100);
+    padding-top: var(--spacing-lg);
     min-height: 0;
 }
 
@@ -812,14 +792,13 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /*margin-bottom: 1rem;*/
     flex-wrap: wrap;
-    gap: 10px;
-    background: #fff;
+    gap: var(--spacing-md);
+    background: white;
     position: sticky;
     top: 0;
     z-index: 5;
-    padding-bottom: 5px;
+    padding-bottom: var(--spacing-xs);
 }
 
 .perm-search {
@@ -829,26 +808,25 @@ export default {
 
 .perm-list {
     flex: 1;
-    border: 1px dashed #e2e8f0;
-    padding: 1rem;
-    border-radius: 8px;
+    border: 1px dashed var(--slate-200);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
     overflow-y: auto;
-    /* Cuộn tại đây */
 }
 
 .perm-category {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
 }
 
 .category-title {
-    font-size: 0.8rem;
+    font-size: var(--font-xs);
     font-weight: bold;
-    color: #94a3b8;
+    color: var(--slate-400);
     text-transform: uppercase;
     margin-bottom: 8px;
-    background: #f8fafc;
+    background: var(--slate-50);
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .perm-grid {
@@ -861,20 +839,20 @@ export default {
     display: flex;
     gap: 10px;
     padding: 8px;
-    border: 1px solid #f1f5f9;
-    border-radius: 6px;
+    border: 1px solid var(--slate-50);
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .perm-item:hover {
-    border-color: #3b82f6;
-    background: #f0f7ff;
+    border-color: var(--color-primary);
+    background: var(--color-info-light);
 }
 
 .perm-item.checked {
-    border-color: #2563eb;
-    background: #eff6ff;
+    border-color: var(--color-primary);
+    background: var(--color-info-light);
 }
 
 .perm-info {
@@ -883,67 +861,21 @@ export default {
 }
 
 .p-name {
-    font-size: 0.85rem;
+    font-size: var(--font-sm);
     font-weight: 500;
 }
 
 .p-code {
-    font-size: 0.7rem;
-    color: #94a3b8;
+    font-size: var(--font-xs);
+    color: var(--slate-400);
 }
 
-/* Buttons */
-.btn-primary {
-    background: #2563eb;
-    color: #fff;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-success {
-    background: #10b981;
-    color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-warning {
-    background: #f59e0b;
-    color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-danger {
-    background: #ef4444;
-    color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-secondary {
-    background: #f1f5f9;
-    color: #475569;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-/* Modal */
+/* Custom Modals for this specialized view */
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -951,23 +883,23 @@ export default {
 }
 
 .modal-content {
-    background: #fff;
-    padding: 2rem;
-    border-radius: 12px;
+    background: white;
+    padding: var(--spacing-2xl);
+    border-radius: var(--radius-lg);
     width: 400px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-xl);
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 2rem;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-2xl);
 }
 
 .hint {
-    font-size: 0.8rem;
-    color: #64748b;
+    font-size: var(--font-xs);
+    color: var(--slate-500);
     margin-top: 8px;
 }
 
@@ -977,53 +909,51 @@ export default {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #94a3b8;
+    color: var(--slate-300);
 }
 
 .empty-state .icon {
     font-size: 4rem;
     opacity: 0.2;
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-lg);
 }
 
-/* Audit Log */
+/* Audit Log specifics */
 .audit-view {
     flex: 1;
 }
 
 .audit-table .time {
-    color: #64748b;
-    font-size: 0.8rem;
+    color: var(--slate-500);
+    font-size: var(--font-xs);
 }
 
 .tag {
-    padding: 2px 6px;
-    border-radius: 999px;
-    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-xs);
     font-weight: bold;
 }
 
 .tag-LOGIN {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--emerald-50);
+    color: var(--emerald-700);
 }
 
 .tag-CREATE {
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--color-info-light);
+    color: var(--color-info-text);
 }
 
 .tag-UPDATE {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--color-warning-light);
+    color: var(--color-warning-text);
 }
 
 .tag-DELETE {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--color-danger-light);
+    color: var(--color-danger-text);
 }
 
-.admin-form-control {
-    min-width: 30ch;
-}
+/* Buttons inherited from common-ui.css / admin.css */
 </style>
