@@ -10,7 +10,7 @@
 
     <!-- Filter Bar (Premium Refactor) -->
     <div class="filter-bar admin-row align-end gap-md mb-6">
-      <div class="filter-group" style="flex: 1.5; min-width: 100px;">
+      <div class="filter-group" style="flex: 1.5; min-width: 250px;">
         <label class="premium-label">
           <SvgIcon name="search" size="xs" /> Tìm kiếm
         </label>
@@ -30,24 +30,31 @@
         </select>
       </div>
 
-      <div class="filter-group" style="flex: 1; min-width: 150px;">
+      <div class="filter-group" style="flex: 1; min-width: 180px;">
         <label class="premium-label">
           <SvgIcon name="calendar" size="xs" /> Ngày tạo
         </label>
-        <input v-model="filters.createdDate" type="date" class="filter-control premium-input">
+        <div class="premium-input-wrapper">
+          <input v-model="filters.createdDate" type="date" class="filter-control premium-input">
+        </div>
       </div>
 
-      <div class="filter-group" style="flex: 1; min-width: 100px;">
+      <div class="filter-group" style="flex: 1; min-width: 180px;">
         <label class="premium-label">
           <SvgIcon name="user" size="xs" /> Người tạo
         </label>
-        <input v-model="filters.creator" placeholder="Nhập tên..." class="filter-control premium-input">
+        <div class="premium-input-wrapper">
+          <input v-model="filters.creator" placeholder="Nhập tên..." class="filter-control premium-input">
+        </div>
       </div>
 
-      <div class="filter-actions flex items-end">
-        <button class="btn-action btn-secondary flex items-center gap-2" @click="resetFilters" title="Đặt lại bộ lọc">
-          <SvgIcon name="x" size="sm" /> <span>Đặt lại</span>
-        </button>
+      <div class="filter-group" style="flex: 0 0 auto;">
+        <label class="premium-label" style="visibility: hidden;">&nbsp;</label>
+        <div class="premium-input-wrapper">
+          <button class="btn-action btn-secondary flex items-center gap-2" @click="resetFilters" title="Đặt lại bộ lọc">
+            <SvgIcon name="x" size="sm" /> <span>Đặt lại</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -296,14 +303,6 @@ export default {
     formatDate(dateString) {
       if (!dateString) return '';
       return new Date(dateString).toLocaleDateString('vi-VN');
-    },
-    resetFilters() {
-      this.filters = {
-        search: '',
-        status: null,
-        createdDate: '',
-        creator: ''
-      };
     }
   }
 }

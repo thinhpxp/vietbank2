@@ -31,3 +31,17 @@ class IsAdminOrManager(permissions.DjangoModelPermissions):
         # 2. Smart Access (RBAC)
         # Rely on DjangoModelPermissions to check auth + specific action permission
         return super().has_permission(request, view)
+
+class ReadOnlyMetadataOrAdmin(permissions.BasePermission):
+    """
+    Cho phép mọi user đã đăng nhập được XEM (GET) metadata.
+    Chỉ Admin (is_staff) mới có quyền THAY ĐỔI.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+            
+        if request.method in permissions.SAFE_METHODS:
+            return True
+            
+        return request.user.is_staff or request.user.is_superuser

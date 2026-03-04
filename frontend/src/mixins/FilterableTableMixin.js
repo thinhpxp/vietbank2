@@ -70,6 +70,28 @@ export const FilterableTableMixin = {
 
                 return true;
             });
+        },
+
+        /**
+         * Reset all filters to their default values.
+         */
+        resetFilters() {
+            if (!this.filters) return;
+
+            Object.keys(this.filters).forEach(key => {
+                const val = this.filters[key];
+                if (Array.isArray(val)) {
+                    this.filters[key] = [];
+                } else if (typeof val === 'number') {
+                    this.filters[key] = null;
+                } else if (val === null || val === undefined) {
+                    this.filters[key] = null;
+                } else if (typeof val === 'boolean') {
+                    this.filters[key] = false;
+                } else {
+                    this.filters[key] = '';
+                }
+            });
         }
     }
 };

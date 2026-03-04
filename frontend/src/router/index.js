@@ -58,7 +58,7 @@ const routes = [
   {
     path: '/master-data',
     name: 'MasterData',
-    component: () => import('@/views/admin/MasterData.vue'),
+    component: MasterData,
     meta: { requiresAuth: true }
   },
   {

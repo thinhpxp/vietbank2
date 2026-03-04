@@ -18,14 +18,28 @@
             </div>
         </div>
 
-        <!-- Filter Bar -->
-        <div class="filter-bar mb-4">
-            <div class="filter-group">
-                <label>Tìm kiếm:</label>
-                <input v-model="filters.search" placeholder="Tìm theo tên, số hiệu..." class="admin-form-control"
-                    style="width: 300px">
+        <div class="filter-bar admin-row align-end gap-md mb-4">
+            <div class="filter-group" style="flex: 1; min-width: 300px;">
+                <label class="premium-label">
+                    <SvgIcon name="search" size="xs" /> Tìm kiếm
+                </label>
+                <div class="premium-input-wrapper">
+                    <input v-model="filters.search" placeholder="Tìm theo tên, số hiệu..."
+                        class="filter-control premium-input">
+                </div>
             </div>
-            <div v-if="editingLockedBy" class="indicator-tag indicator-danger ml-auto">
+
+            <div class="filter-group" style="flex: 0 0 auto;">
+                <label class="premium-label" style="visibility: hidden;">&nbsp;</label>
+                <div class="premium-input-wrapper">
+                    <button class="btn-action btn-secondary flex items-center gap-2" @click="resetFilters"
+                        title="Đặt lại bộ lọc">
+                        <SvgIcon name="x" size="sm" /> <span>Đặt lại</span>
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="editingLockedBy" class="indicator-tag indicator-danger ml-auto mb-1">
                 ⚠️ Hệ thống đang ở chế độ xem. Đối tượng đang bị khóa bởi: {{ editingLockedBy }}
             </div>
         </div>
@@ -214,7 +228,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
                                 </div>

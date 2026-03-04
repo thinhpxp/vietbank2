@@ -57,23 +57,7 @@ const store = {
 
     // Getters
     isAdmin: computed(() => {
-        if (state.user?.is_staff || state.user?.is_superuser) return true;
-
-        // Smart Access: Access if user has ANY "view_" permission for core admin modules
-        const coreModules = [
-            'user', 'group', 'permission',
-            'field', 'fieldgroup', 'formview',
-            'documenttemplate', 'role',
-            'masterobjecttype', 'auditlog', 'adminnotification'
-        ];
-
-        // Check if any permission string contains "view_" + module OR just "view_user" etc.
-        // Permissions usually come as "app_label.view_model" or just "view_model"
-        return state.permissions.some(perm => {
-            // Normalized check
-            const p = perm.toLowerCase();
-            return coreModules.some(mod => p.includes(`view_${mod}`) || p.includes(`change_${mod}`));
-        });
+        return state.user?.is_staff || state.user?.is_superuser || false;
     }),
     isSuperuser: computed(() => state.user?.is_superuser || false),
     hasPermission: (perm) => {

@@ -87,10 +87,13 @@
         </select>
       </div>
 
-      <div class="filter-actions h-full flex items-end">
-        <button class="btn-action btn-secondary flex items-center gap-2" @click="resetFilters" title="Đặt lại bộ lọc">
-          <SvgIcon name="x" size="sm" /> <span>Đặt lại</span>
-        </button>
+      <div class="filter-group" style="flex: 0 0 auto;">
+        <label class="premium-label" style="visibility: hidden;">&nbsp;</label>
+        <div class="premium-input-wrapper">
+          <button class="btn-action btn-secondary flex items-center gap-2" @click="resetFilters" title="Đặt lại bộ lọc">
+            <SvgIcon name="x" size="sm" /> <span>Đặt lại</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -416,9 +419,6 @@ export default {
         show_amount_in_words: f.show_amount_in_words
       };
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    },
-    resetFilters() {
-      this.filters = { group: null, dataType: null, objectType: null, search: '' };
     }
   }
 }

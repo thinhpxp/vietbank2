@@ -4,7 +4,7 @@ from django.contrib.auth.models import User, Group, Permission
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from .permissions import IsAdminOrManager # IMPORT CUSTOM PERMISSION
+from .permissions import IsAdminOrManager, ReadOnlyMetadataOrAdmin # IMPORT CUSTOM PERMISSION
 from rest_framework.views import APIView
 
 # ... (rest of imports)
@@ -454,19 +454,19 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
 class FormViewViewSet(viewsets.ModelViewSet):
     queryset = FormView.objects.all()
     serializer_class = FormViewSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [ReadOnlyMetadataOrAdmin]
 
 # 1.3 ViewSet cho Role
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [ReadOnlyMetadataOrAdmin]
 
 # 1.2 ViewSet cho Field
 class FieldViewSet(viewsets.ModelViewSet):
     queryset = Field.objects.all().order_by('-id')
     serializer_class = FieldSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [ReadOnlyMetadataOrAdmin]
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related('group')
@@ -545,7 +545,7 @@ class FieldViewSet(viewsets.ModelViewSet):
 class DocumentTemplateViewSet(viewsets.ModelViewSet):
     queryset = DocumentTemplate.objects.all().order_by('-id')
     serializer_class = DocumentTemplateSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [ReadOnlyMetadataOrAdmin]
 
 # 3.2 ViewSet cho User (Nâng cấp)
 class UserViewSet(viewsets.ModelViewSet):
@@ -1651,7 +1651,7 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('-id')
     serializer_class = MasterObjectTypeSerializer
-    permission_classes = [IsAdminOrManager] 
+    permission_classes = [ReadOnlyMetadataOrAdmin]
     # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
 
 
