@@ -69,7 +69,7 @@
 
         <vxe-column field="id" title="ID" width="80" sortable></vxe-column>
 
-        <vxe-column field="name" title="Tên Hồ sơ" width="250" sortable></vxe-column>
+        <vxe-column field="name" title="Tên Hồ sơ" width="380" sortable></vxe-column>
 
         <vxe-column field="created_by_user_name" title="Người tạo" width="180" sortable>
           <template #default="{ row }">

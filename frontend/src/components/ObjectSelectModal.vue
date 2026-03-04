@@ -1,5 +1,5 @@
 <template>
-    <BaseModal :isOpen="isOpen" :title="title" :initialWidth="900" :isResizable="true" @close="close">
+    <BaseModal :isOpen="isOpen" :title="title" :initialWidth="1100" :isResizable="true" @close="close">
         <div class="modal-body-content">
             <div class="search-box mb-4">
                 <div class="input-group">
@@ -22,7 +22,7 @@
                     :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" height="auto"
                     class="select-table">
 
-                    <vxe-column field="display_name" title="Tên / Số hiệu" min-width="200" sortable>
+                    <vxe-column field="display_name" title="Tên / Số hiệu" width="200" sortable>
                         <template #default="{ row }">
                             <strong class="font-bold">
                                 {{ row.ho_ten || row.so_giay_chung_nhan || row.display_name || '---' }}
@@ -30,13 +30,13 @@
                         </template>
                     </vxe-column>
 
-                    <vxe-column field="additional_info" title="Thông tin thêm" width="200">
+                    <vxe-column field="additional_info" title="Thông tin thêm" width="150">
                         <template #default="{ row }">
                             {{ getAdditionalInfo(row) }}
                         </template>
                     </vxe-column>
 
-                    <vxe-column field="object_type_display" title="Loại" width="120" sortable>
+                    <vxe-column field="object_type_display" title="Loại" width="200" sortable>
                         <template #default="{ row }">
                             <span class="status-badge draft">{{ row.object_type_display }}</span>
                         </template>

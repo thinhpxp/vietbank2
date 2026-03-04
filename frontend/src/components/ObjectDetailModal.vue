@@ -35,7 +35,7 @@
       <!-- Section: Chi tiết thuộc tính -->
       <div>
         <h4 class="text-sm font-bold text-gray-700 uppercase mb-3 border-b pb-1 flex items-center gap-2">
-          <span>🔍</span> {{ $t('THUO_TINH_CHI_TIET') }}
+          <span>🔍</span> {{ $t('THUOC_TINH_CHI_TIET') }}
         </h4>
         <div class="data-table-vxe">
           <vxe-table border round :data="attributeList" :column-config="{ resizable: true }"

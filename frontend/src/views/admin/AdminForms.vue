@@ -38,7 +38,7 @@
             </div>
         </div>
         <div class="ui-table-wrapper">
-            <vxe-table :data="filteredForms" border show-header-overflow show-overflow resizable
+            <vxe-table :data="filteredForms" border show-header-overflow show-overflow
                 :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" class="data-table-vxe">
                 <vxe-column field="id" title="ID" width="80" sortable></vxe-column>
                 <vxe-column field="name" title="Tên Form" min-width="250" sortable>

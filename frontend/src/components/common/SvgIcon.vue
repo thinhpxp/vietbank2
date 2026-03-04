@@ -100,6 +100,14 @@ const icons = {
     h('polyline', { points: '13 2 13 9 20 9' })
   ]),
 
+  'file-text': () => h('g', [
+    h('path', { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' }),
+    h('polyline', { points: '14 2 14 8 20 8' }),
+    h('line', { x1: '16', y1: '13', x2: '8', y2: '13' }),
+    h('line', { x1: '16', y1: '17', x2: '8', y2: '17' }),
+    h('polyline', { points: '10 9 9 9 8 9' })
+  ]),
+
   search: () => h('g', [
     h('circle', { cx: '11', cy: '11', r: '8' }),
     h('line', { x1: '21', y1: '21', x2: '16.65', y2: '16.65' })
@@ -140,6 +148,14 @@ const icons = {
   'chevron-left': () => h('polyline', { points: '15 18 9 12 15 6' }),
   'chevron-right': () => h('polyline', { points: '9 18 15 12 9 6' }),
 
+  'share-2': () => h('g', [
+    h('circle', { cx: '18', cy: '5', r: '3' }),
+    h('circle', { cx: '6', cy: '12', r: '3' }),
+    h('circle', { cx: '18', cy: '19', r: '3' }),
+    h('line', { x1: '8.59', y1: '13.51', x2: '15.42', y2: '17.49' }),
+    h('line', { x1: '15.41', y1: '6.51', x2: '8.59', y2: '10.49' })
+  ]),
+
   calendar: () => h('g', [
     h('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }),
     h('line', { x1: '16', y1: '2', x2: '16', y2: '6' }),
@@ -154,6 +170,11 @@ const icons = {
   refresh: () => h('g', [
     h('path', { d: 'M23 4v6h-6' }),
     h('path', { d: 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10' })
+  ]),
+
+  clock: () => h('g', [
+    h('circle', { cx: '12', cy: '12', r: '10' }),
+    h('polyline', { points: '12 6 12 12 16 14' })
   ]),
 };
 

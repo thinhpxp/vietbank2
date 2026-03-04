@@ -130,7 +130,7 @@ export default {
 }
 
 .modal-box {
-    background: white;
+    background: rgb(255, 255, 255);
     max-width: 98vw;
     max-height: 95vh;
     display: flex;

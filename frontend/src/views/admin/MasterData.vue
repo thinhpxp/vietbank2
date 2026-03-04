@@ -124,7 +124,7 @@
 
         <!-- RELATED INFO MODAL -->
         <div v-if="showRelatedModal" class="admin-modal-overlay" @click.self="showRelatedModal = false">
-            <div class="admin-side-modal" :style="{ width: sideModalWidth + 'px' }">
+            <div class="admin-side-modal" :class="{ resizing: isResizing }" :style="{ width: sideModalWidth + 'px' }">
                 <!-- RESIZE HANDLE -->
                 <div class="resizer-handle" @mousedown="startResize"></div>
 
@@ -228,7 +228,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                            }}</span>
+                                        }}</span>
                                     </div>
 
                                 </div>
@@ -348,7 +348,11 @@ export default {
 
             // Locking
             heartbeatInterval: null,
-            editingLockedBy: null // If someone else is editing
+            editingLockedBy: null, // If someone else is editing
+
+            // UI Resizing
+            sideModalWidth: 800,
+            isResizing: false
         };
     },
     computed: {
@@ -615,35 +619,31 @@ export default {
                 };
 
                 // Determine type title for the modal
-                // We need to guess type name or pass it. 
-                // The MasterCreateModal takes 'typeName'. 
-                // We can find it in objectTypes if we know the code.
                 const typeCode = fullObj.object_type;
                 const typeDef = this.objectTypes.find(t => t.code === typeCode);
                 const typeName = typeDef ? typeDef.name : typeCode;
 
-                // Use a temporary workaround to open modal with this object type
-                // We need to set activeTab temporarily or pass separate props to Modal?
-                // MasterCreateModal uses 'type' prop.
+                // LOCKING LOGIC: Try to acquire lock for this object
+                this.editingLockedBy = null;
+                try {
+                    const lockRes = await axios.post(`${API_URL}/master-objects/${objectId}/acquire_lock/`);
+                    if (lockRes.data.locked) {
+                        this.editingLockedBy = lockRes.data.locked_by;
+                    } else {
+                        this.startHeartbeat(objectId);
+                    }
+                } catch (e) {
+                    if (e.response && e.response.status === 423) {
+                        this.editingLockedBy = e.response.data.locked_by;
+                    } else {
+                        console.error("Lock error", e);
+                    }
+                }
 
-                // Let's reuse specific properties for this case
+                // Reuse specific properties for this case
                 this.targetEditObject = fullObj;
-                // Hack: We might need to handle the 'type' prop of modal if it differs from activeTab
-                // But MasterCreateModal only uses 'type' for fetching fields title.
-                // We should probably update showCreateModal to handle specific type overriding activeTab
-                // But for now let's assume we can pass it via a separate mechanism or just change activeTab?
-                // Changing activeTab changes the background list... maybe confusing.
-
-                // Better: Update MasterCreateModal usage in template to accept dynamic type
-                // But for now, let's try just setting targetEditObject and hope 
-                // Wait, MasterCreateModal props: :type="activeTab".
-                // If I am viewing a Person (activeTab=PERSON), and viewing related Asset (VEHICLE),
-                // the modal will receive type="PERSON" which is WRONG for VEHICLE fields.
-
-                // FIX: We need a dynamic override.
                 this.tempOverrideType = typeCode;
                 this.tempOverrideTypeName = typeName;
-
                 this.showCreateModal = true;
 
             } catch (e) {
@@ -682,83 +682,14 @@ export default {
 </script>
 
 <style scoped>
-/* Redundant styles moved to admin.css / common-ui.css */
+/* Redundant styles moved to admin.css */
 .tab-content {
     margin-top: 10px;
 }
 
 /* Custom override for unified side body */
 .unified-side-body {
-    padding: 0;
-    background: #f8fafc;
-}
-
-/* Audit Timeline */
-.audit-timeline {
-    margin-top: 15px;
-    border-left: 2px solid #e2e8f0;
-    padding-left: 20px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.audit-item {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.audit-item::before {
-    content: '';
-    position: absolute;
-    left: -26px;
-    top: 5px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #94a3b8;
-}
-
-.audit-meta {
-    font-size: 0.8rem;
-    color: #64748b;
-    margin-bottom: 4px;
-}
-
-.audit-user {
-    font-weight: bold;
-    margin-right: 10px;
-}
-
-.audit-time {
-    float: right;
-}
-
-.audit-action {
-    font-weight: bold;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-}
-
-.audit-action.update {
-    color: #3b82f6;
-}
-
-.audit-action.create {
-    color: #10b981;
-}
-
-.audit-action.delete {
-    color: #ef4444;
-}
-
-.audit-details pre {
-    background: #f1f5f9;
-    padding: 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    margin-top: 5px;
-    white-space: pre-wrap;
-    font-family: monospace;
-    color: #475569;
+    padding: 20px;
+    background: var(--slate-50);
 }
 </style>

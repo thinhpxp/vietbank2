@@ -782,3 +782,21 @@ body.is-resizing * {
     background-color: #eff6ff !important;
     /* Standardized Blue highlight */
 }
+
+/* Button History Customization */
+.btn-action.btn-history {
+    color: #4f46e5 !important;
+}
+
+.btn-action.btn-history .svg-icon {
+    color: #4f46e5 !important;
+}
+
+.btn-action.btn-history:hover:not(:disabled) {
+    background-color: #eef2ff !important;
+    color: #3730a3 !important;
+}
+
+.btn-action.btn-history:hover:not(:disabled) .svg-icon {
+    color: #3730a3 !important;
+}

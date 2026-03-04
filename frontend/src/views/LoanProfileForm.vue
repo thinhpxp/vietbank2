@@ -18,23 +18,25 @@
         </div>
       </div>
       <div class="header-buttons">
-        <button v-if="profileStatus === 'DRAFT' && (id || currentId)" class="btn-action btn-lock btn-icon-only"
-          @click="lockProfile" title="Khóa hồ sơ">
+        <button class="btn-action btn-lock btn-icon-only" v-if="profileStatus === 'DRAFT'"
+          :disabled="!(id || currentId)" @click="lockProfile" title="Khóa hồ sơ">
           <SvgIcon name="lock" size="sm" />
         </button>
-        <button v-if="profileStatus === 'FINALIZED'" class="btn-action btn-unlock btn-icon-only" @click="unlockProfile"
-          title="Mở khóa hồ sơ">
+        <button class="btn-action btn-unlock btn-icon-only" v-if="profileStatus === 'FINALIZED'"
+          :disabled="!(id || currentId)" @click="unlockProfile" title="Mở khóa hồ sơ">
           <SvgIcon name="unlock" size="sm" />
         </button>
-        <button v-if="id || currentId" class="btn-action btn-doc btn-icon-only" @click="openDownloadModal"
-          title="Xuất Hợp đồng">
+
+        <button class="btn-action btn-doc btn-icon-only" :disabled="!(id || currentId)"
+          @click="isDownloadModalOpen = true" title="Xuất Hợp đồng">
           <SvgIcon name="download" size="sm" />
         </button>
-        <button v-if="id || currentId" class="btn-action btn-secondary btn-icon-only" @click="showHistoryDrawer = true"
-          title="Nhật ký thay đổi">
-          <SvgIcon name="calendar" size="sm" />
+
+        <button class="btn-action btn-secondary btn-history btn-icon-only" :disabled="!(id || currentId)"
+          @click="showHistoryDrawer = true" title="Xem lịch sử">
+          <SvgIcon name="clock" size="sm" />
         </button>
-        <button v-if="id || currentId" class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal"
+        <button class="btn-action btn-copy btn-icon-only" :disabled="!(id || currentId)" @click="openDuplicateModal"
           title="Nhân bản hồ sơ">
           <SvgIcon name="copy" size="sm" />
         </button>
@@ -408,6 +410,10 @@
       </template>
     </ConfirmModal>
 
+    <!-- CONTRACT DOWNLOADER MODAL -->
+    <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="Number(id || currentId)" :profileName="profileName"
+      @close="isDownloadModalOpen = false" />
+
     <!-- HISTORY DRAWER (Slide-over) -->
     <Teleport to="body">
       <div class="drawer-overlay" v-if="showHistoryDrawer" @click="showHistoryDrawer = false"></div>
@@ -741,6 +747,22 @@ export default {
   },
   watch: {
     // Watchers for other logic if needed in future
+    id: {
+      handler(newId) {
+        if (newId) {
+          this.currentId = newId;
+          this.fetchProfileData(newId);
+        } else {
+          // Reset data for new profile
+          this.currentId = null;
+          this.profileName = '';
+          this.profileStatus = 'DRAFT';
+          this.generalFieldValues = {};
+          this.objectSections = {};
+          this.applyDefaultsToGeneral();
+        }
+      }
+    },
     '$route.query.form': {
       handler() {
         this.fetchFields();
@@ -1202,11 +1224,19 @@ export default {
           const data = response.data;
           this.profileName = data.name;
           this.profileStatus = data.status || 'DRAFT';
+          this.currentId = data.id;
+
           // Chặn computed-update khi gán dữ liệu mới từ server
           this.suppressComputedUpdate = true;
           this.generalFieldValues = data.field_values || {};
           this.objectSections = data.object_sections || {};
           this.$nextTick(() => { this.suppressComputedUpdate = false; });
+
+          // REDIRECT logic: Nếu đang ở màn hình tạo mới, chuyển sang màn hình chỉnh sửa
+          if (!this.id && targetId && !silent) {
+            console.log("DEBUG: Redirecting to edit mode for newly created profile:", targetId);
+            this.$router.push(`/edit/${targetId}`);
+          }
         }
 
         if (!silent) {
@@ -1375,6 +1405,12 @@ export default {
   flex: 3;
 }
 
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .profile-id-badge {
   background: #34495e;
   color: white;
@@ -1394,7 +1430,7 @@ export default {
 
 .profile-name-input-wrapper {
   flex: 1;
-  max-width: 400px;
+  max-width: 600px;
 }
 
 .profile-name-input {
@@ -1481,7 +1517,7 @@ export default {
   font-size: var(--font-lg);
   font-weight: 700;
   color: var(--color-text);
-  width: 300px;
+  width: 550px;
   border-bottom: 2px solid transparent;
   transition: var(--transition-fast);
 }
