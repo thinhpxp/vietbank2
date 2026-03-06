@@ -62,17 +62,26 @@
                 <vxe-column title="Hành động" width="160" fixed="right">
                     <template #default="{ row }">
                         <div class="flex gap-2">
-                            <button v-if="editingId === row.id" @click="updateForm(row)"
-                                class="btn-action btn-save btn-icon-only" title="Lưu thay đổi">
-                                <SvgIcon name="save" size="sm" />
-                            </button>
-                            <button v-else @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
-                                title="Sửa">
-                                <SvgIcon name="edit" size="sm" />
-                            </button>
-                            <button @click="deleteForm(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
-                                <SvgIcon name="trash" size="sm" />
-                            </button>
+                            <template v-if="editingId === row.id">
+                                <button @click="updateForm(row)" class="btn-action btn-save btn-icon-only"
+                                    title="Lưu thay đổi">
+                                    <SvgIcon name="save" size="sm" />
+                                </button>
+                                <button @click="editingId = null" class="btn-action btn-secondary btn-icon-only"
+                                    title="Hủy bỏ">
+                                    <SvgIcon name="x" size="sm" />
+                                </button>
+                            </template>
+                            <template v-else>
+                                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
+                                    title="Sửa">
+                                    <SvgIcon name="edit" size="sm" />
+                                </button>
+                                <button @click="deleteForm(row.id)" class="btn-action btn-delete btn-icon-only"
+                                    title="Xóa">
+                                    <SvgIcon name="trash" size="sm" />
+                                </button>
+                            </template>
                         </div>
                     </template>
                 </vxe-column>

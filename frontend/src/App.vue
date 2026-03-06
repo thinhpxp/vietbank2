@@ -2,13 +2,27 @@
   <div id="app">
     <!-- Thanh điều hướng chung (Ẩn khi ở trang Login/Register) -->
     <nav v-if="!hideNavbar" class="navbar">
-      <div class="brand">AutoContract App</div>
+      <div class="brand">
+        <template v-if="systemConfig.state.logoType === 'image' && systemConfig.state.logoUrl">
+          <img :src="systemConfig.state.logoUrl" alt="Logo" class="brand-logo-img" />
+        </template>
+        <template v-else>
+          <div class="brand-icon-wrapper">
+            <SvgIcon name="layers" size="md" />
+          </div>
+        </template>
+        <span class="brand-text">{{ systemConfig.state.brandName }}</span>
+      </div>
+
       <div class="links">
-        <router-link to="/">Danh sách Hồ sơ</router-link>
-        <router-link v-if="isAuthenticated" to="/master-data">
-          <SvgIcon name="folder" size="sm" /> Dữ liệu gốc
+        <router-link to="/">
+          <SvgIcon name="clipboard" size="sm" /> Danh sách Hồ sơ
         </router-link>
-        <router-link v-if="isAdmin" to="/admin/groups">
+        <router-link v-if="isAuthenticated" to="/master-data">
+          <SvgIcon name="database" size="sm" /> Dữ liệu gốc
+        </router-link>
+        <router-link v-if="isAdmin" to="/admin/groups"
+          :class="{ 'router-link-active': $route.path.startsWith('/admin') }">
           <SvgIcon name="settings" size="sm" /> Admin Panel
         </router-link>
       </div>
@@ -45,6 +59,7 @@ import AppToast from './components/AppToast.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import NotificationPanel from './components/common/NotificationPanel.vue'
 import auth from './store/auth'
+import systemConfig from './store/systemConfig'
 import eventBus, { EVENTS } from './utils/eventBus'
 import { formatError } from './utils/errorHandler'
 
@@ -58,7 +73,8 @@ export default {
       errorModalTitle: 'Lỗi',
       errorModalMessage: '',
       errorModalCode: '',
-      errorModalDetails: ''
+      errorModalDetails: '',
+      systemConfig // Cấu hình thương hiệu động
     }
   },
   computed: {
@@ -93,6 +109,8 @@ export default {
     }
   },
   mounted() {
+    // Tải cấu hình Branding từ server ngay khi app khởi chạy
+    systemConfig.loadFromServer();
     // Subscribe to global error events
     eventBus.on(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
   },
@@ -107,7 +125,7 @@ export default {
 body {
   margin: 0;
   background-color: #f4f6f8;
-  font-family: sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 #app {
@@ -115,78 +133,147 @@ body {
   color: #2c3e50;
 }
 
+/* Navbar Styles - Modernized */
 .navbar {
-  background: #0366d6;
-  padding: 15px;
+  background: v-bind('systemConfig.state.navbarColor');
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0 1.5rem;
+  height: 64px;
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .brand {
-  font-weight: bold;
-  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.brand-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  background: v-bind('systemConfig.state.brandColor');
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.brand-logo-img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+.brand-text {
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  color: v-bind('systemConfig.state.brandColor');
+}
+
+.links {
+  display: flex;
+  gap: 0.5rem;
+  user-select: none;
 }
 
 .links a {
-  color: #ecf0f1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: v-bind('systemConfig.state.linkColor');
   text-decoration: none;
-  margin: 0 15px;
   font-weight: 500;
-  font-size: larger;
+  font-size: 0.95rem;
+  border-radius: 9999px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: pointer;
+}
+
+.links a:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: v-bind('systemConfig.state.linkHoverColor');
 }
 
 .links a.router-link-active {
-  color: #ffffff;
-  font-weight: 700;
+  color: v-bind('systemConfig.state.activeLinkColor');
+  background: v-bind('systemConfig.state.activeLinkBgColor');
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 20px;
 }
 
 .user-profile-link {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 5px 15px;
-  border-radius: 20px;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
   text-decoration: none;
-  color: white;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--slate-200);
+  transition: all 0.2s;
+  cursor: pointer;
+  user-select: none;
 }
 
 .user-profile-link:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-  border-color: #42b983;
-}
-
-.user-name {
-  font-size: 0.95rem;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--emerald-500);
+  color: white;
 }
 
 .user-avatar {
-  font-size: 1.1rem;
+  width: 28px;
+  height: 28px;
+  background: var(--slate-800);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--emerald-400);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-name {
+  font-size: var(--font-sm);
+  font-weight: 600;
 }
 
 .btn-logout {
-  background: var(--color-danger);
-  color: white;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background 0.2s;
+  background: transparent;
+  color: #ffffff;
+  padding: 8px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
 .btn-logout:hover {
-  background: #c0392b;
+  background: rgb(255, 255, 255);
+  color: #000000;
+  border-color: rgb(255, 255, 255);
 }
 </style>

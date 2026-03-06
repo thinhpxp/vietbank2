@@ -91,11 +91,13 @@
               </div>
             </div>
             <div v-else>
-              <span v-if="!row.allowed_object_types || row.allowed_object_types.length === 0" class="badge-form">Tất
-                cả</span>
-              <div class="flex gap-2 flex-wrap">
-                <span v-for="tid in row.allowed_object_types" :key="tid" class="badge-form">
+              <div class="flex flex-col gap-1 items-start">
+                <span v-for="tid in row.allowed_object_types.slice(0, 2)" :key="tid" class="badge badge-inactive">
                   {{objectTypes.find(t => t.id === tid)?.name || tid}}
+                </span>
+                <span v-if="row.allowed_object_types.length > 2" class="badge badge-inactive" style="opacity: 0.7"
+                  :title="row.allowed_object_types.map(tid => objectTypes.find(t => t.id === tid)?.name || tid).join(', ')">
+                  +{{ row.allowed_object_types.length - 2 }} more...
                 </span>
               </div>
             </div>
@@ -103,27 +105,45 @@
         </vxe-column>
         <vxe-column title="Hiển thị ở Form" min-width="200">
           <template #default="{ row }">
-            <div v-if="editingId === row.id" class="form-selector">
-              <label v-for="f in allForms" :key="f.id" class="admin-checkbox-label">
-                <input type="checkbox" :value="f.id" v-model="row.allowed_forms"> {{ f.name }}
-              </label>
+            <div v-if="editingId === row.id">
+              <div v-for="f in allForms" :key="f.id">
+                <label class="admin-checkbox-label">
+                  <input type="checkbox" :value="f.id" v-model="row.allowed_forms"> {{ f.name }}
+                </label>
+              </div>
             </div>
-            <span v-else>{{ getFormNames(row.allowed_forms) }}</span>
+            <div v-else>
+              <div class="flex flex-col gap-1 items-start">
+                <span v-for="fid in row.allowed_forms.slice(0, 2)" :key="fid" class="badge badge-inactive">
+                  {{allForms.find(f => f.id === fid)?.name || fid}}
+                </span>
+                <span v-if="row.allowed_forms.length > 2" class="badge badge-inactive" style="opacity: 0.7"
+                  :title="row.allowed_forms.map(fid => allForms.find(f => f.id === fid)?.name || fid).join(', ')">
+                  +{{ row.allowed_forms.length - 2 }} more...
+                </span>
+              </div>
+            </div>
           </template>
         </vxe-column>
         <vxe-column title="Hành động" width="160" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button v-if="editingId === row.id" @click="updateGroup(row)" class="btn-action btn-save btn-icon-only"
-                title="Lưu thay đổi">
-                <SvgIcon name="save" size="sm" />
-              </button>
-              <button v-else @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
-                <SvgIcon name="edit" size="sm" />
-              </button>
-              <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
-                <SvgIcon name="trash" size="sm" />
-              </button>
+              <template v-if="editingId === row.id">
+                <button @click="updateGroup(row)" class="btn-action btn-save btn-icon-only" title="Lưu thay đổi">
+                  <SvgIcon name="save" size="sm" />
+                </button>
+                <button @click="editingId = null" class="btn-action btn-secondary btn-icon-only" title="Hủy bỏ">
+                  <SvgIcon name="x" size="sm" />
+                </button>
+              </template>
+              <template v-else>
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Chỉnh sửa">
+                  <SvgIcon name="edit" size="sm" />
+                </button>
+                <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                  <SvgIcon name="trash" size="sm" />
+                </button>
+              </template>
             </div>
           </template>
         </vxe-column>

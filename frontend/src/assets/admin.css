@@ -92,6 +92,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
 }
 
 .badge-active {
@@ -507,6 +508,80 @@
     background: var(--slate-200);
 }
 
+/* Common Badges & Tags */
+.admin-badge {
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-xs);
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-info,
+.tag-info,
+.tag-LOGIN {
+    background: var(--color-info-light);
+    color: var(--color-info-text);
+    border: 1px solid var(--color-info-border);
+}
+
+.badge-success,
+.tag-success,
+.tag-CREATE {
+    background: var(--emerald-50);
+    color: var(--emerald-700);
+    border: 1px solid var(--emerald-200);
+}
+
+.badge-warning,
+.tag-warning,
+.tag-UPDATE {
+    background: var(--color-warning-light);
+    color: var(--color-warning-text);
+    border: 1px solid var(--color-warning-border);
+}
+
+.badge-danger,
+.tag-danger,
+.tag-DELETE {
+    background: var(--color-danger-light);
+    color: var(--color-danger-text);
+    border: 1px solid var(--color-danger-border);
+}
+
+/* Split View & Layout Panes (Enterprise Style) */
+.admin-split-view {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.admin-pane {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-xl);
+    background: var(--color-bg);
+    overflow: hidden;
+    min-height: 0;
+}
+
+.admin-pane-left {
+    border-right: 1px solid var(--color-border);
+}
+
+.admin-pane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    background: var(--color-bg);
+    z-index: 10;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border);
+}
+
 /* Permission Tags & Wrap Support */
 .admin-perm-tags {
     display: flex;
@@ -587,6 +662,16 @@
 
 .indicator-warning {
     background: var(--color-warning);
+    color: white;
+}
+
+.indicator-danger {
+    background: var(--color-danger);
+    color: white;
+}
+
+.indicator-success {
+    background: var(--color-success);
     color: white;
 }
 

@@ -6,7 +6,7 @@ from django.contrib.auth.models import User, Group, Permission
 from .models import (
     Field, FieldGroup, LoanProfile, FieldValue, DocumentTemplate, 
     Role, FormView, UserProfile, MasterObject, LoanProfileObjectLink, MasterObjectType,
-    MasterObjectRelation, AuditLog, AdminNotification, NotificationRead # ADDED
+    MasterObjectRelation, AuditLog, AdminNotification, NotificationRead, SystemConfig
 )
 
 # 0. Serializer cho Role (MỚI)
@@ -544,3 +544,16 @@ class AdminNotificationSerializer(serializers.ModelSerializer):
         if user and user.is_authenticated:
             return obj.read_stats.filter(user=user).exists()
         return False
+
+
+# 11. Serializer cho System Config (Branding)
+class SystemConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemConfig
+        fields = [
+            'brand_name', 'logo_url', 'navbar_color', 'brand_color',
+            'link_color', 'link_hover_color', 'active_link_color',
+            'active_link_bg_color', 'updated_at'
+        ]
+        read_only_fields = ['updated_at']
+

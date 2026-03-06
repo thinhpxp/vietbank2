@@ -1,5 +1,5 @@
 <template>
-    <div class="admin-page page-container">
+    <div class="admin-page">
         <div class="page-header">
             <h2>Quản lý Dữ liệu gốc (Master Data)</h2>
             <div class="flex gap-2">
@@ -94,7 +94,7 @@
                         <template #default="{ row }">
                             <div class="text-sm">
                                 <div>{{ formatDate(row.updated_at) }}</div>
-                                <small class="badge bg-gray-100 text-gray-600 mt-1" v-if="row.last_updated_by_name">
+                                <small class="admin-badge badge-inactive mt-1" v-if="row.last_updated_by_name">
                                     👤 {{ row.last_updated_by_name }}
                                 </small>
                             </div>
@@ -228,7 +228,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
                                 </div>

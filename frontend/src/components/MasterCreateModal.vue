@@ -179,12 +179,5 @@ export default {
 </script>
 
 <style scoped>
-/* Standardized styles are now using global .info-box from common-ui.css */
-
-.loading-state {
-    text-align: center;
-    padding: 60px;
-    color: #95a5a6;
-    font-style: italic;
-}
+/* Standardized styles are now using global classes from common-ui.css / admin.css */
 </style>

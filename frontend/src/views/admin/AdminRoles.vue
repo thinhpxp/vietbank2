@@ -72,18 +72,24 @@
         <vxe-column title="Hành động" width="160" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button v-if="editingId === row.id" @click="updateRole(row)" class="btn-action btn-save btn-icon-only"
-                title="Lưu thay đổi">
-                <SvgIcon name="save" size="sm" />
-              </button>
-              <button v-else @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
-                <SvgIcon name="edit" size="sm" />
-              </button>
-              <button v-if="!row.is_system" @click="deleteRole(row.id)" class="btn-action btn-delete btn-icon-only"
-                title="Xóa">
-                <SvgIcon name="trash" size="sm" />
-              </button>
-              <span v-else title="Role hệ thống không thể xóa" class="text-muted px-2 cursor-not-allowed">🔒</span>
+              <template v-if="editingId === row.id">
+                <button @click="updateRole(row)" class="btn-action btn-save btn-icon-only" title="Lưu thay đổi">
+                  <SvgIcon name="save" size="sm" />
+                </button>
+                <button @click="editingId = null" class="btn-action btn-secondary btn-icon-only" title="Hủy bỏ">
+                  <SvgIcon name="x" size="sm" />
+                </button>
+              </template>
+              <template v-else>
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                  <SvgIcon name="edit" size="sm" />
+                </button>
+                <button v-if="!row.is_system" @click="deleteRole(row.id)" class="btn-action btn-delete btn-icon-only"
+                  title="Xóa">
+                  <SvgIcon name="trash" size="sm" />
+                </button>
+                <span v-else title="Role hệ thống không thể xóa" class="text-muted px-2 cursor-not-allowed">🔒</span>
+              </template>
             </div>
           </template>
         </vxe-column>

@@ -1,5 +1,5 @@
 <template>
-    <div class="admin-page page-container">
+    <div class="admin-page">
         <div class="page-header">
             <div class="header-title">
                 <SvgIcon name="bell" size="lg" />
@@ -18,7 +18,7 @@
                 <vxe-column field="title" title="Tiêu đề" width="250"></vxe-column>
                 <vxe-column field="type" title="Loại" width="120">
                     <template #default="{ row }">
-                        <span class="status-badge" :class="getTypeBadgeClass(row.type)">
+                        <span :class="getTypeBadgeClass(row.type)">
                             {{ getTypeLabel(row.type) }}
                         </span>
                     </template>
@@ -109,9 +109,9 @@ export default {
             return labels[type] || type;
         },
         getTypeBadgeClass(type) {
-            if (type === 'DANGER') return 'badge-danger';
-            if (type === 'WARN') return 'badge-warning';
-            return 'badge-info';
+            if (type === 'DANGER') return 'admin-badge badge-danger';
+            if (type === 'WARN') return 'admin-badge badge-warning';
+            return 'admin-badge badge-info';
         },
         formatDateTime(val) {
             if (!val) return '';
@@ -161,23 +161,5 @@ export default {
 <style scoped>
 .data-table-vxe {
     margin-top: 10px;
-}
-
-.badge-info {
-    background: #e0f2fe;
-    color: #0369a1;
-    border-color: #7dd3fc;
-}
-
-.badge-warning {
-    background: #fffbeb;
-    color: #92400e;
-    border-color: #fcd34d;
-}
-
-.badge-danger {
-    background: #fef2f2;
-    color: #991b1b;
-    border-color: #fecaca;
 }
 </style>

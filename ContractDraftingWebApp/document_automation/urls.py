@@ -5,7 +5,8 @@ from .views import (
     FieldGroupViewSet, UserViewSet, RoleViewSet, FormViewViewSet, 
     MasterObjectViewSet, MasterObjectTypeViewSet,
     MasterObjectRelationViewSet, GroupViewSet, PermissionViewSet,
-    AuditLogViewSet, AdminNotificationViewSet, RegistrationView, ProfileView, ChangePasswordView # ADDED
+    AuditLogViewSet, AdminNotificationViewSet, RegistrationView, ProfileView, ChangePasswordView,
+    LogoUploadView, SystemConfigView
 )
 
 router = DefaultRouter()
@@ -29,4 +30,6 @@ urlpatterns = [
     path('register/', RegistrationView.as_view(), name='register'),
     path('me/', ProfileView.as_view(), name='profile-me'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('upload-logo/', LogoUploadView.as_view(), name='upload-logo'),
+    path('system-config/', SystemConfigView.as_view(), name='system-config'),
 ]

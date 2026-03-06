@@ -577,6 +577,15 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     # Lọc bỏ các quyền kỹ thuật/hệ thống không cần thiết cho Admin nghiệp vụ
     queryset = Permission.objects.exclude(
         content_type__app_label__in=['sessions', 'contenttypes', 'admin']
+    ).exclude(
+        # Loại bỏ các model nội bộ/hệ thống không nên xuất hiện trong giao diện phân quyền
+        content_type__model__in=[
+            'systemconfig',         # Cấu hình giao diện (quản lý bằng is_staff)
+            'auditlog',             # Nhật ký hệ thống (chỉ đọc, không phân quyền)
+            'notificationread',     # Đánh dấu đã đọc (nội bộ)
+            'userprofile',          # Thông tin mở rộng User (gắn liền với User)
+            'loanprofileobjectlink', # Liên kết nội bộ
+        ]
     ).select_related('content_type').order_by('content_type__model', 'codename')
     serializer_class = PermissionSerializer
     permission_classes = [IsAdminOrManager]
@@ -596,6 +605,87 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 # --- NEW AUTH VIEWS ---
+# --- LOGO UPLOAD VIEW (SECURING BRANDING) ---
+class LogoUploadView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        if 'logo' not in request.FILES:
+            return Response({"error": "Không tìm thấy file logo."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        logo_file = request.FILES['logo']
+        
+        # 1. Kiểm tra kích thước (Max 2MB)
+        if logo_file.size > 2 * 1024 * 1024:
+            return Response({"error": "File quá lớn (Tối đa 2MB)."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2. Kiểm tra định dạng (Extension)
+        ext = os.path.splitext(logo_file.name)[1].lower()
+        if ext not in ['.png', '.jpg', '.jpeg', '.svg', '.webp']:
+            return Response({"error": "Định dạng file không được hỗ trợ."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 3. Kiểm tra MIME type (Cơ bản)
+        content_type = logo_file.content_type
+        if not content_type.startswith('image/'):
+             return Response({"error": "File tải lên không phải là ảnh hợp lệ."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 4. Lưu file an toàn
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+        
+        # Đặt tên file an toàn để tránh ghi đè hoặc path traversal
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        safe_filename = f"branding/logo_{timestamp}{ext}"
+        
+        path = default_storage.save(safe_filename, ContentFile(logo_file.read()))
+        logo_url = f"{settings.MEDIA_URL}{path}"
+        
+        # Đảm bảo logo_url là absolute nếu cần
+        if not logo_url.startswith('http'):
+            request_host = request.get_host()
+            protocol = 'https' if request.is_secure() else 'http'
+            logo_url = f"{protocol}://{request_host}{logo_url}"
+
+        log_action(request.user, 'UPLOAD', 'SystemConfig', None, f"Admin đã tải lên logo mới: {path}")
+        
+        return Response({
+            "status": "success",
+            "logoUrl": logo_url,
+            "message": "Tải lên logo thành công!"
+        })
+
+
+# --- SYSTEM CONFIG VIEW (Branding) ---
+class SystemConfigView(APIView):
+    """
+    GET: Mọi người đều có thể đọc cấu hình giao diện (để render Navbar, Logo,...).
+    POST/PUT: Chỉ Admin mới có thể cập nhật.
+    """
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    def get(self, request):
+        from .models import SystemConfig
+        from .serializers import SystemConfigSerializer
+        config = SystemConfig.get_config()
+        serializer = SystemConfigSerializer(config)
+        return Response(serializer.data)
+
+    def post(self, request):
+        from .models import SystemConfig
+        from .serializers import SystemConfigSerializer
+        config = SystemConfig.get_config()
+        serializer = SystemConfigSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(updated_by=request.user)
+            log_action(request.user, 'UPDATE', 'SystemConfig', 1, "Admin đã cập nhật cấu hình giao diện")
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class RegistrationView(APIView):
     permission_classes = [AllowAny]
     

@@ -53,6 +53,7 @@ export default {
         visible: Boolean,
         item: Object
     },
+    emits: ['close', 'saved'],
     data() {
         return {
             loading: false,

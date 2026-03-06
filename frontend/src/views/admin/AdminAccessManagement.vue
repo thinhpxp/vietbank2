@@ -1,30 +1,30 @@
 <template>
-    <div class="access-mgmt">
+    <div class="admin-page">
         <div class="mgmt-header">
             <div class="header-left">
                 <h2>🛡️ Quản lý Truy cập & Hệ thống</h2>
             </div>
-            <div class="mgmt-tabs">
-                <button :class="{ active: activeMainTab === 'users' }" @click="activeMainTab = 'users'">👥 Người
-                    dùng</button>
-                <button :class="{ active: activeMainTab === 'groups' }" @click="activeMainTab = 'groups'">🔑 Nhóm &
-                    Quyền</button>
+            <div class="admin-tabs">
+                <button :class="{ active: activeMainTab === 'users' }" class="admin-tab-item"
+                    @click="activeMainTab = 'users'">👥 Người dùng</button>
+                <button :class="{ active: activeMainTab === 'groups' }" class="admin-tab-item"
+                    @click="activeMainTab = 'groups'">🔑 Nhóm & Quyền</button>
             </div>
             <div class="admin-role-legend">
                 <span class="admin-legend-item" title="Toàn quyền hệ thống, bỏ qua RBAC"><span
-                        class="badge badge-superuser">ROOT</span> Siêu Quản Trị</span>
+                        class="admin-badge badge-superuser">ROOT</span> Siêu Quản Trị</span>
                 <span class="admin-legend-item" title="Có quyền truy cập Dashboard Admin, quyền hạn theo Nhóm"><span
-                        class="badge badge-admin">Admin</span> Quản trị</span>
+                        class="admin-badge badge-admin">Admin</span> Quản trị</span>
                 <span class="admin-legend-item" title="Người dùng nghiệp vụ, chỉ có quyền theo Nhóm"><span
-                        class="badge badge-user">User</span> Nghiệp vụ</span>
+                        class="admin-badge badge-user">User</span> Nghiệp vụ</span>
             </div>
         </div>
 
         <!-- TAB 1: NGƯỜI DÙNG -->
-        <div v-if="activeMainTab === 'users'" class="split-view" ref="userSplitView">
+        <div v-if="activeMainTab === 'users'" class="admin-split-view" ref="userSplitView">
             <!-- LEFT: USER LIST -->
-            <div class="pane pane-left" :style="{ width: userPaneWidth + '%' }">
-                <div class="pane-header admin-row">
+            <div class="admin-pane admin-pane-left" :style="{ width: userPaneWidth + '%' }">
+                <div class="admin-pane-header admin-row">
                     <div class="search-box flex-1">
                         <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..."
                             class="admin-form-control" />
@@ -56,9 +56,9 @@
 
                         <vxe-column field="is_staff" title="Quyền" width="100" sortable>
                             <template #default="{ row }">
-                                <span v-if="row.is_superuser" class="badge-root">ROOT</span>
-                                <span v-else-if="row.is_staff" class="tag tag-blue">Staff</span>
-                                <span v-else class="tag tag-gray">User</span>
+                                <span v-if="row.is_superuser" class="admin-badge badge-superuser">ROOT</span>
+                                <span v-else-if="row.is_staff" class="admin-badge badge-info">Staff</span>
+                                <span v-else class="admin-badge badge-secondary">User</span>
                             </template>
                         </vxe-column>
 
@@ -85,9 +85,9 @@
             <div class="divider" @mousedown="startResize('user')"></div>
 
             <!-- RIGHT: USER EDITOR -->
-            <div class="pane pane-right" :style="{ width: (100 - userPaneWidth) + '%' }">
+            <div class="admin-pane" :style="{ width: (100 - userPaneWidth) + '%' }">
                 <div v-if="selectedUser" class="editor-container">
-                    <div class="pane-header admin-row">
+                    <div class="admin-pane-header admin-row">
                         <h3 class="flex-1">{{ isCreating ? 'Tạo người dùng mới' : `Chi tiết: ${selectedUser.username}`
                             }}</h3>
                         <div class="actions">
@@ -226,11 +226,11 @@
             </div>
         </div>
 
-        <!-- TAB 2: NHÓM & QUYỀN -->
-        <div v-if="activeMainTab === 'groups'" class="split-view" ref="groupSplitView">
+        <!-- TAB 2: NHÓM (GROUPS) -->
+        <div v-if="activeMainTab === 'groups'" class="admin-split-view" ref="groupSplitView">
             <!-- LEFT: GROUP LIST -->
-            <div class="pane pane-left" :style="{ width: groupPaneWidth + '%' }">
-                <div class="pane-header">
+            <div class="admin-pane admin-pane-left" :style="{ width: groupPaneWidth + '%' }">
+                <div class="admin-pane-header admin-row">
                     <div class="flex-1 mr-4">
                         <input type="text" v-model="groupSearch" placeholder="Tìm kiếm nhóm..."
                             class="admin-input w-full" />
@@ -262,9 +262,9 @@
             <div class="divider" @mousedown="startResize('group')"></div>
 
             <!-- RIGHT: GROUP EDITOR -->
-            <div class="pane pane-right" :style="{ width: (100 - groupPaneWidth) + '%' }">
+            <div class="admin-pane" :style="{ width: (100 - groupPaneWidth) + '%' }">
                 <div v-if="selectedGroup" class="editor-container">
-                    <div class="pane-header admin-row">
+                    <div class="admin-pane-header admin-row">
                         <input type="text" v-model="selectedGroup.name" class="admin-form-control h3-input flex-1"
                             placeholder="Tên nhóm..." />
                         <div class="actions flex items-center gap-2">
@@ -312,7 +312,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: AUDIT LOG - REMOVED -->
+        <!-- TAB 3: CÀI ĐẶT HỆ THỐNG - MOVED TO SIDEBAR -->
 
         <!-- MODAL RESET PASSWORD -->
         <div v-if="showResetModal" class="modal-overlay">
@@ -628,15 +628,17 @@ export default {
     box-sizing: border-box;
 }
 
-.access-mgmt {
+.admin-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 40px);
+    height: calc(100vh - 64px - 40px);
+    /* 64px Navbar + 40px Padding (Top+Bottom) of layout-main */
     background: #f8fafc;
     overflow: hidden;
+    padding: 0 !important;
 }
 
-/* Header & Tabs */
+/* Custom Header specific to Access Mgmt */
 .mgmt-header {
     padding: 1rem 1.5rem;
     background: #fff;
@@ -652,73 +654,26 @@ export default {
     margin: 0;
 }
 
-.mgmt-tabs {
-    display: flex;
-    gap: 4px;
+.admin-tabs {
     background: #f1f5f9;
     padding: 4px;
     border-radius: 8px;
 }
 
-.mgmt-tabs button {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    background: transparent;
-    color: #64748b;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.mgmt-tabs button.active {
-    background: #fff;
-    color: #2563eb;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Layout */
-.split-view {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-.pane {
-    display: flex;
-    flex-direction: column;
-    padding: 1.25rem;
-    background: #fff;
-    overflow: hidden;
-    /* Quan trọng để con không làm giãn cha */
-    min-height: 0;
-}
-
+/* Pane & Split View Overrides (if any specific ones needed) */
 .editor-container {
     display: flex;
     flex-direction: column;
     flex: 1;
     overflow: hidden;
-    /* Quan trọng để editor-content và permission-manager không giãn nở */
     min-height: 0;
-    /* Fix flexbox growth in some browsers */
 }
 
-/* Refactored styles using global variables and utilities */
 .editor-content {
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-lg);
     max-width: 100%;
-}
-
-.pane-left {
-    border-right: 1px solid var(--slate-100);
-}
-
-.scrollable {
-    overflow-y: auto;
-    flex: 1;
 }
 
 .divider {
@@ -730,22 +685,6 @@ export default {
 
 .divider:hover {
     background: var(--color-primary);
-}
-
-.pane-header {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    margin-bottom: var(--spacing-lg);
-    position: sticky;
-    top: 0;
-    background: white;
-    z-index: 10;
-    padding-bottom: var(--spacing-sm);
-    flex-wrap: nowrap;
-    gap: var(--spacing-md);
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--slate-100);
 }
 
 .pane-header h3 {
@@ -870,33 +809,6 @@ export default {
     color: var(--slate-400);
 }
 
-/* Custom Modals for this specialized view */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.4);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-}
-
-.modal-content {
-    background: white;
-    padding: var(--spacing-2xl);
-    border-radius: var(--radius-lg);
-    width: 400px;
-    box-shadow: var(--shadow-xl);
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-2xl);
-}
-
 .hint {
     font-size: var(--font-xs);
     color: var(--slate-500);
@@ -927,33 +839,4 @@ export default {
     color: var(--slate-500);
     font-size: var(--font-xs);
 }
-
-.tag {
-    padding: 2px 8px;
-    border-radius: var(--radius-full);
-    font-size: var(--font-xs);
-    font-weight: bold;
-}
-
-.tag-LOGIN {
-    background: var(--emerald-50);
-    color: var(--emerald-700);
-}
-
-.tag-CREATE {
-    background: var(--color-info-light);
-    color: var(--color-info-text);
-}
-
-.tag-UPDATE {
-    background: var(--color-warning-light);
-    color: var(--color-warning-text);
-}
-
-.tag-DELETE {
-    background: var(--color-danger-light);
-    color: var(--color-danger-text);
-}
-
-/* Buttons inherited from common-ui.css / admin.css */
 </style>

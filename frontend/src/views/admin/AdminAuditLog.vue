@@ -209,7 +209,7 @@ export default {
         'CREATE': 'badge-active', // Green
         'UPDATE': 'badge-custom', // Blue
         'DELETE': 'badge-inactive', // Red
-        'LOGIN': 'badge-all', // Teal
+        'LOGIN': 'badge-admin', // Teal-ish from admin.css
         'LOGOUT': 'badge-user' // Gray
       };
       return map[action] || 'badge-user';

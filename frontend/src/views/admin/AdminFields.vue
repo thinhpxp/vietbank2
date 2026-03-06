@@ -194,31 +194,48 @@
 
         <vxe-column title="Form" width="180">
           <template #default="{ row }">
-            <div v-if="editingId === row.id" class="admin-form-selector">
-              <label v-for="form in allForms" :key="form.id">
-                <input type="checkbox" :value="form.id" v-model="row.allowed_forms"> {{ form.name }}
-              </label>
+            <div v-if="editingId === row.id">
+              <div v-for="form in allForms" :key="form.id">
+                <label class="admin-checkbox-label">
+                  <input type="checkbox" :value="form.id" v-model="row.allowed_forms">
+                  {{ form.name }}
+                </label>
+              </div>
             </div>
-            <span v-else>{{ getFormNames(row.allowed_forms) }}</span>
+            <div v-else>
+              <div class="flex flex-col gap-1 items-start">
+                <span v-for="fid in row.allowed_forms.slice(0, 2)" :key="fid" class="badge badge-inactive">
+                  {{allForms.find(f => f.id === fid)?.name || fid}}
+                </span>
+                <span v-if="row.allowed_forms.length > 2" class="badge badge-inactive" style="opacity: 0.7"
+                  :title="row.allowed_forms.map(fid => allForms.find(f => f.id === fid)?.name || fid).join(', ')">
+                  +{{ row.allowed_forms.length - 2 }} more...
+                </span>
+              </div>
+            </div>
           </template>
         </vxe-column>
 
         <vxe-column title="Loại đối tượng" width="200">
           <template #default="{ row }">
-            <div v-if="editingId === row.id" class="form-selector">
+            <div v-if="editingId === row.id">
               <div v-for="type in objectTypes" :key="type.id">
-                <label>
+                <label class="admin-checkbox-label">
                   <input type="checkbox" :value="type.id" v-model="row.allowed_object_types">
                   {{ type.name }}
                 </label>
               </div>
             </div>
             <div v-else>
-              <span v-if="!row.allowed_object_types || row.allowed_object_types.length === 0" class="badge-all">Tất
-                cả</span>
-              <span v-else v-for="tid in row.allowed_object_types" :key="tid" class="badge">
-                {{objectTypes.find(t => t.id === tid)?.name || tid}}
-              </span>
+              <div class="flex flex-col gap-1 items-start">
+                <span v-for="tid in row.allowed_object_types.slice(0, 2)" :key="tid" class="badge badge-inactive">
+                  {{objectTypes.find(t => t.id === tid)?.name || tid}}
+                </span>
+                <span v-if="row.allowed_object_types.length > 2" class="badge badge-inactive" style="opacity: 0.7"
+                  :title="row.allowed_object_types.map(tid => objectTypes.find(t => t.id === tid)?.name || tid).join(', ')">
+                  +{{ row.allowed_object_types.length - 2 }} more...
+                </span>
+              </div>
             </div>
           </template>
         </vxe-column>

@@ -97,20 +97,26 @@
         <vxe-column title="Hành động" width="220" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button v-if="editingId === row.id" @click="updateTemplate(row)" class="btn-action btn-save btn-icon-only"
-                title="Lưu thay đổi">
-                <SvgIcon name="save" size="sm" />
-              </button>
-              <button v-else @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
-                <SvgIcon name="edit" size="sm" />
-              </button>
-              <a :href="row.file" target="_blank" class="btn-action btn-doc btn-icon-only no-underline"
-                title="Tải mẫu về máy">
-                <SvgIcon name="download" size="sm" />
-              </a>
-              <button @click="deleteTemplate(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
-                <SvgIcon name="trash" size="sm" />
-              </button>
+              <template v-if="editingId === row.id">
+                <button @click="updateTemplate(row)" class="btn-action btn-save btn-icon-only" title="Lưu thay đổi">
+                  <SvgIcon name="save" size="sm" />
+                </button>
+                <button @click="editingId = null" class="btn-action btn-secondary btn-icon-only" title="Hủy bỏ">
+                  <SvgIcon name="x" size="sm" />
+                </button>
+              </template>
+              <template v-else>
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                  <SvgIcon name="edit" size="sm" />
+                </button>
+                <a :href="row.file" target="_blank" class="btn-action btn-doc btn-icon-only no-underline"
+                  title="Tải mẫu về máy">
+                  <SvgIcon name="download" size="sm" />
+                </a>
+                <button @click="deleteTemplate(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                  <SvgIcon name="trash" size="sm" />
+                </button>
+              </template>
             </div>
           </template>
         </vxe-column>

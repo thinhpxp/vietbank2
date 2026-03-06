@@ -57,9 +57,8 @@
               <option :value="false">User</option>
             </select>
             <template v-else>
-              <span v-if="row.is_staff" class="badge-form"
-                style="background: var(--color-info); color: white">Admin</span>
-              <span v-else class="badge-form">User</span>
+              <span v-if="row.is_staff" class="badge-admin">Admin</span>
+              <span v-else class="badge badge-inactive">User</span>
             </template>
           </template>
         </vxe-column>
@@ -80,12 +79,20 @@
           <template #default="{ row }">
             <div class="flex gap-2">
               <template v-if="editingId === row.id">
-                <button @click="updateUser(row)" class="btn-action btn-save">Lưu</button>
-                <button @click="editingId = null" class="btn-action btn-secondary">Hủy</button>
+                <button @click="updateUser(row)" class="btn-action btn-save btn-icon-only" title="Lưu">
+                  <SvgIcon name="save" size="sm" />
+                </button>
+                <button @click="editingId = null" class="btn-action btn-secondary btn-icon-only" title="Hủy">
+                  <SvgIcon name="x" size="sm" />
+                </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit">Sửa</button>
-                <button @click="deleteUser(row.id)" class="btn-action btn-delete">Xóa</button>
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                  <SvgIcon name="edit" size="sm" />
+                </button>
+                <button @click="deleteUser(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                  <SvgIcon name="trash" size="sm" />
+                </button>
               </template>
             </div>
           </template>

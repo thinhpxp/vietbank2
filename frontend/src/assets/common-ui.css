@@ -27,6 +27,29 @@
     color: var(--color-text);
 }
 
+/* 1.1 Global Interactive Reset */
+a,
+button,
+.btn-action,
+.clickable,
+.ui-sortable,
+.vxe-header--column {
+    cursor: pointer;
+}
+
+[readonly],
+[disabled] {
+    cursor: not-allowed;
+}
+
+/* Ngăn bôi đen text trên các thành phần điều hướng */
+.navbar,
+.btn-action,
+.card-header-glass,
+.status-badge {
+    user-select: none;
+}
+
 /* 2. Unified Buttons */
 .btn-action {
     height: 36px;
@@ -337,6 +360,7 @@
     border-radius: var(--radius-sm);
     font-size: var(--font-xs);
     font-weight: 600;
+    white-space: nowrap;
 }
 
 /* 6. Utility Classes */
@@ -344,12 +368,24 @@
     display: flex;
 }
 
+.flex-col {
+    flex-direction: column;
+}
+
 .items-center {
     align-items: center;
 }
 
+.items-start {
+    align-items: flex-start;
+}
+
 .justify-between {
     justify-content: space-between;
+}
+
+.gap-1 {
+    gap: 0.25rem;
 }
 
 .gap-2 {
@@ -799,4 +835,36 @@ body.is-resizing * {
 
 .btn-action.btn-history:hover:not(:disabled) .svg-icon {
     color: #3730a3 !important;
+}
+
+/* 15. VXE Table Inline Input Optimization */
+.vxe-input-minimal {
+    width: 100% !important;
+    height: 32px;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-sm);
+    padding: 0 8px;
+    font-size: var(--font-sm);
+    font-family: inherit;
+    background: transparent;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    display: block;
+}
+
+.vxe-input-minimal:hover {
+    background: var(--slate-100);
+    border-color: var(--slate-200);
+}
+
+.vxe-input-minimal:focus {
+    outline: none;
+    background: white;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.1);
+}
+
+select.vxe-input-minimal {
+    cursor: pointer;
+    padding-right: 20px;
 }

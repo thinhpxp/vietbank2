@@ -462,3 +462,34 @@ class NotificationRead(models.Model):
         unique_together = ('notification', 'user')
         verbose_name = "Đánh dấu đã đọc"
         verbose_name_plural = "Đánh dấu đã đọc"
+
+
+# --- CẤU HÌNH GIAO DIỆN HỆ THỐNG (Singleton) ---
+class SystemConfig(models.Model):
+    """
+    Lưu trữ cấu hình thương hiệu và giao diện cho toàn bộ ứng dụng.
+    Singleton: Chỉ tồn tại 1 bản ghi duy nhất (id=1).
+    """
+    brand_name = models.CharField(max_length=200, default='AutoContract App', verbose_name="Tên ứng dụng")
+    logo_url = models.CharField(max_length=500, blank=True, null=True, verbose_name="URL Logo")
+    navbar_color = models.CharField(max_length=20, default='#0f172a', verbose_name="Màu Navbar")
+    brand_color = models.CharField(max_length=20, default='#10b981', verbose_name="Màu thương hiệu")
+    link_color = models.CharField(max_length=20, default='#94a3b8', verbose_name="Màu link")
+    link_hover_color = models.CharField(max_length=20, default='#ffffff', verbose_name="Màu link khi hover")
+    active_link_color = models.CharField(max_length=20, default='#10b981', verbose_name="Màu link đang chọn")
+    active_link_bg_color = models.CharField(max_length=50, default='rgba(16, 185, 129, 0.1)', verbose_name="Màu nền link đang chọn")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Cập nhật lần cuối")
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người cập nhật")
+
+    class Meta:
+        verbose_name = "Cấu hình Giao diện"
+        verbose_name_plural = "Cấu hình Giao diện"
+
+    def __str__(self):
+        return f"System Config (cập nhật: {self.updated_at.strftime('%d/%m/%Y %H:%M') if self.updated_at else 'N/A'})"
+
+    @classmethod
+    def get_config(cls):
+        """Lấy hoặc tạo mới bản cấu hình mặc định (Singleton pattern)."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

@@ -1,5 +1,5 @@
 <template>
-    <div class="admin-page dashboard-container">
+    <div class="admin-page">
         <div class="header-actions flex justify-between items-center mb-4">
             <h2>Quản lý Loại Đối tượng (Object Types)</h2>
         </div>
@@ -105,8 +105,8 @@
                             <option value="ASSET_LIST">Tài sản</option>
                             <option value="DEDICATED_SECTION">Độc lập</option>
                         </select>
-                        <span v-else class="badge"
-                            :class="row.form_display_mode === 'DEDICATED_SECTION' ? 'badge-primary' : 'badge-secondary'">
+                        <span v-else
+                            :class="['admin-badge', row.form_display_mode === 'DEDICATED_SECTION' ? 'badge-active' : 'badge-inactive']">
                             {{ getDisplayModeLabel(row.form_display_mode) }}
                         </span>
                     </template>
@@ -119,8 +119,8 @@
                             <option value="LEFT">Trái</option>
                             <option value="RIGHT">Phải</option>
                         </select>
-                        <span v-else class="badge"
-                            :class="row.layout_position === 'RIGHT' ? 'badge-primary' : 'badge-secondary'">
+                        <span v-else
+                            :class="['admin-badge', row.layout_position === 'RIGHT' ? 'badge-active' : 'badge-inactive']">
                             {{ row.layout_position === 'RIGHT' ? '👉 Phải' : '👈 Trái' }}
                         </span>
                     </template>
@@ -129,7 +129,7 @@
                 <vxe-column field="allow_relations" title="Cho phép LK" width="120">
                     <template #default="{ row }">
                         <input v-if="editingId === row.id" v-model="editingData.allow_relations" type="checkbox" />
-                        <span v-else class="badge" :class="row.allow_relations ? 'badge-success' : 'badge-secondary'">
+                        <span v-else :class="['admin-badge', row.allow_relations ? 'badge-active' : 'badge-inactive']">
                             {{ row.allow_relations ? '✓ Có' : '✗ Không' }}
                         </span>
                     </template>
@@ -153,8 +153,8 @@
 
                 <vxe-column field="is_system" title="Hệ thống" width="100">
                     <template #default="{ row }">
-                        <span v-if="row.is_system" class="badge badge-system">System</span>
-                        <span v-else class="badge badge-custom">Custom</span>
+                        <span v-if="row.is_system" class="admin-badge badge-admin">System</span>
+                        <span v-else class="admin-badge badge-inactive">Custom</span>
                     </template>
                 </vxe-column>
 
