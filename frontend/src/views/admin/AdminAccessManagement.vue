@@ -29,7 +29,7 @@
                         <input type="text" v-model="userSearch" placeholder="Tìm kiếm user..."
                             class="admin-form-control" />
                     </div>
-                    <button @click="createNewUser" class="btn-action btn-primary btn-icon-only"
+                    <button @click="createNewUser" class="btn-action btn-create btn-icon-only"
                         title="Thêm Người dùng mới">
                         <SvgIcon name="plus" size="sm" />
                     </button>
@@ -54,11 +54,11 @@
 
                         <vxe-column field="email" title="Email" min-width="150" sortable></vxe-column>
 
-                        <vxe-column field="is_staff" title="Quyền" width="100" sortable>
+                        <vxe-column field="is_staff" title="Quyền" width="120" sortable>
                             <template #default="{ row }">
                                 <span v-if="row.is_superuser" class="admin-badge badge-superuser">ROOT</span>
-                                <span v-else-if="row.is_staff" class="admin-badge badge-info">Staff</span>
-                                <span v-else class="admin-badge badge-secondary">User</span>
+                                <span v-else-if="row.is_staff" class="admin-badge badge-warning">Quản trị</span>
+                                <span v-else class="admin-badge badge-inactive">Người dùng</span>
                             </template>
                         </vxe-column>
 
@@ -73,7 +73,8 @@
                         <vxe-column title="Hành động" width="120" fixed="right">
                             <template #default="{ row }">
                                 <button class="btn-action btn-edit btn-icon-only" @click.stop="editUser(row)"
-                                    title="Sửa thông tin & Quyền">
+                                    :disabled="!auth.hasPermission('auth.change_user')"
+                                    :title="auth.hasPermission('auth.change_user') ? 'Sửa thông tin & Quyền' : 'Không có quyền sửa user'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
                             </template>
@@ -94,11 +95,11 @@
                             <span v-if="selectedUser.is_superuser" class="superuser-warning">
                                 🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
                             </span>
-                            <button v-if="isCreating" @click="handleCreateUser" class="btn-action btn-success"
+                            <button v-if="isCreating" @click="handleCreateUser" class="btn-action btn-create"
                                 :disabled="isSaving">
                                 <SvgIcon name="check" size="sm" /> Tạo người dùng
                             </button>
-                            <button v-else @click="saveUser" class="btn-action btn-success flex items-center gap-2"
+                            <button v-else @click="saveUser" class="btn-action btn-save flex items-center gap-2"
                                 :disabled="isSaving || (selectedUser.is_superuser && !auth.isSuperuser)"
                                 title="Lưu thay đổi">
                                 <SvgIcon name="save" size="sm" /> <span>Lưu thay đổi</span>
@@ -133,13 +134,12 @@
                                     <label class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_active" /> Hoạt động
                                     </label>
-                                    <!--
-                                    <label class="admin-checkbox-label"
-                                        :class="{ disabled: selectedUser.is_superuser && !auth.isSuperuser }">
+                                    <label v-if="auth.isSuperuser" class="admin-checkbox-label"
+                                        :class="{ disabled: selectedUser.is_superuser }"
+                                        :title="selectedUser.is_superuser ? 'ROOT tự động có quyền quản trị' : 'Cho phép user này vào trang Admin và thao tác theo quyền nhóm'">
                                         <input type="checkbox" v-model="selectedUser.is_staff"
-                                            :disabled="selectedUser.is_superuser && !auth.isSuperuser" /> Quyền Admin
+                                            :disabled="selectedUser.is_superuser" /> Quyền quản trị
                                     </label>
-                                    -->
                                     <label v-if="auth.isSuperuser" class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_superuser" /> Quyền Root
                                     </label>
@@ -208,10 +208,11 @@
                             <h4>Vùng nguy hiểm</h4>
                             <div class="action-row">
                                 <button @click="confirmResetPassword" class="btn-action btn-warning"
-                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">
+                                    :disabled="(selectedUser.is_superuser && !auth.isSuperuser) || !auth.hasPermission('auth.change_user')"
+                                    :title="!auth.hasPermission('auth.change_user') ? 'Không có quyền' : 'Reset mật khẩu'">
                                     <SvgIcon name="refresh" size="sm" /> Reset mật khẩu
                                 </button>
-                                <button @click="confirmDeleteUser" class="btn-action btn-danger"
+                                <button @click="confirmDeleteUser" class="btn-action btn-delete"
                                     :disabled="selectedUser.is_superuser && !auth.isSuperuser">
                                     <SvgIcon name="trash" size="sm" /> Xóa tài khoản
                                 </button>
@@ -235,7 +236,7 @@
                         <input type="text" v-model="groupSearch" placeholder="Tìm kiếm nhóm..."
                             class="admin-input w-full" />
                     </div>
-                    <button @click="createNewGroup" class="btn-action btn-primary btn-icon-only" title="Tạo Nhóm mới">
+                    <button @click="createNewGroup" class="btn-action btn-create btn-icon-only" title="Tạo Nhóm mới">
                         <SvgIcon name="plus" size="sm" />
                     </button>
                 </div>

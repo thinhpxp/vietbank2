@@ -137,10 +137,14 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Chỉnh sửa">
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
+                  :disabled="!canChange"
+                  :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only"
+                  :disabled="!canDelete"
+                  :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                   <SvgIcon name="trash" size="sm" />
                 </button>
               </template>
@@ -159,6 +163,7 @@
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
+import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
@@ -184,7 +189,10 @@ export default {
       return this.filterArray(this.groups, this.filters, {
         search: { type: 'text', fields: ['name', 'slug'] }
       });
-    }
+    },
+    canCreate() { return auth.hasPermission('auth.add_group'); },
+    canChange() { return auth.hasPermission('auth.change_group'); },
+    canDelete() { return auth.hasPermission('auth.delete_group'); },
   },
   watch: {
   },

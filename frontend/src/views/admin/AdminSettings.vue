@@ -123,7 +123,7 @@
                 </div>
 
                 <div class="settings-actions">
-                    <button @click="saveChanges" class="btn-action btn-success" :disabled="!isChanged || uploading">
+                    <button @click="saveChanges" class="btn-action btn-save" :disabled="!isChanged || uploading">
                         <SvgIcon name="save" size="sm" /> Lưu cấu hình
                     </button>
                     <button @click="resetToDefault" class="btn-action btn-secondary ml-2">

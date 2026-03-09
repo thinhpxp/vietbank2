@@ -15,7 +15,7 @@
         <label class="admin-checkbox-label">
           <input type="checkbox" v-model="newUser.is_staff"> Là Admin/Staff?
         </label>
-        <button @click="addUser" class="btn-action btn-success">🚀 Tạo User</button>
+        <button @click="addUser" class="btn-action btn-create">🚀 Tạo User</button>
       </div>
     </div>
 

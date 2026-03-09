@@ -3,7 +3,7 @@
         <div class="page-header">
             <h2>Quản lý Dữ liệu gốc (Master Data)</h2>
             <div class="flex gap-2">
-                <button v-if="auth.isSuperuser && selectedIds.length > 0" class="btn-action btn-danger"
+                <button v-if="auth.isSuperuser && selectedIds.length > 0" class="btn-action btn-delete"
                     @click="confirmBulkDelete">
                     <SvgIcon name="trash" size="sm" /> Xóa hàng loạt ({{ selectedIds.length }})
                 </button>
@@ -12,7 +12,8 @@
                     <SvgIcon name="refresh" size="sm" :class="{ 'animate-spin': loading }" />
                 </button>
                 <button class="btn-action btn-create btn-icon-only" @click="openCreateModal()"
-                    title="Thêm mới đối tượng">
+                    :disabled="!auth.hasPermission('document_automation.add_masterobject')"
+                    :title="auth.hasPermission('document_automation.add_masterobject') ? 'Thêm mới đối tượng' : 'Không có quyền tạo'">
                     <SvgIcon name="plus" size="sm" />
                 </button>
             </div>
@@ -108,11 +109,14 @@
                                     title="Xem liên kết">
                                     <SvgIcon name="users" size="sm" />
                                 </button>
-                                <button class="btn-action btn-edit btn-icon-only" @click="editObject(row)" title="Sửa">
+                                <button class="btn-action btn-edit btn-icon-only" @click="editObject(row)"
+                                    :disabled="!auth.hasPermission('document_automation.change_masterobject')"
+                                    :title="auth.hasPermission('document_automation.change_masterobject') ? 'Sửa' : 'Không có quyền sửa'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
                                 <button class="btn-action btn-delete btn-icon-only" @click="confirmDelete(row)"
-                                    title="Xóa">
+                                    :disabled="!auth.hasPermission('document_automation.delete_masterobject')"
+                                    :title="auth.hasPermission('document_automation.delete_masterobject') ? 'Xóa' : 'Không có quyền xóa'">
                                     <SvgIcon name="trash" size="sm" />
                                 </button>
                             </div>
@@ -228,7 +232,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                            }}</span>
+                                        }}</span>
                                     </div>
 
                                 </div>

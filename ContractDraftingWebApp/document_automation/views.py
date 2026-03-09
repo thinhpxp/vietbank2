@@ -1710,7 +1710,7 @@ def find_existing_master_object(object_type, field_values):
 class MasterObjectRelationViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectRelation.objects.all().order_by('-created_at')
     serializer_class = MasterObjectRelationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     @action(detail=False, methods=['post'])
     def create_relation(self, request):
@@ -1742,12 +1742,20 @@ class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('-id')
     serializer_class = MasterObjectTypeSerializer
     permission_classes = [ReadOnlyMetadataOrAdmin]
-    # Trong thực tế nên hạn chế quyền sửa đổi cho Admin
 
+    def destroy(self, request, *args, **kwargs):
+        """Chặn xóa các loại đối tượng hệ thống (is_system=True) ngay ở backend."""
+        instance = self.get_object()
+        if instance.is_system:
+            return Response(
+                {"error": "Không thể xóa loại đối tượng hệ thống mặc định."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
 class MasterObjectViewSet(viewsets.ModelViewSet):
     serializer_class = MasterObjectSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     def get_queryset(self):
         """Filter by object_type, is_draft, and hide soft-deleted items"""

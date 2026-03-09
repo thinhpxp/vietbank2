@@ -8,7 +8,9 @@
         <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" class="admin-input">
         <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" class="admin-input">
         <input v-model="newRole.relation_type" placeholder="Quan hệ (VD: OWNER)" class="admin-input">
-        <button @click="addRole" class="btn-action btn-create btn-icon-only" title="Thêm Vai trò mới">
+        <button @click="addRole" class="btn-action btn-create btn-icon-only"
+          :disabled="!canCreate"
+          :title="canCreate ? 'Thêm Vai trò mới' : 'Không có quyền tạo'">
           <SvgIcon name="plus" size="sm" />
         </button>
       </div>
@@ -81,14 +83,15 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
+                  :disabled="!canChange"
+                  :title="canChange ? 'Sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <button v-if="!row.is_system" @click="deleteRole(row.id)" class="btn-action btn-delete btn-icon-only"
-                  title="Xóa">
+                <button :disabled="row.is_system || !canDelete" @click="deleteRole(row.id)" class="btn-action btn-delete btn-icon-only"
+                  :title="row.is_system ? 'Role hệ thống không thể xóa' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
                   <SvgIcon name="trash" size="sm" />
                 </button>
-                <span v-else title="Role hệ thống không thể xóa" class="text-muted px-2 cursor-not-allowed">🔒</span>
               </template>
             </div>
           </template>
@@ -105,6 +108,7 @@
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
+import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
@@ -129,7 +133,10 @@ export default {
       return this.filterArray(this.roles, this.filters, {
         search: { type: 'text', fields: ['name', 'slug'] }
       });
-    }
+    },
+    canCreate() { return auth.hasPermission('document_automation.add_role'); },
+    canChange() { return auth.hasPermission('document_automation.change_role'); },
+    canDelete() { return auth.hasPermission('document_automation.delete_role'); },
   },
   watch: {
   },

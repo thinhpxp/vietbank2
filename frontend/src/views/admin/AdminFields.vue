@@ -36,7 +36,9 @@
           <option :value="null">-- Chọn nhóm --</option>
           <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
         </select>
-        <button @click="addField" class="btn-action btn-create btn-icon-only" title="Thêm trường dữ liệu mới">
+        <button @click="addField" class="btn-action btn-create btn-icon-only"
+          :disabled="!canCreate"
+          :title="canCreate ? 'Thêm trường dữ liệu mới' : 'Không có quyền tạo'">
           <SvgIcon name="plus" size="sm" />
         </button>
       </div>
@@ -252,17 +254,21 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Chỉnh sửa">
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
+                  :disabled="!canChange"
+                  :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <button @click="copyField(row)" class="btn-action btn-copy btn-icon-only" title="Sao chép">
+                <button @click="copyField(row)" class="btn-action btn-copy btn-icon-only"
+                  :disabled="!canCreate"
+                  :title="canCreate ? 'Sao chép' : 'Không có quyền tạo'">
                   <SvgIcon name="copy" size="sm" />
                 </button>
-                <button v-if="!row.is_protected" @click="deleteField(row.id)"
-                  class="btn-action btn-delete btn-icon-only" title="Xóa">
+                <button :disabled="row.is_protected || !canDelete" @click="deleteField(row.id)"
+                  class="btn-action btn-delete btn-icon-only"
+                  :title="row.is_protected ? 'Trường được bảo vệ' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
                   <SvgIcon name="trash" size="sm" />
                 </button>
-                <span v-else class="protected-badge">🔒</span>
               </template>
             </div>
           </template>
@@ -289,6 +295,7 @@
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
+import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '../../mixins/FilterableTableMixin';
@@ -333,7 +340,10 @@ export default {
         dataType: { type: 'exact', field: 'data_type' },
         objectType: { type: 'array_includes', field: 'allowed_object_types' }
       });
-    }
+    },
+    canCreate() { return auth.hasPermission('document_automation.add_field'); },
+    canChange() { return auth.hasPermission('document_automation.change_field'); },
+    canDelete() { return auth.hasPermission('document_automation.delete_field'); },
   },
   methods: {
     // toggleSort removed (provided by mixin)

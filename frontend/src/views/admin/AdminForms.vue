@@ -9,7 +9,9 @@
                 <input v-model="newForm.name" placeholder="Tên Form (VD: Tín dụng tiêu dùng)" class="admin-input">
                 <input v-model="newForm.slug" placeholder="Mã định danh (VD: loan-consumer)" class="admin-input">
                 <input v-model="newForm.note" placeholder="Ghi chú" class="admin-input">
-                <button @click="addForm" class="btn-action btn-create btn-icon-only" title="Thêm Form mới">
+                <button @click="addForm" class="btn-action btn-create btn-icon-only"
+                    :disabled="!canCreate"
+                    :title="canCreate ? 'Thêm Form mới' : 'Không có quyền tạo'">
                     <SvgIcon name="plus" size="sm" />
                 </button>
             </div>
@@ -74,11 +76,13 @@
                             </template>
                             <template v-else>
                                 <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
-                                    title="Sửa">
+                                    :disabled="!canChange"
+                                    :title="canChange ? 'Sửa' : 'Không có quyền sửa'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
                                 <button @click="deleteForm(row.id)" class="btn-action btn-delete btn-icon-only"
-                                    title="Xóa">
+                                    :disabled="!canDelete"
+                                    :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                                     <SvgIcon name="trash" size="sm" />
                                 </button>
                             </template>
@@ -108,6 +112,7 @@
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
+import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
@@ -131,7 +136,10 @@ export default {
             return this.filterArray(this.forms, this.filters, {
                 search: { type: 'text', fields: ['name', 'slug'] }
             });
-        }
+        },
+        canCreate() { return auth.hasPermission('document_automation.add_formview'); },
+        canChange() { return auth.hasPermission('document_automation.change_formview'); },
+        canDelete() { return auth.hasPermission('document_automation.delete_formview'); },
     },
     mounted() {
         this.fetchData();

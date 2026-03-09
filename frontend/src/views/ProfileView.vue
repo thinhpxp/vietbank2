@@ -92,16 +92,16 @@
 
                 <!-- Quyền hạn (Read-only) -->
                 <div class="profile-section card">
-                    <h3>🛡️ Quyền hạn hiện tại</h3>
+                    <h3>🛡️ Vai trò</h3>
                     <div class="permissions-list">
                         <div class="perm-item" v-if="user.is_superuser">
-                            <span class="badge-form">Quản trị viên hệ thống (Superuser)</span>
+                            <span class="badge-form">Siêu Quản Trị - ROOT</span>
                         </div>
                         <div class="perm-item" v-else-if="user.is_staff">
-                            <span class="badge-form">Nhân viên Admin (Staff)</span>
+                            <span class="badge-form">Quản lý</span>
                         </div>
                         <div class="perm-item" v-else>
-                            <span class="badge-form">Người dùng (End-user)</span>
+                            <span class="badge-form">Soạn thảo (End-user)</span>
                         </div>
 
                         <div v-if="user.groups_details && user.groups_details.length > 0" class="user-groups">

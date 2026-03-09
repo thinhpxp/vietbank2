@@ -46,7 +46,7 @@
 
           <vxe-column title="Tải về" width="80" align="center" fixed="right">
             <template #default="{ row }">
-              <button class="btn-action btn-doc btn-icon-sm" title="Tải nhanh bản .docx"
+              <button class="btn-action btn-download btn-icon-sm" title="Tải nhanh bản .docx"
                 @click="downloadIndividual(row.id)" :disabled="isProcessing">
                 <SvgIcon name="download" size="sm" />
               </button>
@@ -64,7 +64,7 @@
 
     <template #footer>
       <button class="btn-action btn-cancel" @click="close">Hủy</button>
-      <button class="btn-action btn-download" @click="downloadBulk"
+      <button class="btn-action btn-download-bulk" @click="downloadBulk"
         :disabled="selectedTemplateIds.length === 0 || isProcessing">
         <SvgIcon name="download" size="sm" v-if="!isProcessing" />
         {{ isProcessing ? 'Đang xử lý...' : 'Tải các mẫu đã chọn' }}
@@ -339,10 +339,6 @@ export default {
   border-radius: var(--radius-full);
 }
 
-.btn-download {
-  background-color: var(--color-primary);
-  color: white;
-}
 
 .loading-text {
   color: var(--color-text-muted);

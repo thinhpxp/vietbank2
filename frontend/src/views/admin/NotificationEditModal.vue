@@ -33,7 +33,7 @@
 
         <template #footer>
             <button @click="$emit('close')" class="btn-action">Hủy</button>
-            <button @click="save" class="btn-action btn-primary" :disabled="loading">
+            <button @click="save" class="btn-action btn-save" :disabled="loading">
                 <SvgIcon v-if="loading" name="loading" size="sm" class="spinning" />
                 {{ item ? 'Cập nhật' : 'Lưu & Đẩy' }}
             </button>

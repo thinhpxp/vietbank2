@@ -2,11 +2,11 @@ from rest_framework import permissions
 
 class IsAdminOrManager(permissions.DjangoModelPermissions):
     """
-    Custom permission to allow access if:
-    1. User is Staff or Superuser (Full Admin Access).
-    2. OR User has specific Action-based permissions (Smart RBAC).
-       - GET -> Requires 'view_model'
-       - POST -> Requires 'add_model'
+    Custom permission — Phân quyền theo RBAC:
+    1. Superuser (ROOT): Toàn quyền, bypass mọi kiểm tra.
+    2. Staff (Quản trị) và User thường: Phải có quyền tường minh trong Group.
+       - GET    -> Requires 'view_model'
+       - POST   -> Requires 'add_model'
        - PUT/PATCH -> Requires 'change_model'
        - DELETE -> Requires 'delete_model'
     """
@@ -23,19 +23,18 @@ class IsAdminOrManager(permissions.DjangoModelPermissions):
     }
 
     def has_permission(self, request, view):
-        # 1. Standard Admin Access (Legacy/Technical)
-        # Staff and Superusers bypass granular checks (keep legacy behavior)
-        if request.user.is_staff or request.user.is_superuser:
+        # Chỉ ROOT (superuser) mới được bypass tất cả kiểm tra RBAC.
+        # Staff (is_staff) phải có quyền tường minh trong Group.
+        if request.user.is_superuser:
             return True
 
-        # 2. Smart Access (RBAC)
-        # Rely on DjangoModelPermissions to check auth + specific action permission
+        # Kiểm tra quyền theo DjangoModelPermissions (dựa trên Group)
         return super().has_permission(request, view)
 
 class ReadOnlyMetadataOrAdmin(permissions.BasePermission):
     """
-    Cho phép mọi user đã đăng nhập được XEM (GET) metadata.
-    Chỉ Admin (is_staff) mới có quyền THAY ĐỔI.
+    - GET: Mọi user đã đăng nhập đều được xem metadata.
+    - Write (POST/PUT/PATCH/DELETE): Chỉ ROOT (superuser) hoặc staff có quyền tường minh.
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
@@ -43,5 +42,6 @@ class ReadOnlyMetadataOrAdmin(permissions.BasePermission):
             
         if request.method in permissions.SAFE_METHODS:
             return True
-            
-        return request.user.is_staff or request.user.is_superuser
+        
+        # Chỉ ROOT được tự động ghi. Staff cần quyền tường minh (không bypass ở đây).
+        return request.user.is_superuser

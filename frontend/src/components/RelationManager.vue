@@ -73,7 +73,7 @@
 
       <template #footer>
         <button class="btn-action btn-secondary" @click="closeModal">Hủy</button>
-        <button class="btn-action btn-primary" @click="confirmAddRelation" :disabled="!selectedTargetId">
+        <button class="btn-action btn-create" @click="confirmAddRelation" :disabled="!selectedTargetId">
           Xác nhận gán
         </button>
       </template>

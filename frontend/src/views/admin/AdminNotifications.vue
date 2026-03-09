@@ -5,8 +5,9 @@
                 <SvgIcon name="bell" size="lg" />
                 <h2>Quản lý Thông báo</h2>
             </div>
-            <button v-if="canCreate" @click="openCreateModal" class="btn-action btn-create btn-icon-only"
-                title="Tạo Thông báo mới">
+            <button @click="openCreateModal" class="btn-action btn-create btn-icon-only"
+                :disabled="!canCreate"
+                :title="canCreate ? 'Tạo Thông báo mới' : 'Bạn không có quyền tạo'">
                 <SvgIcon name="plus" size="sm" />
             </button>
         </div>
@@ -39,15 +40,19 @@
                         {{ formatDateTime(row.expires_at) || 'Không giới hạn' }}
                     </template>
                 </vxe-column>
-                <vxe-column v-if="canEdit || canDelete" title="Hành động" width="120" fixed="right" align="center">
+                <vxe-column title="Hành động" width="120" fixed="right" align="center">
                     <template #default="{ row }">
                         <div class="flex gap-2 justify-center">
-                            <button v-if="canEdit" @click="editNotification(row)"
-                                class="btn-action btn-edit btn-icon-only" title="Sửa">
+                            <button @click="editNotification(row)"
+                                class="btn-action btn-edit btn-icon-only"
+                                :disabled="!canEdit"
+                                :title="canEdit ? 'Sửa' : 'Không có quyền sửa'">
                                 <SvgIcon name="edit" size="sm" />
                             </button>
-                            <button v-if="canDelete" @click="deleteNotification(row)"
-                                class="btn-action btn-delete btn-icon-only" title="Xóa">
+                            <button @click="deleteNotification(row)"
+                                class="btn-action btn-delete btn-icon-only"
+                                :disabled="!canDelete"
+                                :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                                 <SvgIcon name="trash" size="sm" />
                             </button>
                         </div>

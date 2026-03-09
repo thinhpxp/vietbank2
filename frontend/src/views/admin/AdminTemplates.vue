@@ -28,7 +28,7 @@
           <span v-if="selectedFile" class="admin-file-name" :title="selectedFile.name">{{ selectedFile.name }}</span>
         </div>
 
-        <button @click="uploadTemplate" class="btn-action btn-success btn-icon-only" title="Tải lên Mẫu Hợp đồng">
+        <button @click="uploadTemplate" class="btn-action btn-create btn-icon-only" title="Tải lên Mẫu Hợp đồng">
           <SvgIcon name="upload" size="sm" />
         </button>
       </div>
@@ -106,14 +106,18 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
+                  :disabled="!canChange"
+                  :title="canChange ? 'Sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <a :href="row.file" target="_blank" class="btn-action btn-doc btn-icon-only no-underline"
+                <a :href="row.file" target="_blank" class="btn-action btn-download btn-icon-only no-underline"
                   title="Tải mẫu về máy">
                   <SvgIcon name="download" size="sm" />
                 </a>
-                <button @click="deleteTemplate(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
+                <button @click="deleteTemplate(row.id)" class="btn-action btn-delete btn-icon-only"
+                  :disabled="!canDelete"
+                  :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                   <SvgIcon name="trash" size="sm" />
                 </button>
               </template>
@@ -142,6 +146,7 @@
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
+import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
@@ -170,7 +175,10 @@ export default {
       return this.filterArray(this.templates, this.filters, {
         search: { type: 'text', fields: ['name', 'department'] }
       });
-    }
+    },
+    canCreate() { return auth.hasPermission('document_automation.add_documenttemplate'); },
+    canChange() { return auth.hasPermission('document_automation.change_documenttemplate'); },
+    canDelete() { return auth.hasPermission('document_automation.delete_documenttemplate'); },
   },
   watch: {
   },

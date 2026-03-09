@@ -45,7 +45,9 @@
                     <input type="checkbox" v-model="newType.allow_relations"> Cho phép liên kết đến đối tượng khác
                 </label>
 
-                <button @click="addType" class="btn-action btn-create btn-icon-only" title="Thêm Loại đối tượng">
+                <button @click="addType" class="btn-action btn-create btn-icon-only"
+                    :disabled="!canCreate"
+                    :title="canCreate ? 'Thêm Loại đối tượng' : 'Không có quyền tạo'">
                     <SvgIcon name="plus" size="sm" />
                 </button>
             </div>
@@ -181,12 +183,14 @@
                             </template>
                             <template v-else>
                                 <button class="btn-action btn-edit btn-icon-only" @click="startEdit(row)"
-                                    title="Chỉnh sửa">
+                                    :disabled="!canChange"
+                                    :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
-                                <button class="btn-action btn-delete btn-icon-only" :disabled="row.is_system"
+                                <button class="btn-action btn-delete btn-icon-only"
+                                    :disabled="row.is_system || !canDelete"
                                     @click="confirmDelete(row)"
-                                    :title="row.is_system ? 'Không thể xóa loại mặc định' : 'Xóa loại này'">
+                                    :title="row.is_system ? 'Không thể xóa loại mặc định' : (canDelete ? 'Xóa loại này' : 'Không có quyền xóa')">
                                     <SvgIcon name="trash" size="sm" />
                                 </button>
                             </template>
@@ -217,6 +221,7 @@
 <script>
 import axios from 'axios';
 import { API_URL } from '@/store/auth';
+import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
@@ -242,6 +247,9 @@ export default {
                 search: { type: 'text', fields: ['name', 'code'] }
             });
         },
+        canCreate() { return auth.hasPermission('document_automation.add_masterobjecttype'); },
+        canChange() { return auth.hasPermission('document_automation.change_masterobjecttype'); },
+        canDelete() { return auth.hasPermission('document_automation.delete_masterobjecttype'); },
     },
     watch: {
     },

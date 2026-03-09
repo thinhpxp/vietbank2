@@ -27,7 +27,7 @@
           <SvgIcon name="unlock" size="sm" />
         </button>
 
-        <button class="btn-action btn-doc btn-icon-only" :disabled="!(id || currentId)"
+        <button class="btn-action btn-download btn-icon-only" :disabled="!(id || currentId)"
           @click="isDownloadModalOpen = true" title="Xuất Hợp đồng">
           <SvgIcon name="download" size="sm" />
         </button>
@@ -40,7 +40,7 @@
           title="Nhân bản hồ sơ">
           <SvgIcon name="copy" size="sm" />
         </button>
-        <button class="btn-action btn-primary" @click="saveProfile(false)" :disabled="isSaving || isReadOnly"
+        <button class="btn-action btn-save" @click="saveProfile(false)" :disabled="isSaving || isReadOnly"
           :title="isSaving ? 'Đang lưu...' : 'Lưu Hồ Sơ'">
           <SvgIcon v-if="isSaving" name="loading" size="sm" class="spinning" />
           <SvgIcon v-else name="save" size="sm" />

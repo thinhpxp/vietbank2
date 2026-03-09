@@ -2,8 +2,11 @@
   <div class="dashboard-container page-container">
     <div class="header-actions">
       <h2>Danh sách Hồ sơ Vay</h2>
-      <button v-if="auth.hasPermission('document_automation.add_loanprofile')" class="btn-action btn-create"
-        @click="openFormSelectModal">
+      <button
+        class="btn-action btn-create"
+        @click="openFormSelectModal"
+        :disabled="!auth.hasPermission('document_automation.add_loanprofile')"
+        :title="auth.hasPermission('document_automation.add_loanprofile') ? 'Tạo hồ sơ mới' : 'Bạn không có quyền tạo hồ sơ'">
         <SvgIcon name="plus" size="sm" /> <span>Tạo Mới</span>
       </button>
     </div>
@@ -103,19 +106,29 @@
         <vxe-column title="Hành động" width="350" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button v-if="auth.hasPermission('document_automation.change_loanprofile')"
-                class="btn-action btn-edit btn-icon-only" @click="editProfile(row.id)" title="Sửa hồ sơ">
+              <button
+                class="btn-action btn-edit btn-icon-only"
+                @click="editProfile(row.id)"
+                :disabled="!auth.hasPermission('document_automation.change_loanprofile')"
+                :title="auth.hasPermission('document_automation.change_loanprofile') ? 'Sửa hồ sơ' : 'Không có quyền sửa'">
                 <SvgIcon name="edit" size="sm" />
               </button>
-              <button v-if="auth.hasPermission('document_automation.add_loanprofile')"
-                class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal(row)" title="Sao chép hồ sơ">
+              <button
+                class="btn-action btn-copy btn-icon-only"
+                @click="openDuplicateModal(row)"
+                :disabled="!auth.hasPermission('document_automation.add_loanprofile')"
+                :title="auth.hasPermission('document_automation.add_loanprofile') ? 'Sao chép hồ sơ' : 'Không có quyền tạo'">
                 <SvgIcon name="copy" size="sm" />
               </button>
-              <button class="btn-action btn-doc btn-icon-only" @click="openDownloadModal(row)" title="Xuất Hợp đồng">
+              <button class="btn-action btn-download btn-icon-only" @click="openDownloadModal(row)"
+                title="Xuất Hợp đồng">
                 <SvgIcon name="download" size="sm" />
               </button>
-              <button v-if="auth.hasPermission('document_automation.delete_loanprofile')"
-                class="btn-action btn-delete btn-icon-only" @click="deleteProfile(row.id)" title="Xóa hồ sơ">
+              <button
+                class="btn-action btn-delete btn-icon-only"
+                @click="deleteProfile(row.id)"
+                :disabled="!auth.hasPermission('document_automation.delete_loanprofile')"
+                :title="auth.hasPermission('document_automation.delete_loanprofile') ? 'Xóa hồ sơ' : 'Không có quyền xóa'">
                 <SvgIcon name="trash" size="sm" />
               </button>
             </div>

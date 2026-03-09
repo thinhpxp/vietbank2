@@ -22,7 +22,7 @@
                 <span>Bạn hiện chỉ xem được thông tin, vì người khác đang chỉnh sửa đối tượng này</span>
             </div>
             <button class="btn-action btn-secondary" @click="close">Hủy</button>
-            <button v-if="!readOnly" class="btn-action btn-primary" @click="handleSave" :disabled="isSaving">
+            <button v-if="!readOnly" class="btn-action btn-save" @click="handleSave" :disabled="isSaving">
                 {{ isSaving ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Tạo mới') }}
             </button>
         </template>

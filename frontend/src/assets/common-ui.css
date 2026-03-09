@@ -97,7 +97,12 @@ button,
 /* Color Variants */
 .btn-primary,
 .btn-create,
-.btn-save,
+.btn-save {
+    background-color: var(--color-success);
+    color: white;
+}
+
+/* Legacy - giữ lại để tương thích, ưu tiên dùng btn-create/btn-save */
 .btn-success {
     background-color: var(--color-success);
     color: white;
@@ -155,9 +160,26 @@ button,
     color: white;
 }
 
-.btn-doc {
+/* btn-download: nút icon nhỏ, mở modal xuất / tải nhanh từng file (đổi tên từ btn-doc) */
+.btn-download {
     background-color: var(--color-info);
     color: white;
+}
+
+/* btn-download-bulk: nút lớn tải hàng loạt trong footer modal */
+.btn-download-bulk {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 8px 16px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.btn-download-bulk:hover {
+    background-color: var(--color-primary-dark, color-mix(in srgb, var(--color-primary) 80%, black));
+    box-shadow: 0 0 8px rgba(52, 152, 219, 0.4);
 }
 
 .btn-refresh {
