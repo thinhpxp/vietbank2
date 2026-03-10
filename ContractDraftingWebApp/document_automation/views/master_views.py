@@ -87,28 +87,31 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def acquire_lock(self, request, pk=None):
         obj = self.get_object()
         now = timezone.now()
         if obj.editing_by and obj.editing_by != request.user:
             if (now - obj.editing_since).total_seconds() < 900:
+                logger.info(f"Lock denied for {request.user.username} on obj {pk}. Already held by {obj.editing_by.username}")
                 return Response({"locked": True, "locked_by": obj.editing_by.username, "since": obj.editing_since}, status=423)
         obj.editing_by = request.user
         obj.editing_since = now
         obj.save(update_fields=['editing_by', 'editing_since'])
+        logger.info(f"Lock acquired by {request.user.username} on obj {pk}")
         return Response({"locked": False, "message": "Lock acquired"})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def release_lock(self, request, pk=None):
         obj = self.get_object()
         if obj.editing_by == request.user:
             obj.editing_by = None
             obj.editing_since = None
             obj.save(update_fields=['editing_by', 'editing_since'])
+            logger.info(f"Lock released by {request.user.username} on obj {pk}")
         return Response({"message": "Lock released"})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def heartbeat(self, request, pk=None):
         obj = self.get_object()
         if obj.editing_by == request.user:

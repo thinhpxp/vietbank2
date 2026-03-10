@@ -174,7 +174,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         log_action(request.user, 'UPDATE', 'LoanProfile', profile.id, f"Mở khóa hồ sơ (Draft)")
         return Response({"status": "success", "message": "Hồ sơ đã được mở khóa."})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def acquire_lock(self, request, pk=None):
         obj, now = self.get_object(), timezone.now()
         if obj.editing_by and obj.editing_by != request.user and (now - obj.editing_since).total_seconds() < 900:
@@ -183,7 +183,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         obj.save(update_fields=['editing_by', 'editing_since'])
         return Response({"locked": False, "message": "Lock acquired"})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def release_lock(self, request, pk=None):
         obj = self.get_object()
         if obj.editing_by == request.user:
@@ -191,7 +191,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             obj.save(update_fields=['editing_by', 'editing_since'])
         return Response({"message": "Lock released"})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def heartbeat(self, request, pk=None):
         obj = self.get_object()
         if obj.editing_by == request.user:

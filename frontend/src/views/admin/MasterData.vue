@@ -232,7 +232,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                            }}</span>
+                                        }}</span>
                                     </div>
 
                                 </div>
@@ -298,7 +298,6 @@
 
 <script>
 import MasterService from '@/services/master.service';
-import LoanService from '@/services/loan.service';
 import SystemService from '@/services/system.service';
 import auth from '@/store/auth';
 import SvgIcon from '@/components/common/SvgIcon.vue';
@@ -555,7 +554,7 @@ export default {
 
             try {
                 // Toàn cục: thử lấy khóa (acquire lock)
-                const lockRes = await LoanService.acquireLock(obj.id); // Master objects use loan locking mechanism? need to verify
+                const lockRes = await MasterService.acquireLock(obj.id);
                 if (lockRes.data.locked) {
                     this.editingLockedBy = lockRes.data.locked_by;
                 } else {
@@ -576,7 +575,7 @@ export default {
             this.stopHeartbeat();
             this.heartbeatInterval = setInterval(async () => {
                 try {
-                    await LoanService.heartbeat(id);
+                    await MasterService.heartbeat(id);
                 } catch (e) {
                     console.error("Heartbeat failed", e);
                     this.stopHeartbeat();
@@ -591,7 +590,7 @@ export default {
         },
         async releaseLock(id) {
             try {
-                await LoanService.releaseLock(id);
+                await MasterService.releaseLock(id);
             } catch (e) {
                 console.error("Release lock failed", e);
             }
@@ -628,7 +627,7 @@ export default {
                 // LOCKING LOGIC: Try to acquire lock for this object
                 this.editingLockedBy = null;
                 try {
-                    const lockRes = await LoanService.acquireLock(objectId);
+                    const lockRes = await MasterService.acquireLock(objectId);
                     if (lockRes.data.locked) {
                         this.editingLockedBy = lockRes.data.locked_by;
                     } else {

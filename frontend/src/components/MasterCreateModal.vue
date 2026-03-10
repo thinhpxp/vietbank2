@@ -1,5 +1,5 @@
 <template>
-    <BaseModal :isOpen="isOpen" :title="title" @close="close">
+    <BaseModal :isOpen="isOpen" :title="title" :initialWidth="1100" :isResizable="true" @close="close">
         <div class="info-box info">
             <div class="info-box-icon">
                 <SvgIcon name="info" size="sm" />

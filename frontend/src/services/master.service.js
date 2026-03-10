@@ -107,6 +107,18 @@ const MasterService = {
         });
     },
 
+    acquireLock(id) {
+        return api.post(`/master-objects/${id}/acquire_lock/`);
+    },
+
+    releaseLock(id) {
+        return api.post(`/master-objects/${id}/release_lock/`);
+    },
+
+    heartbeat(id) {
+        return api.post(`/master-objects/${id}/heartbeat/`);
+    },
+
     // Document Templates
     getTemplates() {
         return api.get('/document-templates/');
