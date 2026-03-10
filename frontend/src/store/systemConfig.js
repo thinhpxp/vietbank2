@@ -1,6 +1,5 @@
 import { reactive } from 'vue';
-import axios from 'axios';
-import { API_URL } from './auth';
+import SystemService from '@/services/system.service';
 
 const defaultConfig = {
     brandName: 'AutoContract App',
@@ -49,7 +48,7 @@ function mapToServer(config) {
 // Tải cấu hình từ Server (public, không cần đăng nhập)
 async function loadFromServer() {
     try {
-        const response = await axios.get(`${API_URL}/system-config/`);
+        const response = await SystemService.getConfig();
         const mapped = mapFromServer(response.data);
         Object.assign(state, mapped);
     } catch (error) {
@@ -66,7 +65,7 @@ async function updateConfig(newConfig) {
     // Đồng bộ lên server
     try {
         const payload = mapToServer(state);
-        await axios.post(`${API_URL}/system-config/`, payload);
+        await SystemService.updateConfig(payload);
     } catch (error) {
         console.error('[SystemConfig] Không thể lưu cấu hình lên server.', error);
         throw error; // Ném lỗi để AdminSettings.vue xử lý thông báo
@@ -78,9 +77,7 @@ async function uploadLogo(file) {
     const formData = new FormData();
     formData.append('logo', file);
 
-    const response = await axios.post(`${API_URL}/upload-logo/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await SystemService.uploadLogo(formData);
 
     if (response.data.logoUrl) {
         await updateConfig({ logoUrl: response.data.logoUrl, logoType: 'image' });
@@ -93,7 +90,7 @@ async function resetToDefault() {
     Object.assign(state, defaultConfig);
     try {
         const payload = mapToServer(defaultConfig);
-        await axios.post(`${API_URL}/system-config/`, payload);
+        await SystemService.updateConfig(payload);
     } catch (error) {
         console.error('[SystemConfig] Không thể reset cấu hình trên server.', error);
     }

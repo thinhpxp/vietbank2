@@ -5,8 +5,7 @@
                 <SvgIcon name="bell" size="lg" />
                 <h2>Quản lý Thông báo</h2>
             </div>
-            <button @click="openCreateModal" class="btn-action btn-create btn-icon-only"
-                :disabled="!canCreate"
+            <button @click="openCreateModal" class="btn-action btn-create btn-icon-only" :disabled="!canCreate"
                 :title="canCreate ? 'Tạo Thông báo mới' : 'Bạn không có quyền tạo'">
                 <SvgIcon name="plus" size="sm" />
             </button>
@@ -43,16 +42,12 @@
                 <vxe-column title="Hành động" width="120" fixed="right" align="center">
                     <template #default="{ row }">
                         <div class="flex gap-2 justify-center">
-                            <button @click="editNotification(row)"
-                                class="btn-action btn-edit btn-icon-only"
-                                :disabled="!canEdit"
-                                :title="canEdit ? 'Sửa' : 'Không có quyền sửa'">
+                            <button @click="editNotification(row)" class="btn-action btn-edit btn-icon-only"
+                                :disabled="!canEdit" :title="canEdit ? 'Sửa' : 'Không có quyền sửa'">
                                 <SvgIcon name="edit" size="sm" />
                             </button>
-                            <button @click="deleteNotification(row)"
-                                class="btn-action btn-delete btn-icon-only"
-                                :disabled="!canDelete"
-                                :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
+                            <button @click="deleteNotification(row)" class="btn-action btn-delete btn-icon-only"
+                                :disabled="!canDelete" :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                                 <SvgIcon name="trash" size="sm" />
                             </button>
                         </div>
@@ -67,14 +62,14 @@
 </template>
 
 <script>
-import axios from 'axios';
+import SystemService from '@/services/system.service';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import NotificationEditModal from './NotificationEditModal.vue';
-import { API_URL } from '@/store/auth';
 import auth from '@/store/auth';
 
 export default {
     name: 'AdminNotifications',
+    title: 'Quản lý Thông báo Admin',
     components: { SvgIcon, NotificationEditModal },
     data() {
         return {
@@ -101,7 +96,7 @@ export default {
         async fetchNotifications() {
             this.loading = true;
             try {
-                const res = await axios.get(`${API_URL}/notifications/`);
+                const res = await SystemService.getAdminNotifications();
                 this.notifications = res.data;
             } catch (err) {
                 this.$toast.error('Không thể tải danh sách thông báo');
@@ -137,7 +132,7 @@ export default {
                 return;
             }
             try {
-                await axios.patch(`${API_URL}/notifications/${row.id}/`, { is_active: row.is_active });
+                await SystemService.updateAdminNotification(row.id, { is_active: row.is_active });
                 this.$toast.success('Đã cập nhật trạng thái');
             } catch (err) {
                 row.is_active = !row.is_active; // revert on error
@@ -151,7 +146,7 @@ export default {
             }
             if (confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
                 try {
-                    await axios.delete(`${API_URL}/notifications/${row.id}/`);
+                    await SystemService.deleteAdminNotification(row.id);
                     this.$toast.success('Đã xóa thông báo');
                     this.fetchNotifications();
                 } catch (err) {

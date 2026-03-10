@@ -25,7 +25,7 @@ def format_currency_filter(value):
 
 def num2words_filter(value):
     """Đọc số tiền thành chữ: 1000 -> Một nghìn"""
-    if not value: return ""
+    if value is None or value == "": return ""
     try:
         # num2words hỗ trợ tiếng Việt rất tốt
         return num2words(value, lang='vi').capitalize()

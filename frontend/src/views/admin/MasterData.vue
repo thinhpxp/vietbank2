@@ -232,7 +232,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
                                 </div>
@@ -297,8 +297,9 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
+import LoanService from '@/services/loan.service';
+import SystemService from '@/services/system.service';
 import auth from '@/store/auth';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
@@ -308,6 +309,7 @@ import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
     name: 'MasterData',
+    title: 'Quản lý Dữ liệu gốc',
     components: { ConfirmModal, MasterCreateModal, SvgIcon },
     mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
@@ -410,7 +412,7 @@ export default {
         },
         async fetchObjectTypes() {
             try {
-                const res = await axios.get(`${API_URL}/object-types/`);
+                const res = await MasterService.getObjectTypes();
                 this.objectTypes = res.data;
                 if (this.objectTypes.length > 0) {
                     this.activeTab = this.objectTypes[0].code;
@@ -424,7 +426,7 @@ export default {
             this.loading = true;
             this.selectedIds = []; // Clear selection when fetching/changing tab
             try {
-                const response = await axios.get(`${API_URL}/master-objects/?object_type=${this.activeTab}`);
+                const response = await MasterService.getAllObjects({ object_type: this.activeTab });
 
                 // Flatten
                 this.items = response.data.map(item => ({
@@ -447,7 +449,7 @@ export default {
 
             try {
                 // 2. Fetch Master Relations (Categorized & Deduplicated)
-                const resDetail = await axios.get(`${API_URL}/master-objects/${obj.id}/`);
+                const resDetail = await MasterService.getObjectById(obj.id);
                 const detail = resDetail.data;
 
                 const allRelsRaw = [];
@@ -473,11 +475,9 @@ export default {
                 this.relatedProfiles = detail.related_profiles || [];
 
                 // 3. Fetch Audit Logs
-                const logRes = await axios.get(`${API_URL}/audit-logs/`, {
-                    params: {
-                        target_model: `MasterObject:${obj.object_type}`,
-                        target_id: obj.id
-                    }
+                const logRes = await SystemService.getAuditLogs({
+                    target_model: `MasterObject:${obj.object_type}`,
+                    target_id: obj.id
                 });
                 this.auditLogs = logRes.data.results || logRes.data;
 
@@ -502,7 +502,7 @@ export default {
         },
         async executeDelete() {
             try {
-                await axios.delete(`${API_URL}/master-objects/${this.deleteTarget.id}/`);
+                await MasterService.deleteObject(this.deleteTarget.id);
                 this.showDeleteModal = false;
                 this.fetchData();
                 this.$toast.success('Đã xóa thành công!');
@@ -523,9 +523,7 @@ export default {
         async executeBulkDelete() {
             try {
                 this.loading = true;
-                await axios.post(`${API_URL}/master-objects/bulk-delete/`, {
-                    ids: this.selectedIds
-                });
+                await MasterService.bulkDeleteObjects(this.selectedIds);
                 this.showBulkDeleteModal = false;
                 this.selectedIds = [];
                 await this.fetchData();
@@ -557,7 +555,7 @@ export default {
 
             try {
                 // Toàn cục: thử lấy khóa (acquire lock)
-                const lockRes = await axios.post(`${API_URL}/master-objects/${obj.id}/acquire_lock/`);
+                const lockRes = await LoanService.acquireLock(obj.id); // Master objects use loan locking mechanism? need to verify
                 if (lockRes.data.locked) {
                     this.editingLockedBy = lockRes.data.locked_by;
                 } else {
@@ -578,7 +576,7 @@ export default {
             this.stopHeartbeat();
             this.heartbeatInterval = setInterval(async () => {
                 try {
-                    await axios.post(`${API_URL}/master-objects/${id}/heartbeat/`);
+                    await LoanService.heartbeat(id);
                 } catch (e) {
                     console.error("Heartbeat failed", e);
                     this.stopHeartbeat();
@@ -593,7 +591,7 @@ export default {
         },
         async releaseLock(id) {
             try {
-                await axios.post(`${API_URL}/master-objects/${id}/release_lock/`);
+                await LoanService.releaseLock(id);
             } catch (e) {
                 console.error("Release lock failed", e);
             }
@@ -615,7 +613,7 @@ export default {
             // Fetch full details of the child object then open modal
             try {
                 this.relatedLoading = true;
-                const res = await axios.get(`${API_URL}/master-objects/${objectId}/`);
+                const res = await MasterService.getObjectById(objectId);
                 // Flatten fields like we do in fetchData
                 const fullObj = {
                     ...res.data,
@@ -630,7 +628,7 @@ export default {
                 // LOCKING LOGIC: Try to acquire lock for this object
                 this.editingLockedBy = null;
                 try {
-                    const lockRes = await axios.post(`${API_URL}/master-objects/${objectId}/acquire_lock/`);
+                    const lockRes = await LoanService.acquireLock(objectId);
                     if (lockRes.data.locked) {
                         this.editingLockedBy = lockRes.data.locked_by;
                     } else {

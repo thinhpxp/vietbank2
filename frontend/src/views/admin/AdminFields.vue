@@ -36,8 +36,7 @@
           <option :value="null">-- Chọn nhóm --</option>
           <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
         </select>
-        <button @click="addField" class="btn-action btn-create btn-icon-only"
-          :disabled="!canCreate"
+        <button @click="addField" class="btn-action btn-create btn-icon-only" :disabled="!canCreate"
           :title="canCreate ? 'Thêm trường dữ liệu mới' : 'Không có quyền tạo'">
           <SvgIcon name="plus" size="sm" />
         </button>
@@ -254,13 +253,11 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
-                  :disabled="!canChange"
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" :disabled="!canChange"
                   :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <button @click="copyField(row)" class="btn-action btn-copy btn-icon-only"
-                  :disabled="!canCreate"
+                <button @click="copyField(row)" class="btn-action btn-copy btn-icon-only" :disabled="!canCreate"
                   :title="canCreate ? 'Sao chép' : 'Không có quyền tạo'">
                   <SvgIcon name="copy" size="sm" />
                 </button>
@@ -293,8 +290,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -303,6 +299,7 @@ import SvgIcon from '../../components/common/SvgIcon.vue';
 
 export default {
   name: 'AdminFields',
+  title: 'Quản lý Trường dữ liệu',
   components: { ConfirmModal, SvgIcon },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
@@ -346,13 +343,12 @@ export default {
     canDelete() { return auth.hasPermission('document_automation.delete_field'); },
   },
   methods: {
-    // toggleSort removed (provided by mixin)
     async fetchData() {
       try {
         const [resFields, resGroups, resTypes] = await Promise.all([
-          axios.get(`${API_URL}/fields/`),
-          axios.get(`${API_URL}/groups/`),
-          axios.get(`${API_URL}/object-types/`)
+          MasterService.getFields(),
+          MasterService.getGroups(),
+          MasterService.getObjectTypes()
         ]);
         this.fields = resFields.data;
         this.groups = resGroups.data;
@@ -363,7 +359,7 @@ export default {
     },
     async fetchForms() {
       try {
-        const res = await axios.get(`${API_URL}/form-views/`);
+        const res = await MasterService.getFormViews();
         this.allForms = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách Form');
@@ -381,19 +377,18 @@ export default {
         this.showWarning('Vui lòng chọn nhóm!', 'Thiếu thông tin');
         return;
       }
-      // Kiểm tra trùng Key ngay tại Frontend để báo lỗi thân thiện
       const isDuplicate = this.fields.some(f => f.placeholder_key === this.newField.placeholder_key);
       if (isDuplicate) {
         this.showWarning(`Key '${this.newField.placeholder_key}' đã tồn tại. Vui lòng chọn key khác để tránh xung đột dữ liệu.`, 'Trùng Key');
         return;
       }
       try {
-        await axios.post(`${API_URL}/fields/`, this.newField);
+        await MasterService.createField(this.newField);
         this.fetchData();
         this.newField = {
           label: '', placeholder_key: '', note: '', data_type: 'TEXT', group: this.newField.group,
           order: null, width_cols: null, css_class: '', use_digit_grouping: false, show_amount_in_words: false,
-          allowed_object_types: []
+          allowed_object_types: [], allowed_forms: []
         };
         this.showSuccess('Thêm trường thành công!');
       } catch (e) {
@@ -402,7 +397,7 @@ export default {
     },
     async updateField(field) {
       try {
-        await axios.put(`${API_URL}/fields/${field.id}/`, field);
+        await MasterService.updateField(field.id, field);
         this.editingId = null;
         await this.fetchData();
       } catch (e) {
@@ -418,7 +413,7 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`${API_URL}/fields/${this.deleteTargetId}/`);
+          await MasterService.deleteField(this.deleteTargetId);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchData();

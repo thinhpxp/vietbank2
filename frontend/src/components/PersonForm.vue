@@ -54,8 +54,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
 import RelationManager from './RelationManager.vue';
@@ -163,8 +162,7 @@ export default {
 
       // 2. Nếu là trường định danh, gọi API kiểm tra
       try {
-        const url = `${API_URL}/master-objects/check_identity/?object_type=PERSON&key=${key}&value=${encodeURIComponent(value)}`;
-        const res = await axios.get(url);
+        const res = await MasterService.checkIdentity('PERSON', key, value);
         if (res.data.exists) {
           if (this.localPerson.master_object?.id === res.data.id) {
             this.duplicateWarning = null;
@@ -192,7 +190,7 @@ export default {
     async linkDuplicate() {
       if (!this.duplicateId) return;
       try {
-        const res = await axios.get(`${API_URL}/master-objects/${this.duplicateId}/`);
+        const res = await MasterService.getObjectById(this.duplicateId);
         this.onPersonSelect(res.data);
         this.duplicateWarning = null;
         this.duplicateId = null;

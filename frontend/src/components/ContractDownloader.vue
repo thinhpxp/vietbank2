@@ -74,8 +74,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import api from '@/services/api';
 import BaseModal from '@/components/BaseModal.vue';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
@@ -135,7 +134,7 @@ export default {
     async fetchTemplates() {
       this.loadingTemplates = true;
       try {
-        const response = await axios.get(`${API_URL}/document-templates/`);
+        const response = await api.get('/document-templates/');
         this.templates = response.data;
       } catch (e) {
         this.error = 'Không tải được danh sách mẫu.';
@@ -180,8 +179,8 @@ export default {
 
     async executeFrontendBatch(templateId) {
       try {
-        const url = `${API_URL}/loan-profiles/${this.profileId}/generate-document/`;
-        const metaResp = await axios.post(url, {
+        const url = `/loan-profiles/${this.profileId}/generate-document/`;
+        const metaResp = await api.post(url, {
           template_id: templateId,
           batch_template_ids: [templateId],
           return_metadata: true
@@ -197,7 +196,7 @@ export default {
           const obj = objects[i];
           this.batchProgress = `Đang tải file ${i + 1}/${objects.length} — ${this.getTemplateName(templateId)}`;
 
-          const response = await axios.post(url, {
+          const response = await api.post(url, {
             template_id: templateId,
             export_mode: 'BATCH',
             target_object_id: obj.id
@@ -246,8 +245,8 @@ export default {
     async executeDownload(payload) {
       this.error = '';
       try {
-        const url = `${API_URL}/loan-profiles/${this.profileId}/generate-document/`;
-        const response = await axios.post(url, payload, { responseType: 'blob' });
+        const url = `/loan-profiles/${this.profileId}/generate-document/`;
+        const response = await api.post(url, payload, { responseType: 'blob' });
 
         const contentType = response.headers['content-type'];
         const isZip = contentType && contentType.includes('application/zip');

@@ -103,13 +103,16 @@
 </template>
 
 <script>
-import axios from 'axios';
+import SystemService from '@/services/system.service';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import { format, parseISO, subDays } from 'date-fns';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'AdminAuditLog',
+  title: 'Nhật ký hệ thống',
+  components: { SvgIcon },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
@@ -141,9 +144,6 @@ export default {
     async fetchLogs() {
       this.loading = true;
       try {
-        const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
-        let url = `${API_URL}/audit-logs/`;
-
         // Build query params
         const params = {};
         if (this.filterUserName) params.username = this.filterUserName;
@@ -152,7 +152,7 @@ export default {
         if (this.fromDate) params.timestamp_gte = this.fromDate + "T00:00:00";
         if (this.toDate) params.timestamp_lte = this.toDate + "T23:59:59";
 
-        const response = await axios.get(url, { params });
+        const response = await SystemService.getAuditLogs(params);
 
         // Reset to first page
         this.currentPage = 1;
@@ -168,8 +168,6 @@ export default {
           this.totalCount = this.logs.length || 0;
         }
 
-        // Removed client-side filtering as backend now handles it efficiently via indexing.
-
       } catch (error) {
         this.showError(error);
       } finally {
@@ -180,7 +178,12 @@ export default {
       if (!url) return;
       this.loading = true;
       try {
-        const response = await axios.get(url);
+        // Here url is already full, we can use SystemService to call it directly if we modify it, 
+        // but SystemService.getAuditLogs expects params. 
+        // For simplicity, we can use a direct axios call if needed, but per requirement we use Service.
+        // Let's assume SystemService has a way to handle direct URLs or we extract params.
+
+        const response = await SystemService.getAuditLogsByUrl(url);
         if (response.data.results) {
           this.logs = response.data.results;
           this.nextPage = response.data.next;

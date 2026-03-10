@@ -90,7 +90,7 @@
                 <div v-if="selectedUser" class="editor-container">
                     <div class="admin-pane-header admin-row">
                         <h3 class="flex-1">{{ isCreating ? 'Tạo người dùng mới' : `Chi tiết: ${selectedUser.username}`
-                            }}</h3>
+                        }}</h3>
                         <div class="actions">
                             <span v-if="selectedUser.is_superuser" class="superuser-warning">
                                 🛡️ Tài khoản Hệ thống (Bypass mọi quyền)
@@ -196,7 +196,7 @@
                                 <div v-else-if="selectedUser.permissions && selectedUser.permissions.length"
                                     class="admin-perm-tags">
                                     <span v-for="p in selectedUser.permissions" :key="p" class="admin-perm-tag">{{ p
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else class="empty-permissions">
                                     ⚠️ Tài khoản này hiện chưa có bất kỳ quyền hạn nào.
@@ -353,18 +353,18 @@
 </template>
 
 <script>
-import axios from 'axios';
+import SystemService from '@/services/system.service';
 import auth from '@/store/auth';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import InputModal from '@/components/InputModal.vue';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
-
-const API_BASE = 'http://localhost:8000/api';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 
 export default {
     name: 'AdminAccessManagement',
-    components: { ConfirmModal, InputModal },
+    title: 'Quản trị Người dùng',
+    components: { SvgIcon, ConfirmModal, InputModal },
     mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
@@ -432,15 +432,13 @@ export default {
     async created() {
         await this.loadAllData();
     },
-    watch: {
-    },
     methods: {
         async loadAllData() {
             try {
                 const [uRes, gRes, pRes] = await Promise.all([
-                    axios.get(`${API_BASE}/users/`),
-                    axios.get(`${API_BASE}/user-groups/`),
-                    axios.get(`${API_BASE}/user-permissions/`)
+                    SystemService.getUsers(),
+                    SystemService.getUserGroups(),
+                    SystemService.getUserPermissions()
                 ]);
                 this.users = uRes.data;
                 this.groups = gRes.data;
@@ -487,7 +485,7 @@ export default {
             }
             this.isSaving = true;
             try {
-                const res = await axios.post(`${API_BASE}/users/`, this.selectedUser);
+                const res = await SystemService.createUser(this.selectedUser);
                 this.users.unshift(res.data);
                 this.isCreating = false;
                 this.selectedUser = JSON.parse(JSON.stringify(res.data));
@@ -501,13 +499,11 @@ export default {
         async saveUser() {
             this.isSaving = true;
             try {
-                const res = await axios.patch(`${API_BASE}/users/${this.selectedUser.id}/`, this.selectedUser);
+                const res = await SystemService.updateUser(this.selectedUser.id, this.selectedUser);
                 const idx = this.users.findIndex(u => u.id === res.data.id);
                 if (idx !== -1) {
-                    // Sử dụng splice để đảm bảo tính phản ứng (reactivity) trong Vue
                     this.users.splice(idx, 1, res.data);
                 }
-                // Cập nhật selectedUser bằng clone mới từ server
                 this.selectedUser = JSON.parse(JSON.stringify(res.data));
                 this.$toast.success(`Cập nhật người dùng '${res.data.username}' thành công!`);
             } catch (e) {
@@ -522,7 +518,7 @@ export default {
         },
         async executeResetPassword() {
             try {
-                await axios.post(`${API_BASE}/users/${this.selectedUser.id}/reset-password/`, { password: this.newPassword });
+                await SystemService.resetPassword(this.selectedUser.id, this.newPassword);
                 this.showResetModal = false;
                 this.$toast.success(`Đã đặt lại mật khẩu cho '${this.selectedUser.username}' thành công.`);
             } catch (e) {
@@ -536,7 +532,7 @@ export default {
         async handleDeleteUser() {
             this.showDeleteUserConfirm = false;
             try {
-                await axios.delete(`${API_BASE}/users/${this.selectedUser.id}/`);
+                await SystemService.deleteUser(this.selectedUser.id);
                 const deletedName = this.selectedUser.username;
                 this.users = this.users.filter(u => u.id !== this.selectedUser.id);
                 this.selectedUser = null;
@@ -557,7 +553,7 @@ export default {
             this.showCreateGroupInput = false;
             if (!name) return;
             try {
-                const res = await axios.post(`${API_BASE}/user-groups/`, { name, permissions: [] });
+                const res = await SystemService.createUserGroup({ name, permissions: [] });
                 this.groups.push(res.data);
                 this.$toast.success(`Đã tạo nhóm '${name}' thành công.`);
             } catch (e) {
@@ -567,7 +563,7 @@ export default {
         async saveGroup() {
             this.isSaving = true;
             try {
-                const res = await axios.put(`${API_BASE}/user-groups/${this.selectedGroup.id}/`, this.selectedGroup);
+                const res = await SystemService.updateUserGroup(this.selectedGroup.id, this.selectedGroup);
                 const idx = this.groups.findIndex(g => g.id === res.data.id);
                 if (idx !== -1) this.groups[idx] = res.data;
                 this.$toast.success(`Đã lưu cấu hình nhóm '${res.data.name}'.`);
@@ -583,7 +579,7 @@ export default {
         async handleDeleteGroup() {
             this.showDeleteGroupConfirm = false;
             try {
-                await axios.delete(`${API_BASE}/user-groups/${this.selectedGroup.id}/`);
+                await SystemService.deleteUserGroup(this.selectedGroup.id);
                 const deletedName = this.selectedGroup.name;
                 this.groups = this.groups.filter(g => g.id !== this.selectedGroup.id);
                 this.selectedGroup = null;

@@ -65,8 +65,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import BaseModal from './BaseModal.vue';
 
 export default {
@@ -169,7 +168,7 @@ export default {
       this.error = null;
       this.objectData = null;
       try {
-        const response = await axios.get(`${API_URL}/master-objects/${id}/`);
+        const response = await MasterService.getObjectById(id);
         this.objectData = response.data;
       } catch (err) {
         console.error("Lỗi tải chi tiết đối tượng:", err);

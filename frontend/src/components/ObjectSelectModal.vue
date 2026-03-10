@@ -81,8 +81,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import BaseModal from '@/components/BaseModal.vue';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 
@@ -112,12 +111,14 @@ export default {
         title() {
             if (this.type === 'person') return 'Chọn Người từ danh sách';
             if (this.type === 'attorney') return 'Chọn Đại diện Ngân hàng';
-            return 'Chọn Tài sản từ danh sách';
+            if (this.type && this.type.toUpperCase().includes('CONTRACT')) return 'Chọn Hợp đồng từ danh sách';
+            return 'Chọn Đối tượng / Tài sản';
         },
         searchPlaceholder() {
             if (this.type === 'person') return 'Tìm theo Tên hoặc CCCD...';
             if (this.type === 'attorney') return 'Tìm theo Tên hoặc Mã nhân viên...';
-            return 'Tìm theo Số Giấy chứng nhận...';
+            if (this.type && this.type.toUpperCase().includes('CONTRACT')) return 'Tìm theo Số hiệu hợp đồng...';
+            return 'Nhập thông tin tìm kiếm...';
         }
     },
     watch: {
@@ -135,7 +136,7 @@ export default {
         async fetchObjectTypes() {
             if (this.objectTypes.length > 0) return;
             try {
-                const response = await axios.get(`${API_URL}/object-types/`);
+                const response = await MasterService.getObjectTypes();
                 this.objectTypes = response.data;
             } catch (error) {
                 console.error('Lỗi khi tải loại đối tượng:', error);
@@ -161,8 +162,11 @@ export default {
                     if (!types) types = 'ASSET,VEHICLE,REALESTATE,SAVINGS,CONTRACT';
                 }
 
-                const url = `${API_URL}/master-objects/?object_type=${types}&search=${encodeURIComponent(this.searchQuery)}`;
-                const response = await axios.get(url);
+                const params = {
+                    object_type: types,
+                    search: this.searchQuery
+                };
+                const response = await MasterService.getAllObjects(params);
 
                 this.items = response.data.map(item => ({
                     ...item,

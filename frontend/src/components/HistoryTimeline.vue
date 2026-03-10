@@ -11,7 +11,7 @@
     <div v-else class="timeline-content">
       <div v-for="(group, date) in groupedLogs" :key="date" class="timeline-group">
         <div class="timeline-date">{{ formatDate(date) }}</div>
-        
+
         <div v-for="log in group" :key="log.id" class="timeline-item">
           <div class="timeline-marker" :class="getActionColor(log.action)"></div>
           <div class="timeline-body">
@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/services/api';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
@@ -74,7 +74,11 @@ export default {
     async fetchLogs() {
       this.loading = true;
       try {
-        const response = await axios.get(this.apiUrl);
+        let endpoint = this.apiUrl;
+        if (endpoint.includes('/api/')) {
+          endpoint = endpoint.split('/api')[1];
+        }
+        const response = await api.get(endpoint);
         this.logs = response.data;
       } catch (error) {
         console.error("Error fetching history:", error);
@@ -121,7 +125,8 @@ export default {
   font-family: 'Inter', sans-serif;
 }
 
-.timeline-loading, .timeline-empty {
+.timeline-loading,
+.timeline-empty {
   text-align: center;
   color: #6c757d;
   padding: 20px;
@@ -158,9 +163,10 @@ export default {
 .timeline-item::before {
   content: '';
   position: absolute;
-  left: 5px; /* Center of marker (10px / 2) */
+  left: 5px;
+  /* Center of marker (10px / 2) */
   top: 15px;
-  bottom: -20px; 
+  bottom: -20px;
   width: 2px;
   background: #f0f0f0;
   z-index: 0;
@@ -181,11 +187,25 @@ export default {
   box-shadow: 0 0 0 1px #eee;
 }
 
-.timeline-marker.success { background-color: #28a745; }
-.timeline-marker.info { background-color: #17a2b8; }
-.timeline-marker.danger { background-color: #dc3545; }
-.timeline-marker.warning { background-color: #ffc107; }
-.timeline-marker.secondary { background-color: #6c757d; }
+.timeline-marker.success {
+  background-color: #28a745;
+}
+
+.timeline-marker.info {
+  background-color: #17a2b8;
+}
+
+.timeline-marker.danger {
+  background-color: #dc3545;
+}
+
+.timeline-marker.warning {
+  background-color: #ffc107;
+}
+
+.timeline-marker.secondary {
+  background-color: #6c757d;
+}
 
 .timeline-body {
   flex: 1;
@@ -222,11 +242,26 @@ export default {
   font-weight: 500;
 }
 
-.action-badge.success { background-color: #28a745; }
-.action-badge.info { background-color: #17a2b8; }
-.action-badge.danger { background-color: #dc3545; }
-.action-badge.warning { background-color: #ffc107; color: #333; }
-.action-badge.secondary { background-color: #6c757d; }
+.action-badge.success {
+  background-color: #28a745;
+}
+
+.action-badge.info {
+  background-color: #17a2b8;
+}
+
+.action-badge.danger {
+  background-color: #dc3545;
+}
+
+.action-badge.warning {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.action-badge.secondary {
+  background-color: #6c757d;
+}
 
 .timeline-message {
   color: #555;

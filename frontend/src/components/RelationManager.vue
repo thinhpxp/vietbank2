@@ -82,8 +82,8 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
+import MasterRelationService from '@/services/relation.service';
 import BaseModal from './BaseModal.vue';
 import ObjectDetailModal from './ObjectDetailModal.vue';
 
@@ -164,7 +164,7 @@ export default {
     async fetchRelations() {
       if (!this.masterObjectId) return;
       try {
-        const res = await axios.get(`${API_URL}/master-objects/${this.masterObjectId}/`);
+        const res = await MasterService.getObjectById(this.masterObjectId);
         // Gộp quan hệ đi và quan hệ đến
         this.relations = [
           ...(res.data.relations_out || []),
@@ -184,7 +184,7 @@ export default {
     async confirmAddRelation() {
       if (!this.selectedTargetId) return;
       try {
-        await axios.post(`${API_URL}/master-relations/create_relation/`, {
+        await MasterRelationService.createRelation({
           source_id: this.masterObjectId,
           target_id: this.selectedTargetId,
           relation_type: this.newRelType
@@ -199,7 +199,7 @@ export default {
     async removeRelation(relId) {
       if (!confirm('Bạn có chắc muốn xóa liên kết này?')) return;
       try {
-        await axios.delete(`${API_URL}/master-relations/${relId}/`);
+        await MasterRelationService.deleteRelation(relId);
         this.relations = this.relations.filter(r => r.id !== relId);
         this.$toast.success('Đã xóa liên kết');
       } catch (e) {

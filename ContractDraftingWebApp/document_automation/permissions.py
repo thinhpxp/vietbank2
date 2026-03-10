@@ -45,3 +45,10 @@ class ReadOnlyMetadataOrAdmin(permissions.BasePermission):
         
         # Chỉ ROOT được tự động ghi. Staff cần quyền tường minh (không bypass ở đây).
         return request.user.is_superuser
+
+class IsSuperUser(permissions.BasePermission):
+    """
+    Chỉ superuser (ROOT) mới được phép truy cập.
+    """
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_superuser)

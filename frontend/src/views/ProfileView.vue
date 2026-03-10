@@ -108,7 +108,7 @@
                             <p class="font-bold mb-2">Nhóm quyền:</p>
                             <div class="groups-flex">
                                 <span v-for="g in user.groups_details" :key="g.id" class="status-badge draft">{{ g.name
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -124,6 +124,7 @@ import auth from '@/store/auth';
 
 export default {
     name: 'ProfileView',
+    title: 'Quản lý tài khoản',
     data() {
         return {
             loading: true,

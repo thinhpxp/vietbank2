@@ -30,8 +30,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import DynamicForm from './DynamicForm.vue';
 import BaseModal from './BaseModal.vue';
 import SvgIcon from './common/SvgIcon.vue';
@@ -113,8 +112,7 @@ export default {
         async fetchFields() {
             this.loadingFields = true;
             try {
-                // Sử dụng API active_fields_grouped với entity_type mới
-                const res = await axios.get(`${API_URL}/fields/active_fields_grouped/?entity_type=${this.type}`);
+                const res = await MasterService.getFieldsGrouped(this.type);
 
                 // Flatten the grouped result from API into a simple array for DynamicForm if needed
                 const flatFields = [];
@@ -148,9 +146,9 @@ export default {
                 };
 
                 if (this.isEdit) {
-                    await axios.patch(`${API_URL}/master-objects/${this.editObject.id}/`, payload);
+                    await MasterService.updateObject(this.editObject.id, payload);
                 } else {
-                    await axios.post(`${API_URL}/master-objects/`, payload);
+                    await MasterService.createObject(payload);
                 }
 
                 this.$toast.success(`${this.isEdit ? 'Cập nhật' : 'Tạo mới'} thành công!`);

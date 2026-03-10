@@ -1,49 +1,9 @@
+import apiClient, { API_URL } from '@/services/api';
+
+export { API_URL };
+
+// Quản lý Authentication Store
 import { reactive, computed } from 'vue';
-import axios from 'axios';
-
-// API Configuration
-export const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
-
-// Cấu hình Axios Request Interceptor để tự động gắn Token vào mọi yêu cầu
-axios.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
-
-// Cấu hình Axios Response Interceptor để xử lý lỗi hết hạn phiên (401) và lỗi quyền (403)
-axios.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        const { status } = error.response || {};
-
-        if (status === 401) {
-            // Hết hạn phiên hoặc Token không hợp lệ
-            // Import động để tránh vòng lặp phụ thuộc (circular dependency)
-            const { showErrorDialog } = require('../utils/errorHandler');
-            showErrorDialog(null, "Phiên đăng nhập đã hết hạn. Bạn sẽ được chuyển về trang đăng nhập.", "Hết hạn phiên");
-
-            setTimeout(() => {
-                store.logout();
-                window.location.href = '/login';
-            }, 3000); // Đợi 3s để user kịp đọc thông báo
-        }
-        else if (status === 403) {
-            // Không có quyền truy cập
-            const { showErrorDialog } = require('../utils/errorHandler');
-            showErrorDialog(null, error, "Truy cập bị từ chối");
-        }
-
-        return Promise.reject(error);
-    }
-);
 
 const state = reactive({
     token: localStorage.getItem('token') || null,
@@ -68,7 +28,7 @@ const store = {
     // Actions
     async login(username, password) {
         try {
-            const response = await axios.post(`${API_URL}/token/`, { username, password });
+            const response = await apiClient.post('/token/', { username, password });
             const { access } = response.data;
 
             this.setToken(access);
@@ -84,13 +44,11 @@ const store = {
         state.token = token;
         state.isAuthenticated = true;
         localStorage.setItem('token', token);
-        // Config axios for future requests
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     },
 
     async fetchProfile() {
         try {
-            const response = await axios.get(`${API_URL}/me/`);
+            const response = await apiClient.get('/me/');
             const { permissions, ...userData } = response.data;
             state.user = userData;
             state.permissions = permissions || [];
@@ -110,12 +68,11 @@ const store = {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('permissions');
-        delete axios.defaults.headers.common['Authorization'];
     },
 
     async register(data) {
         try {
-            await axios.post(`${API_URL}/register/`, data);
+            await apiClient.post('/register/', data);
             return true;
         } catch (error) {
             console.error('Registration failed:', error);
@@ -125,7 +82,6 @@ const store = {
 
     initialize() {
         if (state.token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
             this.fetchProfile();
         }
     }

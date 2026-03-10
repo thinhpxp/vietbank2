@@ -4,7 +4,7 @@ from django.contrib.auth.models import User, Group, Permission
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from .permissions import IsAdminOrManager, ReadOnlyMetadataOrAdmin # IMPORT CUSTOM PERMISSION
+from .permissions import IsAdminOrManager, ReadOnlyMetadataOrAdmin, IsSuperUser # IMPORT CUSTOM PERMISSION
 from rest_framework.views import APIView
 
 # ... (rest of imports)
@@ -454,19 +454,19 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
 class FormViewViewSet(viewsets.ModelViewSet):
     queryset = FormView.objects.all()
     serializer_class = FormViewSerializer
-    permission_classes = [ReadOnlyMetadataOrAdmin]
+    permission_classes = [IsAdminOrManager]
 
 # 1.3 ViewSet cho Role
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_classes = [ReadOnlyMetadataOrAdmin]
+    permission_classes = [IsAdminOrManager]
 
 # 1.2 ViewSet cho Field
 class FieldViewSet(viewsets.ModelViewSet):
     queryset = Field.objects.all().order_by('-id')
     serializer_class = FieldSerializer
-    permission_classes = [ReadOnlyMetadataOrAdmin]
+    permission_classes = [IsAdminOrManager]
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related('group')
@@ -545,7 +545,7 @@ class FieldViewSet(viewsets.ModelViewSet):
 class DocumentTemplateViewSet(viewsets.ModelViewSet):
     queryset = DocumentTemplate.objects.all().order_by('-id')
     serializer_class = DocumentTemplateSerializer
-    permission_classes = [ReadOnlyMetadataOrAdmin]
+    permission_classes = [IsAdminOrManager]
 
 # 3.2 ViewSet cho User (Nâng cấp)
 class UserViewSet(viewsets.ModelViewSet):
@@ -607,7 +607,7 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
 # --- NEW AUTH VIEWS ---
 # --- LOGO UPLOAD VIEW (SECURING BRANDING) ---
 class LogoUploadView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperUser]
 
     def post(self, request):
         if 'logo' not in request.FILES:
@@ -665,7 +665,7 @@ class SystemConfigView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAdminUser()]
+        return [IsSuperUser()]
 
     def get(self, request):
         from .models import SystemConfig
@@ -891,13 +891,14 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def lock_profile(self, request, pk=None):
         """Khóa hồ sơ và thiết lập mật khẩu"""
+        from django.contrib.auth.hashers import make_password
         profile = self.get_object()
         password = request.data.get('password')
         if not password:
             return Response({"error": "Vui lòng cung cấp mật khẩu để khóa hồ sơ"}, status=400)
         
         profile.status = 'FINALIZED'
-        profile.lock_password = password
+        profile.lock_password = make_password(password)  # Hash mật khẩu trước khi lưu
         profile.save()
         log_action(request.user, 'UPDATE', 'LoanProfile', profile.id, f"Khóa hồ sơ (Finalized)")
         return Response({"status": "success", "message": "Hồ sơ đã được khóa thành công."})
@@ -905,10 +906,11 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def unlock_profile(self, request, pk=None):
         """Mở khóa hồ sơ bằng mật khẩu"""
+        from django.contrib.auth.hashers import check_password
         profile = self.get_object()
         password = request.data.get('password')
         
-        if profile.lock_password and profile.lock_password != password:
+        if profile.lock_password and not check_password(password, profile.lock_password):
             return Response({"error": "Mật khẩu không chính xác"}, status=403)
         
         profile.status = 'DRAFT'
@@ -1741,7 +1743,7 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('-id')
     serializer_class = MasterObjectTypeSerializer
-    permission_classes = [ReadOnlyMetadataOrAdmin]
+    permission_classes = [IsAdminOrManager]
 
     def destroy(self, request, *args, **kwargs):
         """Chặn xóa các loại đối tượng hệ thống (is_system=True) ngay ở backend."""
@@ -1950,11 +1952,12 @@ class AdminNotificationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         
-        # If not ROOT/Staff/Manager (IsAdminOrManager permission implies change/view perms), 
-        # strictly show only active and non-expired ones
-        is_admin_or_manager = self.request.user.is_staff or self.request.user.is_superuser or \
-                             self.request.user.groups.filter(name__in=['Admin', 'Manager']).exists()
-        
+        # Dùng is_staff (cờ đầu phân quyền của hệ thống) thay vì đoán tên nhóm.
+        # Không hardcode tên nhóm — hoạt động đúng bất kể nhóm tên gì.
+        is_admin_or_manager = (
+            self.request.user.is_staff or
+            self.request.user.is_superuser
+        )
         if not is_admin_or_manager:
             now = timezone.now()
             qs = qs.filter(is_active=True).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))

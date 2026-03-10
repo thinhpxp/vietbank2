@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# Biến môi trường — TUYỆT ĐỐI không đưa lên Git
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

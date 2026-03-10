@@ -42,9 +42,8 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/services/api';
 import SvgIcon from './SvgIcon.vue';
-import { API_URL } from '@/store/auth';
 
 export default {
     name: 'NotificationPanel',
@@ -95,7 +94,7 @@ export default {
         },
         async fetchUnreadCount() {
             try {
-                const res = await axios.get(`${API_URL}/notifications/unread_count/`);
+                const res = await api.get('/notifications/unread_count/');
                 this.unreadCount = res.data.unread_count;
             } catch (err) {
                 console.error('Failed to fetch unread count', err);
@@ -103,7 +102,7 @@ export default {
         },
         async fetchNotifications() {
             try {
-                const res = await axios.get(`${API_URL}/notifications/`);
+                const res = await api.get('/notifications/');
                 this.notifications = res.data;
                 this.lastFetchTime = Date.now();
             } catch (err) {
@@ -113,7 +112,7 @@ export default {
         async handleItemClick(item) {
             if (!item.is_read) {
                 try {
-                    await axios.post(`${API_URL}/notifications/${item.id}/mark_read/`);
+                    await api.post(`/notifications/${item.id}/mark_read/`);
                     item.is_read = true;
                     this.fetchUnreadCount();
                 } catch (err) {

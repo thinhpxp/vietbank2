@@ -42,9 +42,8 @@
 </template>
 
 <script>
-import axios from 'axios';
+import SystemService from '@/services/system.service';
 import SvgIcon from '@/components/common/SvgIcon.vue';
-import { API_URL } from '@/store/auth';
 
 export default {
     name: 'NotificationEditModal',
@@ -94,10 +93,10 @@ export default {
             this.loading = true;
             try {
                 if (this.item) {
-                    await axios.put(`${API_URL}/notifications/${this.item.id}/`, this.formData);
+                    await SystemService.replaceAdminNotification(this.item.id, this.formData);
                     this.$toast.success('Đã cập nhật thông báo');
                 } else {
-                    await axios.post(`${API_URL}/notifications/`, this.formData);
+                    await SystemService.createAdminNotification(this.formData);
                     this.$toast.success('Đã đẩy thông báo tới toàn bộ người dùng');
                 }
                 this.$emit('saved');

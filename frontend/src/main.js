@@ -9,6 +9,7 @@ import toastPlugin from './utils/toast'
 import i18n from './utils/i18n'
 import auth from './store/auth' // Import auth store
 import SvgIcon from './components/common/SvgIcon.vue' // Import SvgIcon
+import titleMixin from './mixins/titleMixin'
 import { setupVxeTable } from './utils/vxe-table'
 
 const app = createApp(App)
@@ -33,6 +34,9 @@ auth.initialize()
 
 // Register SvgIcon globally
 app.component('SvgIcon', SvgIcon)
+
+// Register Global Mixin for titles
+app.mixin(titleMixin)
 
 app.use(router) // <-- Sử dụng router
 app.use(toastPlugin)

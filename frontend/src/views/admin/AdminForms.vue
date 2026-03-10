@@ -9,8 +9,7 @@
                 <input v-model="newForm.name" placeholder="Tên Form (VD: Tín dụng tiêu dùng)" class="admin-input">
                 <input v-model="newForm.slug" placeholder="Mã định danh (VD: loan-consumer)" class="admin-input">
                 <input v-model="newForm.note" placeholder="Ghi chú" class="admin-input">
-                <button @click="addForm" class="btn-action btn-create btn-icon-only"
-                    :disabled="!canCreate"
+                <button @click="addForm" class="btn-action btn-create btn-icon-only" :disabled="!canCreate"
                     :title="canCreate ? 'Thêm Form mới' : 'Không có quyền tạo'">
                     <SvgIcon name="plus" size="sm" />
                 </button>
@@ -76,13 +75,11 @@
                             </template>
                             <template v-else>
                                 <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
-                                    :disabled="!canChange"
-                                    :title="canChange ? 'Sửa' : 'Không có quyền sửa'">
+                                    :disabled="!canChange" :title="canChange ? 'Sửa' : 'Không có quyền sửa'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
                                 <button @click="deleteForm(row.id)" class="btn-action btn-delete btn-icon-only"
-                                    :disabled="!canDelete"
-                                    :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
+                                    :disabled="!canDelete" :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                                     <SvgIcon name="trash" size="sm" />
                                 </button>
                             </template>
@@ -110,15 +107,17 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import auth from '@/store/auth';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
-    components: { ConfirmModal },
+    name: 'AdminForms',
+    title: 'Quản lý Cấu hình Form',
+    components: { ConfirmModal, SvgIcon },
     mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
@@ -147,7 +146,7 @@ export default {
     methods: {
         async fetchData() {
             try {
-                const res = await axios.get(`${API_URL}/form-views/`);
+                const res = await MasterService.getFormViews();
                 this.forms = res.data;
             } catch (e) {
                 this.showError(e, 'Lỗi tải danh sách Form');
@@ -159,7 +158,7 @@ export default {
                 return;
             }
             try {
-                await axios.post(`${API_URL}/form-views/`, this.newForm);
+                await MasterService.createFormView(this.newForm);
                 this.newForm = { name: '', slug: '', note: '' };
                 this.fetchData();
                 this.showSuccess('Thêm form thành công!');
@@ -169,9 +168,10 @@ export default {
         },
         async updateForm(f) {
             try {
-                await axios.put(`${API_URL}/form-views/${f.id}/`, f);
+                await MasterService.updateFormView(f.id, f);
                 this.editingId = null;
                 this.fetchData();
+                this.showSuccess('Cập nhật thành công!');
             } catch (e) {
                 this.showError(e, 'Lỗi cập nhật form');
             }
@@ -185,7 +185,7 @@ export default {
         async confirmDelete() {
             if (this.deleteTargetId) {
                 try {
-                    await axios.delete(`${API_URL}/form-views/${this.deleteTargetId}/`);
+                    await MasterService.deleteFormView(this.deleteTargetId);
                     this.showDeleteModal = false;
                     this.deleteTargetId = null;
                     this.fetchData();

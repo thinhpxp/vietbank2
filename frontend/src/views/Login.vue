@@ -48,6 +48,7 @@ import auth from '@/store/auth';
 
 export default {
     name: 'LoginPage',
+    title: 'Đăng nhập',
     data() {
         return {
             username: '',

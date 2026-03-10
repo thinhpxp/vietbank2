@@ -431,8 +431,8 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import LoanService from '@/services/loan.service';
+import MasterService from '@/services/master.service';
 import DynamicForm from '../components/DynamicForm.vue';
 import PersonForm from '../components/PersonForm.vue';
 import AssetForm from '../components/AssetForm.vue';
@@ -447,6 +447,9 @@ import { errorHandlingMixin } from '../utils/errorHandler';
 
 export default {
   name: 'LoanProfileForm',
+  title() {
+    return this.isEdit ? 'Chỉnh sửa hồ sơ' : 'Tạo hồ sơ mới';
+  },
   components: {
     DynamicForm, PersonForm, AssetForm, ConfirmModal,
     InputModal, ContractDownloader, ObjectSelectModal,
@@ -517,9 +520,10 @@ export default {
       return this.profileStatus === 'FINALIZED' || !!this.editingLockedBy;
     },
     historyApiUrl() {
+      // Lưu ý: HistoryTimeline vẫn có thể cần URL trực tiếp hoặc nên được refactor sau
       const pid = this.currentId || this.id;
-      const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
-      return pid ? `${API_URL}/loan-profiles/${pid}/history/` : '';
+      const API_BASE = process.env.VUE_APP_API_URL || 'http://localhost:8000/api';
+      return pid ? `${API_BASE}/loan-profiles/${pid}/history/` : '';
     },
     getSegmentsByPosition() {
       return (position) => {
@@ -846,21 +850,20 @@ export default {
     },
     async fetchObjectTypes() {
       try {
-        const res = await axios.get(`${API_URL}/object-types/`);
+        const res = await MasterService.getObjectTypes();
         this.objectTypes = res.data;
       } catch (e) { console.error("Lỗi load object types:", e); }
     },
     async fetchRoles() {
       try {
-        const res = await axios.get(`${API_URL}/roles/`);
+        const res = await MasterService.getRoles();
         this.availableRoles = res.data.map(r => r.name);
       } catch (e) { console.error("Lỗi load roles:", e); }
     },
     async fetchFields() {
       const form_slug = this.$route.query.form || this.currentFormSlug || "";
       try {
-        const url = `${API_URL}/fields/?form_slug=${form_slug}`;
-        const response = await axios.get(url);
+        const response = await MasterService.getFields({ form_slug });
         this.allFields = response.data;
 
         // Luôn kiểm tra và áp dụng giá trị mặc định cho các trường chung còn trống
@@ -899,7 +902,7 @@ export default {
         return;
       }
       try {
-        const res = await axios.get(`${API_URL}/form-views/`);
+        const res = await MasterService.getFormViews();
         const target = res.data.find(f => f.slug === slug);
         if (target) {
           this.currentFormName = target.name;
@@ -1091,10 +1094,7 @@ export default {
     },
     async confirmDuplicate(newName) {
       try {
-        const response = await axios.post(
-          `${API_URL}/loan-profiles/${this.id}/duplicate/`,
-          { new_name: newName }
-        );
+        const response = await LoanService.duplicate(this.id, newName);
         this.showDuplicateModal = false;
         this.$toast.success(`Đã tạo bản sao: ${response.data.name}`);
         // Chuyển hướng sang hồ sơ mới
@@ -1110,7 +1110,7 @@ export default {
     async fetchProfileData(id) {
       try {
         this.loading = true;
-        const response = await axios.get(`${API_URL}/loan-profiles/${id}/`);
+        const response = await LoanService.getById(id);
         const data = response.data;
         this.profileName = data.name || '';
         this.profileStatus = data.status || 'DRAFT';
@@ -1138,10 +1138,6 @@ export default {
           this.currentFormSlug = data.form_view_slug;
           await this.fetchFields();
         }
-
-        // Orphan fields and object sections are now correctly loaded.
-        // Removed auto-entity creation to avoid garbage data as requested.
-
       } catch (e) {
         console.error('Lỗi load hồ sơ:', e);
         this.showError(e, 'Không tải được dữ liệu hồ sơ');
@@ -1206,7 +1202,7 @@ export default {
       try {
         let targetId = this.currentId;
         if (!targetId) {
-          const createRes = await axios.post(`${API_URL}/loan-profiles/`, { name: this.profileName });
+          const createRes = await LoanService.create({ name: this.profileName });
           targetId = createRes.data.id;
         }
 
@@ -1217,7 +1213,7 @@ export default {
           form_slug: this.$route.query.form || this.currentFormSlug,
           is_auto_save: silent
         };
-        const response = await axios.post(`${API_URL}/loan-profiles/${targetId}/save_form_data/`, payload);
+        const response = await LoanService.saveFormData(targetId, payload);
 
         // Update local state with fresh data (contains IDs)
         if (response.data && response.data.id) {
@@ -1321,7 +1317,7 @@ export default {
       if (!password) return;
 
       try {
-        await axios.post(`${API_URL}/loan-profiles/${this.id || this.currentId}/lock_profile/`, { password });
+        await LoanService.lock(this.id || this.currentId, password);
         this.profileStatus = 'FINALIZED';
         this.$toast.success("Hồ sơ đã được khóa.");
       } catch (e) {
@@ -1337,7 +1333,7 @@ export default {
       if (!password) return;
 
       try {
-        await axios.post(`${API_URL}/loan-profiles/${this.id || this.currentId}/unlock_profile/`, { password });
+        await LoanService.unlock(this.id || this.currentId, password);
         this.profileStatus = 'DRAFT';
         this.$toast.success("Hồ sơ đã được mở khóa.");
       } catch (e) {
@@ -1349,7 +1345,7 @@ export default {
       if (!this.id && !this.currentId) return;
       const pid = this.id || this.currentId;
       try {
-        const res = await axios.post(`${API_URL}/loan-profiles/${pid}/acquire_lock/`);
+        const res = await LoanService.acquireLock(pid);
         if (res.data.locked) {
           this.editingLockedBy = res.data.locked_by;
           this.stopHeartbeat();
@@ -1367,7 +1363,7 @@ export default {
       if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = setInterval(async () => {
         try {
-          await axios.post(`${API_URL}/loan-profiles/${pid}/heartbeat/`);
+          await LoanService.heartbeat(pid);
         } catch (e) {
           console.error("Heartbeat failed", e);
           this.stopHeartbeat();
@@ -1382,7 +1378,7 @@ export default {
       if (this.editingLockedBy || (!this.id && !this.currentId)) return;
       const pid = this.id || this.currentId;
       try {
-        await axios.post(`${API_URL}/loan-profiles/${pid}/release_lock/`);
+        await LoanService.releaseLock(pid);
       } catch (e) {
         console.error("Release lock failed", e);
       }

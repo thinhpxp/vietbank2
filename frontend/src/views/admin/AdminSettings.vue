@@ -29,7 +29,8 @@
                             <input type="file" ref="logoInput" @change="handleLogoUpload" accept="image/*"
                                 style="display: none" />
                             <button class="btn-action btn-secondary" @click="$refs.logoInput.click()"
-                                :disabled="uploading">
+                                :disabled="uploading || !auth.isSuperuser"
+                                :title="!auth.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được thay đổi Logo' : 'Tải lên Logo mới'">
                                 <SvgIcon :name="uploading ? 'refresh' : 'upload'" size="sm"
                                     :customClass="uploading ? 'spin' : ''" />
                                 {{ uploading ? 'Đang tải...' : 'Tải lên Logo mới' }}
@@ -123,10 +124,14 @@
                 </div>
 
                 <div class="settings-actions">
-                    <button @click="saveChanges" class="btn-action btn-save" :disabled="!isChanged || uploading">
+                    <button @click="saveChanges" class="btn-action btn-save"
+                        :disabled="!isChanged || uploading || !auth.isSuperuser"
+                        :title="!auth.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được thay đổi cấu hình' : 'Lưu cấu hình'">
                         <SvgIcon name="save" size="sm" /> Lưu cấu hình
                     </button>
-                    <button @click="resetToDefault" class="btn-action btn-secondary ml-2">
+                    <button @click="resetToDefault" class="btn-action btn-secondary ml-2"
+                        :disabled="uploading || !auth.isSuperuser"
+                        :title="!auth.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được khôi phục mặc định' : 'Khôi phục mặc định'">
                         <SvgIcon name="refresh" size="sm" /> Khôi phục mặc định
                     </button>
                 </div>
@@ -148,9 +153,13 @@
 
 <script>
 import systemConfig from '@/store/systemConfig';
+import auth from '@/store/auth';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 
 export default {
     name: 'AdminSettings',
+    title: 'Cài đặt hệ thống',
+    components: { SvgIcon },
     data() {
         return {
             uploading: false,
@@ -164,7 +173,8 @@ export default {
                 linkHoverColor: systemConfig.state.linkHoverColor,
                 activeLinkColor: systemConfig.state.activeLinkColor,
                 activeLinkBgColor: systemConfig.state.activeLinkBgColor
-            }
+            },
+            auth
         };
     },
     computed: {

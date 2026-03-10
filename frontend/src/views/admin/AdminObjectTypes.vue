@@ -45,8 +45,7 @@
                     <input type="checkbox" v-model="newType.allow_relations"> Cho phép liên kết đến đối tượng khác
                 </label>
 
-                <button @click="addType" class="btn-action btn-create btn-icon-only"
-                    :disabled="!canCreate"
+                <button @click="addType" class="btn-action btn-create btn-icon-only" :disabled="!canCreate"
                     :title="canCreate ? 'Thêm Loại đối tượng' : 'Không có quyền tạo'">
                     <SvgIcon name="plus" size="sm" />
                 </button>
@@ -183,13 +182,11 @@
                             </template>
                             <template v-else>
                                 <button class="btn-action btn-edit btn-icon-only" @click="startEdit(row)"
-                                    :disabled="!canChange"
-                                    :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
+                                    :disabled="!canChange" :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
                                 <button class="btn-action btn-delete btn-icon-only"
-                                    :disabled="row.is_system || !canDelete"
-                                    @click="confirmDelete(row)"
+                                    :disabled="row.is_system || !canDelete" @click="confirmDelete(row)"
                                     :title="row.is_system ? 'Không thể xóa loại mặc định' : (canDelete ? 'Xóa loại này' : 'Không có quyền xóa')">
                                     <SvgIcon name="trash" size="sm" />
                                 </button>
@@ -219,16 +216,17 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
     name: 'AdminObjectTypes',
-    components: { ConfirmModal },
+    title: 'Quản lý Loại đối tượng',
+    components: { SvgIcon, ConfirmModal },
     mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
@@ -251,15 +249,13 @@ export default {
         canChange() { return auth.hasPermission('document_automation.change_masterobjecttype'); },
         canDelete() { return auth.hasPermission('document_automation.delete_masterobjecttype'); },
     },
-    watch: {
-    },
     mounted() {
         this.fetchTypes();
     },
     methods: {
         async fetchTypes() {
             try {
-                const res = await axios.get(`${API_URL}/object-types/`);
+                const res = await MasterService.getObjectTypes();
                 this.types = res.data;
             } catch (e) {
                 this.showError(e, 'Lỗi tải danh sách loại đối tượng');
@@ -274,9 +270,10 @@ export default {
                 return;
             }
             try {
-                await axios.post(`${API_URL}/object-types/`, this.newType);
+                await MasterService.createObjectType(this.newType);
                 this.newType = { code: '', name: '', description: '', identity_field_key: '', form_display_mode: null, layout_position: null, dynamic_summary_template: '', order: null };
                 this.fetchTypes();
+                this.showSuccess('Thêm loại đối tượng thành công!');
             } catch (e) {
                 this.showError(e, 'Lỗi khi thêm loại đối tượng');
             }
@@ -292,9 +289,10 @@ export default {
             }
 
             try {
-                await axios.patch(`${API_URL}/object-types/${this.editingId}/`, this.editingData);
+                await MasterService.updateObjectType(this.editingId, this.editingData);
                 this.editingId = null;
                 this.fetchTypes();
+                this.showSuccess('Cập nhật thành công!');
             } catch (e) {
                 this.showError(e, 'Lỗi khi cập nhật loại đối tượng');
             }
@@ -305,9 +303,10 @@ export default {
         },
         async executeDelete() {
             try {
-                await axios.delete(`${API_URL}/object-types/${this.deleteTarget.id}/`);
+                await MasterService.deleteObjectType(this.deleteTarget.id);
                 this.fetchTypes();
                 this.showDeleteModal = false;
+                this.showSuccess('Xóa loại đối tượng thành công!');
             } catch (e) {
                 this.showDeleteModal = false;
                 this.showError(e, 'Lỗi xóa');

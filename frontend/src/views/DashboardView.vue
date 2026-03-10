@@ -2,9 +2,7 @@
   <div class="dashboard-container page-container">
     <div class="header-actions">
       <h2>Danh sách Hồ sơ Vay</h2>
-      <button
-        class="btn-action btn-create"
-        @click="openFormSelectModal"
+      <button class="btn-action btn-create" @click="openFormSelectModal"
         :disabled="!auth.hasPermission('document_automation.add_loanprofile')"
         :title="auth.hasPermission('document_automation.add_loanprofile') ? 'Tạo hồ sơ mới' : 'Bạn không có quyền tạo hồ sơ'">
         <SvgIcon name="plus" size="sm" /> <span>Tạo Mới</span>
@@ -106,16 +104,12 @@
         <vxe-column title="Hành động" width="350" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <button
-                class="btn-action btn-edit btn-icon-only"
-                @click="editProfile(row.id)"
+              <button class="btn-action btn-edit btn-icon-only" @click="editProfile(row.id)"
                 :disabled="!auth.hasPermission('document_automation.change_loanprofile')"
                 :title="auth.hasPermission('document_automation.change_loanprofile') ? 'Sửa hồ sơ' : 'Không có quyền sửa'">
                 <SvgIcon name="edit" size="sm" />
               </button>
-              <button
-                class="btn-action btn-copy btn-icon-only"
-                @click="openDuplicateModal(row)"
+              <button class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal(row)"
                 :disabled="!auth.hasPermission('document_automation.add_loanprofile')"
                 :title="auth.hasPermission('document_automation.add_loanprofile') ? 'Sao chép hồ sơ' : 'Không có quyền tạo'">
                 <SvgIcon name="copy" size="sm" />
@@ -124,9 +118,7 @@
                 title="Xuất Hợp đồng">
                 <SvgIcon name="download" size="sm" />
               </button>
-              <button
-                class="btn-action btn-delete btn-icon-only"
-                @click="deleteProfile(row.id)"
+              <button class="btn-action btn-delete btn-icon-only" @click="deleteProfile(row.id)"
                 :disabled="!auth.hasPermission('document_automation.delete_loanprofile')"
                 :title="auth.hasPermission('document_automation.delete_loanprofile') ? 'Xóa hồ sơ' : 'Không có quyền xóa'">
                 <SvgIcon name="trash" size="sm" />
@@ -173,8 +165,8 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import LoanService from '@/services/loan.service';
+import MasterService from '@/services/master.service';
 import auth from '@/store/auth';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
@@ -186,6 +178,7 @@ import { errorHandlingMixin } from '@/utils/errorHandler';
 
 export default {
   name: 'DashboardView',
+  title: 'Danh sách hồ sơ',
   components: { ContractDownloader, ConfirmModal, InputModal, BaseModal, SvgIcon },
   mixins: [FilterableTableMixin, errorHandlingMixin],
   data() {
@@ -235,7 +228,7 @@ export default {
       try {
         const params = {};
         if (search) params.search = search;
-        const response = await axios.get(`${API_URL}/loan-profiles/`, { params });
+        const response = await LoanService.getAll(params);
         this.profiles = response.data;
       } catch (error) {
         console.error(error);
@@ -246,7 +239,7 @@ export default {
     },
     async fetchForms() {
       try {
-        const response = await axios.get(`${API_URL}/form-views/`);
+        const response = await MasterService.getFormViews();
         this.allForms = response.data;
       } catch (error) {
         console.error("Lỗi load forms:", error);
@@ -276,7 +269,7 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`${API_URL}/loan-profiles/${this.deleteTargetId}/`);
+          await LoanService.delete(this.deleteTargetId);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchProfiles();
@@ -300,10 +293,7 @@ export default {
     },
     async confirmDuplicate(newName) {
       try {
-        const response = await axios.post(
-          `${API_URL}/loan-profiles/${this.duplicateTargetId}/duplicate/`,
-          { new_name: newName }
-        );
+        const response = await LoanService.duplicate(this.duplicateTargetId, newName);
         this.showDuplicateModal = false;
         this.duplicateTargetId = null;
         this.$toast.success(`Đã tạo bản sao: ${response.data.name}`);

@@ -120,15 +120,16 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import SystemService from '@/services/system.service';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'AdminUsers',
-  components: { ConfirmModal },
+  title: 'Quản lý Người dùng (Legacy)',
+  components: { ConfirmModal, SvgIcon },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
@@ -154,18 +155,16 @@ export default {
       });
     }
   },
-  watch: {
-  },
   mounted() {
     this.fetchUsers();
   },
   methods: {
     async fetchUsers() {
       try {
-        const response = await axios.get(`${API_URL}/users/`);
+        const response = await SystemService.getUsers();
         this.users = response.data;
       } catch (error) {
-        console.error("Lỗi tải users:", error);
+        this.showError(error, 'Lỗi tải danh sách người dùng');
       }
     },
     async updateUser(user) {
@@ -173,12 +172,11 @@ export default {
         const payload = { ...user };
         delete payload.password;
 
-        await axios.patch(`${API_URL}/users/${user.id}/`, payload);
+        await SystemService.updateUser(user.id, payload);
         this.editingId = null;
         this.$toast.success(`Cập nhật thông tin người dùng '${user.username}' thành công!`);
         await this.fetchUsers();
       } catch (error) {
-        console.error(error);
         this.showError(error, 'Lỗi khi cập nhật user');
       }
     },
@@ -189,14 +187,13 @@ export default {
       }
 
       try {
-        await axios.post(`${API_URL}/users/`, this.newUser);
+        await SystemService.createUser(this.newUser);
         this.$toast.success(`Tạo người dùng '${this.newUser.username}' thành công!`);
 
         // Reset form
-        this.newUser = { username: '', password: '', email: '', is_staff: false };
+        this.newUser = { username: '', password: '', email: '', is_staff: false, note: '' };
         this.fetchUsers();
       } catch (error) {
-        console.error(error);
         this.showError(error, 'Lỗi khi tạo user');
       }
     },
@@ -209,12 +206,13 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`${API_URL}/users/${this.deleteTargetId}/`);
+          await SystemService.deleteUser(this.deleteTargetId);
           this.showDeleteModal = false;
           this.$toast.success(`Đã xóa người dùng '${this.deleteTargetName}' khỏi hệ thống.`);
           this.deleteTargetId = null;
           this.fetchUsers();
         } catch (error) {
+          this.showDeleteModal = false;
           this.showError(error, 'Lỗi khi xóa user');
         }
       }

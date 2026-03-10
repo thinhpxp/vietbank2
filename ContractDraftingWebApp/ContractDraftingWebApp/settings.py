@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
-from datetime import timedelta # <--- Đây là cách đúng
+from datetime import timedelta
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,13 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-e0!xb7t26vqjo4t=4(_n$!0syxf$a*79i4fb#%akw_xm)c7!pw'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+# Đọc từ file .env — không hardcode thông tin nhạy cảm vào code
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -131,12 +129,12 @@ WSGI_APPLICATION = 'ContractDraftingWebApp.wsgi.application'
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "vietbank",
-        "USER": "postgres",
-        "PASSWORD": "080321",
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
+        "ENGINE": config('DB_ENGINE', default='django.db.backends.postgresql'),
+        "NAME": config('DB_NAME', default='vietbank'),
+        "USER": config('DB_USER', default='postgres'),
+        "PASSWORD": config('DB_PASSWORD'),
+        "HOST": config('DB_HOST', default='127.0.0.1'),
+        "PORT": config('DB_PORT', default='5432'),
     }
 }
 

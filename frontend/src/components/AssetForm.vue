@@ -58,8 +58,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import DynamicForm from './DynamicForm.vue';
 import ObjectSelectModal from './ObjectSelectModal.vue';
 import RelationManager from './RelationManager.vue';
@@ -178,7 +177,7 @@ export default {
         return;
       }
       try {
-        const res = await axios.get(`${API_URL}/object-types/`);
+        const res = await MasterService.getObjectTypes();
         // Filter only asset-related types (exclude PERSON)
         this.assetTypes = res.data.filter(t => t.code !== 'PERSON');
       } catch (e) {
@@ -231,8 +230,7 @@ export default {
 
       // 2. Nếu là trường định danh, gọi API kiểm tra
       try {
-        const url = `${API_URL}/master-objects/check_identity/?object_type=${this.selectedType}&key=${key}&value=${encodeURIComponent(value)}`;
-        const res = await axios.get(url);
+        const res = await MasterService.checkIdentity(this.selectedType, key, value);
         if (res.data.exists) {
           if (this.localAsset.master_object?.id === res.data.id) {
             this.duplicateWarning = null;
@@ -260,7 +258,7 @@ export default {
     async linkDuplicate() {
       if (!this.duplicateId) return;
       try {
-        const res = await axios.get(`${API_URL}/master-objects/${this.duplicateId}/`);
+        const res = await MasterService.getObjectById(this.duplicateId);
         this.onAssetSelect(res.data);
         this.duplicateWarning = null;
         this.duplicateId = null;

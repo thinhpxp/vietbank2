@@ -106,8 +106,7 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
-                  :disabled="!canChange"
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" :disabled="!canChange"
                   :title="canChange ? 'Sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
@@ -116,8 +115,7 @@
                   <SvgIcon name="download" size="sm" />
                 </a>
                 <button @click="deleteTemplate(row.id)" class="btn-action btn-delete btn-icon-only"
-                  :disabled="!canDelete"
-                  :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
+                  :disabled="!canDelete" :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                   <SvgIcon name="trash" size="sm" />
                 </button>
               </template>
@@ -144,24 +142,26 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import auth from '@/store/auth';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
-  components: { ConfirmModal },
+  name: 'AdminTemplates',
+  title: 'Quản lý Mẫu Hợp đồng',
+  components: { ConfirmModal, SvgIcon },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
       templates: [],
-      objectTypes: [],  // MỚI: Danh sách loại đối tượng
+      objectTypes: [],
       newName: '',
       newDept: '',
       newDesc: '',
-      newLoopObjectType: null,  // MỚI: Loại đối tượng lặp khi upload
+      newLoopObjectType: null,
       selectedFile: null,
       editingId: null,
       filters: { search: '' },
@@ -180,8 +180,6 @@ export default {
     canChange() { return auth.hasPermission('document_automation.change_documenttemplate'); },
     canDelete() { return auth.hasPermission('document_automation.delete_documenttemplate'); },
   },
-  watch: {
-  },
   mounted() {
     this.fetchTemplates();
     this.fetchObjectTypes();
@@ -189,16 +187,15 @@ export default {
   methods: {
     async fetchTemplates() {
       try {
-        const res = await axios.get(`${API_URL}/document-templates/`);
+        const res = await MasterService.getTemplates();
         this.templates = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách mẫu');
       }
     },
-    // MỚI: Fetch danh sách loại đối tượng
     async fetchObjectTypes() {
       try {
-        const res = await axios.get(`${API_URL}/object-types/`);
+        const res = await MasterService.getObjectTypes();
         this.objectTypes = res.data;
       } catch (e) {
         console.error('Failed to fetch object types:', e);
@@ -219,13 +216,11 @@ export default {
       formData.append('description', this.newDesc);
       formData.append('file', this.selectedFile);
       if (this.newLoopObjectType) {
-        formData.append('loop_object_type', this.newLoopObjectType);  // MỚI
+        formData.append('loop_object_type', this.newLoopObjectType);
       }
 
       try {
-        await axios.post(`${API_URL}/document-templates/`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await MasterService.createTemplate(formData);
         this.newName = ''; this.newDept = ''; this.newDesc = ''; this.newLoopObjectType = null; this.selectedFile = null; this.$refs.fileInput.value = '';
         this.fetchTemplates();
         this.$toast.success('Upload mẫu tài liệu mới thành công!');
@@ -242,7 +237,7 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`${API_URL}/document-templates/${this.deleteTargetId}/`);
+          await MasterService.deleteTemplate(this.deleteTargetId);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchTemplates();
@@ -255,11 +250,11 @@ export default {
     },
     async updateTemplate(tpl) {
       try {
-        await axios.patch(`${API_URL}/document-templates/${tpl.id}/`, {
+        await MasterService.updateTemplate(tpl.id, {
           name: tpl.name,
           department: tpl.department,
           description: tpl.description,
-          loop_object_type: tpl.loop_object_type  // MỚI
+          loop_object_type: tpl.loop_object_type
         });
         this.editingId = null;
         this.$toast.success('Cập nhật thông tin mẫu thành công!');

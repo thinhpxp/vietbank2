@@ -58,6 +58,7 @@ import SvgIcon from '@/components/common/SvgIcon.vue';
 
 export default {
     name: 'AllNotifications',
+    title: 'Tất cả thông báo',
     components: { SvgIcon },
     data() {
         return {

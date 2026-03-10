@@ -74,6 +74,7 @@ import auth from '@/store/auth';
 
 export default {
     name: 'RegisterPage',
+    title: 'Đăng ký tài khoản',
     data() {
         return {
             form: {

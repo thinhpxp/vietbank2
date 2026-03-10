@@ -8,8 +8,7 @@
         <input v-model="newRole.slug" placeholder="Mã định danh (Slug - VD: nguoi_thua_ke)" class="admin-input">
         <input v-model="newRole.description" placeholder="Mô tả (Tùy chọn)" class="admin-input">
         <input v-model="newRole.relation_type" placeholder="Quan hệ (VD: OWNER)" class="admin-input">
-        <button @click="addRole" class="btn-action btn-create btn-icon-only"
-          :disabled="!canCreate"
+        <button @click="addRole" class="btn-action btn-create btn-icon-only" :disabled="!canCreate"
           :title="canCreate ? 'Thêm Vai trò mới' : 'Không có quyền tạo'">
           <SvgIcon name="plus" size="sm" />
         </button>
@@ -83,12 +82,12 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
-                  :disabled="!canChange"
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" :disabled="!canChange"
                   :title="canChange ? 'Sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <button :disabled="row.is_system || !canDelete" @click="deleteRole(row.id)" class="btn-action btn-delete btn-icon-only"
+                <button :disabled="row.is_system || !canDelete" @click="deleteRole(row.id)"
+                  class="btn-action btn-delete btn-icon-only"
                   :title="row.is_system ? 'Role hệ thống không thể xóa' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
                   <SvgIcon name="trash" size="sm" />
                 </button>
@@ -106,8 +105,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '@/utils/errorHandler';
@@ -115,6 +113,7 @@ import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'AdminRoles',
+  title: 'Quản lý Vai trò & Quyền',
   components: { ConfirmModal },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
@@ -138,15 +137,13 @@ export default {
     canChange() { return auth.hasPermission('document_automation.change_role'); },
     canDelete() { return auth.hasPermission('document_automation.delete_role'); },
   },
-  watch: {
-  },
   mounted() {
     this.fetchRoles();
   },
   methods: {
     async fetchRoles() {
       try {
-        const res = await axios.get(`${API_URL}/roles/`);
+        const res = await MasterService.getRoles();
         this.roles = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách vai trò');
@@ -158,11 +155,12 @@ export default {
         return;
       }
       try {
-        await axios.post(`${API_URL}/roles/`, this.newRole);
+        await MasterService.createRole(this.newRole);
         this.newRole.name = '';
         this.newRole.slug = '';
         this.newRole.description = '';
         this.fetchRoles();
+        this.showSuccess('Thêm vai trò thành công!');
       } catch (e) {
         this.showError(e, 'Lỗi thêm vai trò');
       }
@@ -176,10 +174,11 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`${API_URL}/roles/${this.deleteTargetId}/`);
+          await MasterService.deleteRole(this.deleteTargetId);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchRoles();
+          this.showSuccess('Đã xóa vai trò!');
         } catch (e) {
           this.showDeleteModal = false;
           this.showError(e, 'Lỗi xóa vai trò');
@@ -188,8 +187,9 @@ export default {
     },
     async updateRole(role) {
       try {
-        await axios.put(`${API_URL}/roles/${role.id}/`, role);
+        await MasterService.updateRole(role.id, role);
         this.editingId = null;
+        this.showSuccess('Cập nhật thành công!');
       } catch (e) {
         this.showError(e, 'Lỗi cập nhật vai trò');
       }

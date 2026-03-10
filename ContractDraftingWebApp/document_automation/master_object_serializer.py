@@ -1,4 +1,6 @@
 # Universal Entity Serializer - Replaces MasterPerson and MasterAsset Serializers
+from rest_framework import serializers
+from .models import MasterObject, FieldValue, LoanProfileObjectLink
 
 class MasterObjectSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()

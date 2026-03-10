@@ -137,13 +137,11 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only"
-                  :disabled="!canChange"
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" :disabled="!canChange"
                   :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only"
-                  :disabled="!canDelete"
+                <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only" :disabled="!canDelete"
                   :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
                   <SvgIcon name="trash" size="sm" />
                 </button>
@@ -161,20 +159,21 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import MasterService from '@/services/master.service';
 import auth from '@/store/auth';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
+  name: 'AdminGroups',
+  title: 'Quản lý Nhóm thông tin',
   components: { ConfirmModal },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
       groups: [],
-      objectTypes: [],  // NEW
+      objectTypes: [],
       allForms: [],
       newGroup: { name: '', slug: '', order: 0, note: '', allowed_forms: [], layout_position: 'LEFT', allowed_object_types: [] },
       editingId: null,
@@ -194,8 +193,6 @@ export default {
     canChange() { return auth.hasPermission('auth.change_group'); },
     canDelete() { return auth.hasPermission('auth.delete_group'); },
   },
-  watch: {
-  },
   async mounted() {
     await this.fetchGroups();
     await this.fetchForms();
@@ -211,7 +208,7 @@ export default {
     },
     async fetchGroups() {
       try {
-        const groupsRes = await axios.get(`${API_URL}/groups/`);
+        const groupsRes = await MasterService.getGroups();
         this.groups = groupsRes.data.sort((a, b) => a.order - b.order);
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách nhóm');
@@ -219,7 +216,7 @@ export default {
     },
     async fetchForms() {
       try {
-        const res = await axios.get(`${API_URL}/form-views/`);
+        const res = await MasterService.getFormViews();
         this.allForms = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải danh sách Form');
@@ -227,7 +224,7 @@ export default {
     },
     async fetchObjectTypes() {
       try {
-        const res = await axios.get(`${API_URL}/object-types/`);
+        const res = await MasterService.getObjectTypes();
         this.objectTypes = res.data;
       } catch (e) {
         this.showError(e, 'Lỗi tải loại đối tượng');
@@ -236,13 +233,13 @@ export default {
     async addGroup() {
       if (!this.newGroup.name) return;
       try {
-        await axios.post(`${API_URL}/groups/`, this.newGroup);
+        await MasterService.createGroup(this.newGroup);
         this.newGroup.name = '';
         this.newGroup.slug = '';
         this.newGroup.order = 0;
         this.newGroup.allowed_object_types = [];
         this.newGroup.layout_position = 'LEFT';
-        this.newGroup.object_type = null;
+        this.newGroup.allowed_forms = [];
         this.fetchGroups();
         this.showSuccess('Đã thêm nhóm mới thành công!');
       } catch (e) {
@@ -258,20 +255,20 @@ export default {
     async confirmDelete() {
       if (this.deleteTargetId) {
         try {
-          await axios.delete(`${API_URL}/groups/${this.deleteTargetId}/`);
+          await MasterService.deleteGroup(this.deleteTargetId);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
           this.fetchGroups();
           this.showSuccess('Đã xóa nhóm thành công!');
         } catch (e) {
-          this.showDeleteModal = false; // Đóng confirm modal trước khi hiện lỗi
+          this.showDeleteModal = false;
           this.showError(e, 'Lỗi xóa nhóm');
         }
       }
     },
     async updateGroup(grp) {
       try {
-        await axios.put(`${API_URL}/groups/${grp.id}/`, grp);
+        await MasterService.updateGroup(grp.id, grp);
         this.editingId = null;
         this.showSuccess('Cập nhật nhóm thành công!');
       } catch (e) {
