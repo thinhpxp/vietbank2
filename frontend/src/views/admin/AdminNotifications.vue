@@ -65,7 +65,7 @@
 import SystemService from '@/services/system.service';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import NotificationEditModal from './NotificationEditModal.vue';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 
 export default {
     name: 'AdminNotifications',
@@ -76,16 +76,17 @@ export default {
             notifications: [],
             loading: false,
             showModal: false,
-            editingItem: null
+            editingItem: null,
+            authStore: useAuthStore()
         };
     },
     computed: {
-        canCreate() { return auth.hasPermission('document_automation.add_adminnotification'); },
-        canEdit() { return auth.hasPermission('document_automation.change_adminnotification'); },
-        canDelete() { return auth.hasPermission('document_automation.delete_adminnotification'); }
+        canCreate() { return this.authStore.hasPermission('document_automation.add_adminnotification'); },
+        canEdit() { return this.authStore.hasPermission('document_automation.change_adminnotification'); },
+        canDelete() { return this.authStore.hasPermission('document_automation.delete_adminnotification'); }
     },
     mounted() {
-        if (!auth.hasPermission('document_automation.view_adminnotification')) {
+        if (!this.authStore.hasPermission('document_automation.view_adminnotification')) {
             this.$toast.error('Bạn không có quyền truy cập trang này');
             this.$router.push('/');
             return;

@@ -73,8 +73,8 @@
                         <vxe-column title="Hành động" width="120" fixed="right">
                             <template #default="{ row }">
                                 <button class="btn-action btn-edit btn-icon-only" @click.stop="editUser(row)"
-                                    :disabled="!auth.hasPermission('auth.change_user')"
-                                    :title="auth.hasPermission('auth.change_user') ? 'Sửa thông tin & Quyền' : 'Không có quyền sửa user'">
+                                    :disabled="!authStore.hasPermission('auth.change_user')"
+                                    :title="authStore.hasPermission('auth.change_user') ? 'Sửa thông tin & Quyền' : 'Không có quyền sửa user'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
                             </template>
@@ -100,7 +100,7 @@
                                 <SvgIcon name="check" size="sm" /> Tạo người dùng
                             </button>
                             <button v-else @click="saveUser" class="btn-action btn-save flex items-center gap-2"
-                                :disabled="isSaving || (selectedUser.is_superuser && !auth.isSuperuser)"
+                                :disabled="isSaving || (selectedUser.is_superuser && !authStore.isSuperuser)"
                                 title="Lưu thay đổi">
                                 <SvgIcon name="save" size="sm" /> <span>Lưu thay đổi</span>
                             </button>
@@ -134,13 +134,13 @@
                                     <label class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_active" /> Hoạt động
                                     </label>
-                                    <label v-if="auth.isSuperuser" class="admin-checkbox-label"
+                                    <label v-if="authStore.isSuperuser" class="admin-checkbox-label"
                                         :class="{ disabled: selectedUser.is_superuser }"
                                         :title="selectedUser.is_superuser ? 'ROOT tự động có quyền quản trị' : 'Cho phép user này vào trang Admin và thao tác theo quyền nhóm'">
                                         <input type="checkbox" v-model="selectedUser.is_staff"
                                             :disabled="selectedUser.is_superuser" /> Quyền quản trị
                                     </label>
-                                    <label v-if="auth.isSuperuser" class="admin-checkbox-label">
+                                    <label v-if="authStore.isSuperuser" class="admin-checkbox-label">
                                         <input type="checkbox" v-model="selectedUser.is_superuser" /> Quyền Root
                                     </label>
                                 </div>
@@ -208,12 +208,12 @@
                             <h4>Vùng nguy hiểm</h4>
                             <div class="action-row">
                                 <button @click="confirmResetPassword" class="btn-action btn-warning"
-                                    :disabled="(selectedUser.is_superuser && !auth.isSuperuser) || !auth.hasPermission('auth.change_user')"
-                                    :title="!auth.hasPermission('auth.change_user') ? 'Không có quyền' : 'Reset mật khẩu'">
+                                    :disabled="(selectedUser.is_superuser && !authStore.isSuperuser) || !authStore.hasPermission('auth.change_user')"
+                                    :title="!authStore.hasPermission('auth.change_user') ? 'Không có quyền' : 'Reset mật khẩu'">
                                     <SvgIcon name="refresh" size="sm" /> Reset mật khẩu
                                 </button>
                                 <button @click="confirmDeleteUser" class="btn-action btn-delete"
-                                    :disabled="selectedUser.is_superuser && !auth.isSuperuser">
+                                    :disabled="selectedUser.is_superuser && !authStore.isSuperuser">
                                     <SvgIcon name="trash" size="sm" /> Xóa tài khoản
                                 </button>
                             </div>
@@ -324,9 +324,9 @@
                     <input type="text" v-model="newPassword" class="admin-form-control" />
                     <p class="hint">Vui lòng cung cấp mật khẩu này cho nhân viên.</p>
                 </div>
-                <div class="modal-actions">
-                    <button @click="showResetModal = false" class="btn-secondary">Hủy</button>
-                    <button @click="executeResetPassword" class="btn-warning">Xác nhận Reset</button>
+                <div class="modal-footer">
+                    <button @click="showResetModal = false" class="btn-action btn-secondary">Hủy</button>
+                    <button @click="executeResetPassword" class="btn-action btn-warning">Xác nhận Reset</button>
                 </div>
             </div>
         </div>
@@ -354,7 +354,7 @@
 
 <script>
 import SystemService from '@/services/system.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import InputModal from '@/components/InputModal.vue';
@@ -399,7 +399,7 @@ export default {
             showCreateGroupInput: false,
             isCreating: false,
 
-            auth // Add to data for template use
+            authStore: useAuthStore() // Pinia store
         };
     },
     computed: {

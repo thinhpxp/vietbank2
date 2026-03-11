@@ -3,7 +3,7 @@
         <div class="page-header">
             <h2>Quản lý Dữ liệu gốc (Master Data)</h2>
             <div class="flex gap-2">
-                <button v-if="auth.isSuperuser && selectedIds.length > 0" class="btn-action btn-delete"
+                <button v-if="authStore.isSuperuser && selectedIds.length > 0" class="btn-action btn-delete"
                     @click="confirmBulkDelete">
                     <SvgIcon name="trash" size="sm" /> Xóa hàng loạt ({{ selectedIds.length }})
                 </button>
@@ -12,8 +12,8 @@
                     <SvgIcon name="refresh" size="sm" :class="{ 'animate-spin': loading }" />
                 </button>
                 <button class="btn-action btn-create btn-icon-only" @click="openCreateModal()"
-                    :disabled="!auth.hasPermission('document_automation.add_masterobject')"
-                    :title="auth.hasPermission('document_automation.add_masterobject') ? 'Thêm mới đối tượng' : 'Không có quyền tạo'">
+                    :disabled="!authStore.hasPermission('document_automation.add_masterobject')"
+                    :title="authStore.hasPermission('document_automation.add_masterobject') ? 'Thêm mới đối tượng' : 'Không có quyền tạo'">
                     <SvgIcon name="plus" size="sm" />
                 </button>
             </div>
@@ -61,7 +61,7 @@
                     :sort-config="{ trigger: 'cell', defaultSort: { field: 'id', order: 'desc' } }"
                     @checkbox-change="handleCheckboxChange" @checkbox-all="handleCheckboxAll">
 
-                    <vxe-column v-if="auth.isSuperuser" type="checkbox" width="50"></vxe-column>
+                    <vxe-column v-if="authStore.isSuperuser" type="checkbox" width="50"></vxe-column>
 
                     <vxe-column field="id" title="ID" width="120" sortable>
                         <template #default="{ row }">
@@ -110,13 +110,13 @@
                                     <SvgIcon name="users" size="sm" />
                                 </button>
                                 <button class="btn-action btn-edit btn-icon-only" @click="editObject(row)"
-                                    :disabled="!auth.hasPermission('document_automation.change_masterobject')"
-                                    :title="auth.hasPermission('document_automation.change_masterobject') ? 'Sửa' : 'Không có quyền sửa'">
+                                    :disabled="!authStore.hasPermission('document_automation.change_masterobject')"
+                                    :title="authStore.hasPermission('document_automation.change_masterobject') ? 'Sửa' : 'Không có quyền sửa'">
                                     <SvgIcon name="edit" size="sm" />
                                 </button>
                                 <button class="btn-action btn-delete btn-icon-only" @click="confirmDelete(row)"
-                                    :disabled="!auth.hasPermission('document_automation.delete_masterobject')"
-                                    :title="auth.hasPermission('document_automation.delete_masterobject') ? 'Xóa' : 'Không có quyền xóa'">
+                                    :disabled="!authStore.hasPermission('document_automation.delete_masterobject')"
+                                    :title="authStore.hasPermission('document_automation.delete_masterobject') ? 'Xóa' : 'Không có quyền xóa'">
                                     <SvgIcon name="trash" size="sm" />
                                 </button>
                             </div>
@@ -232,7 +232,7 @@
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
                                 </div>
@@ -299,7 +299,7 @@
 <script>
 import MasterService from '@/services/master.service';
 import SystemService from '@/services/system.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import MasterCreateModal from '../../components/MasterCreateModal.vue';
@@ -318,7 +318,7 @@ export default {
             loading: false,
             items: [], // Unified list for the current tab
             selectedIds: [], // Selected IDs for bulk actions
-            auth, // Auth store for role checking
+            authStore: useAuthStore(), // Pinia store
 
             // Filtering
             filters: {

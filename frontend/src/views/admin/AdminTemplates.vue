@@ -143,7 +143,7 @@
 
 <script>
 import MasterService from '@/services/master.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -167,7 +167,8 @@ export default {
       filters: { search: '' },
       showDeleteModal: false,
       deleteTargetId: null,
-      deleteTargetName: ''
+      deleteTargetName: '',
+      authStore: useAuthStore()
     }
   },
   computed: {
@@ -176,9 +177,9 @@ export default {
         search: { type: 'text', fields: ['name', 'department'] }
       });
     },
-    canCreate() { return auth.hasPermission('document_automation.add_documenttemplate'); },
-    canChange() { return auth.hasPermission('document_automation.change_documenttemplate'); },
-    canDelete() { return auth.hasPermission('document_automation.delete_documenttemplate'); },
+    canCreate() { return this.authStore.hasPermission('document_automation.add_documenttemplate'); },
+    canChange() { return this.authStore.hasPermission('document_automation.change_documenttemplate'); },
+    canDelete() { return this.authStore.hasPermission('document_automation.delete_documenttemplate'); },
   },
   mounted() {
     this.fetchTemplates();

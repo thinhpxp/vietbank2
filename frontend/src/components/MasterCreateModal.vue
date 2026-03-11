@@ -116,11 +116,15 @@ export default {
 
                 // Flatten the grouped result from API into a simple array for DynamicForm if needed
                 const flatFields = [];
-                Object.keys(res.data).forEach(groupName => {
-                    res.data[groupName].forEach(field => {
-                        flatFields.push({ ...field, group_name: groupName });
+                if (res && res.data) {
+                    Object.keys(res.data).forEach(groupName => {
+                        if (Array.isArray(res.data[groupName])) {
+                            res.data[groupName].forEach(field => {
+                                flatFields.push({ ...field, group_name: groupName });
+                            });
+                        }
                     });
-                });
+                }
                 this.allFields = flatFields;
 
                 // Apply defaults if creating

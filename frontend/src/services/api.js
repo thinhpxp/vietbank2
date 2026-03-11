@@ -32,7 +32,8 @@ apiClient.interceptors.response.use(
         if (status === 401) {
             // Handle unauthorized access (e.g., redirect to login)
             // Note: We use dynamic import to avoid circular dependencies
-            const { default: authStore } = await import('../store/auth');
+            const { useAuthStore } = await import('../store/auth.store');
+            const authStore = useAuthStore();
             const { showErrorDialog } = await import('../utils/errorHandler');
 
             showErrorDialog(null, "Phiên đăng nhập đã hết hạn. Bạn sẽ được chuyển về trang đăng nhập.", "Hết hạn phiên");

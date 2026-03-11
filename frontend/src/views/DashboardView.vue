@@ -3,8 +3,8 @@
     <div class="header-actions">
       <h2>Danh sách Hồ sơ Vay</h2>
       <button class="btn-action btn-create" @click="openFormSelectModal"
-        :disabled="!auth.hasPermission('document_automation.add_loanprofile')"
-        :title="auth.hasPermission('document_automation.add_loanprofile') ? 'Tạo hồ sơ mới' : 'Bạn không có quyền tạo hồ sơ'">
+        :disabled="!authStore.hasPermission('document_automation.add_loanprofile')"
+        :title="authStore.hasPermission('document_automation.add_loanprofile') ? 'Tạo hồ sơ mới' : 'Bạn không có quyền tạo hồ sơ'">
         <SvgIcon name="plus" size="sm" /> <span>Tạo Mới</span>
       </button>
     </div>
@@ -105,13 +105,13 @@
           <template #default="{ row }">
             <div class="flex gap-2">
               <button class="btn-action btn-edit btn-icon-only" @click="editProfile(row.id)"
-                :disabled="!auth.hasPermission('document_automation.change_loanprofile')"
-                :title="auth.hasPermission('document_automation.change_loanprofile') ? 'Sửa hồ sơ' : 'Không có quyền sửa'">
+                :disabled="!authStore.hasPermission('document_automation.change_loanprofile')"
+                :title="authStore.hasPermission('document_automation.change_loanprofile') ? 'Sửa hồ sơ' : 'Không có quyền sửa'">
                 <SvgIcon name="edit" size="sm" />
               </button>
               <button class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal(row)"
-                :disabled="!auth.hasPermission('document_automation.add_loanprofile')"
-                :title="auth.hasPermission('document_automation.add_loanprofile') ? 'Sao chép hồ sơ' : 'Không có quyền tạo'">
+                :disabled="!authStore.hasPermission('document_automation.add_loanprofile')"
+                :title="authStore.hasPermission('document_automation.add_loanprofile') ? 'Sao chép hồ sơ' : 'Không có quyền tạo'">
                 <SvgIcon name="copy" size="sm" />
               </button>
               <button class="btn-action btn-download btn-icon-only" @click="openDownloadModal(row)"
@@ -119,8 +119,8 @@
                 <SvgIcon name="download" size="sm" />
               </button>
               <button class="btn-action btn-delete btn-icon-only" @click="deleteProfile(row.id)"
-                :disabled="!auth.hasPermission('document_automation.delete_loanprofile')"
-                :title="auth.hasPermission('document_automation.delete_loanprofile') ? 'Xóa hồ sơ' : 'Không có quyền xóa'">
+                :disabled="!authStore.hasPermission('document_automation.delete_loanprofile')"
+                :title="authStore.hasPermission('document_automation.delete_loanprofile') ? 'Xóa hồ sơ' : 'Không có quyền xóa'">
                 <SvgIcon name="trash" size="sm" />
               </button>
             </div>
@@ -167,7 +167,7 @@
 <script>
 import LoanService from '@/services/loan.service';
 import MasterService from '@/services/master.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import ContractDownloader from '../components/ContractDownloader.vue';
 import ConfirmModal from '../components/ConfirmModal.vue';
 import InputModal from '../components/InputModal.vue';
@@ -183,7 +183,7 @@ export default {
   mixins: [FilterableTableMixin, errorHandlingMixin],
   data() {
     return {
-      auth,
+      authStore: useAuthStore(),
       profiles: [],
       loading: true,
       filters: {

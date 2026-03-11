@@ -50,6 +50,19 @@ def find_existing_master_object(object_type, field_values):
         logger.error(f"Error in find_existing_master_object: {e}")
         return None
 
+def get_identity_value(instance):
+    """Lấy giá trị định danh hiện tại của MasterObject từ FieldValue"""
+    if not instance or not instance.object_type: return None
+    obj_type_cfg = MasterObjectType.objects.filter(code=instance.object_type).first()
+    if not obj_type_cfg or not obj_type_cfg.identity_field_key: return None
+    
+    id_fv = FieldValue.objects.filter(
+        master_object=instance,
+        field__placeholder_key=obj_type_cfg.identity_field_key,
+        loan_profile__isnull=True
+    ).first()
+    return str(id_fv.value).strip() if id_fv else None
+
 # --- VIEWSETS ---
 class MasterObjectTypeViewSet(viewsets.ModelViewSet):
     queryset = MasterObjectType.objects.all().order_by('-id')
@@ -151,6 +164,32 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         instance.deleted_at = timezone.now()
         instance.save()
         log_action(self.request.user, 'DELETE', f'MasterObject:{o_type}', o_id, f"Xóa hờ dữ liệu gốc")
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Tìm kiếm đối tượng toàn hệ thống (dữ liệu gốc)"""
+        query = request.query_params.get('q', '').strip()
+        obj_type = request.query_params.get('object_type')
+        
+        if not query or len(query) < 2:
+            return Response([])
+
+        # Tìm trong FieldValue của MasterObject (loan_profile__isnull=True)
+        matching_master_ids = FieldValue.objects.filter(
+            master_object__isnull=False,
+            loan_profile__isnull=True,
+            value__icontains=query
+        ).values_list('master_object_id', flat=True).distinct()
+        
+        qs = MasterObject.objects.filter(id__in=matching_master_ids, deleted_at__isnull=True)
+        if obj_type:
+            qs = qs.filter(object_type=obj_type)
+            
+        # Giới hạn 20 kết quả để tối ưu hiệu năng
+        qs = qs[:20]
+        
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def check_identity(self, request):

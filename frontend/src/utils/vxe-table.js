@@ -11,6 +11,18 @@ export function setupVxeTable(app) {
     VxeUI.setI18n('vi-VN', viVN)
     VxeUI.setLanguage('vi-VN')
 
+    // Global Config cho Modal
+    VxeUI.setConfig({
+        modal: {
+            draggable: true,
+            maskStyle: {
+                background: 'transparent'
+            },
+            showFooter: true,
+            escClosable: true
+        }
+    })
+
     // Register VxeTable components
     app.use(VxeTable)
     app.use(VxeColumn)

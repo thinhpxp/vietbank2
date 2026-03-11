@@ -5,7 +5,7 @@ import logging
 
 from ..models import (
     LoanProfile, Field, FieldValue, FormView, MasterObject, 
-    LoanProfileObjectLink, MasterObjectRelation, Role
+    LoanProfileObjectLink, MasterObjectRelation, Role, MasterObjectType
 )
 from ..views.system_views import log_action
 from ..views.master_views import find_existing_master_object, save_master_field_values
@@ -96,8 +96,27 @@ class LoanService:
                         if not obj_id and (not actual_type or not any(str(v).strip() for v in fields_dict.values() if v)):
                             continue
                             
-                        master_obj = MasterObject.objects.filter(id=obj_id).first() if obj_id else find_existing_master_object(actual_type, fields_dict)
+                        master_obj = MasterObject.objects.filter(id=obj_id).first() if obj_id else None
                         
+                        # Re-evaluate master_obj if identity fields changed or object not found by ID
+                        existing_by_identity = find_existing_master_object(actual_type, fields_dict)
+                        
+                        if existing_by_identity:
+                            # Nếu tìm thấy theo định danh mới, ưu tiên dùng cái này
+                            master_obj = existing_by_identity
+                        elif obj_id and master_obj:
+                            # Nếu có ID nhưng định danh trong fields_dict khác với định danh của master_obj hiện tại
+                            # -> Coi như người dùng muốn tạo đối tượng mới (hoặc đổi sang định danh chưa tồn tại)
+                            from ..views.master_views import get_identity_value
+                            current_identity = get_identity_value(master_obj)
+                            # Lấy identity mới từ payload
+                            obj_type_cfg = MasterObjectType.objects.filter(code=actual_type).first()
+                            new_identity = str(fields_dict.get(obj_type_cfg.identity_field_key, '')).strip() if obj_type_cfg and obj_type_cfg.identity_field_key else None
+                            
+                            if new_identity and new_identity != current_identity:
+                                # Định danh đã đổi -> Tạo đối tượng mới
+                                master_obj = None 
+
                         if not master_obj:
                             master_obj = MasterObject.objects.create(
                                 object_type=actual_type, 

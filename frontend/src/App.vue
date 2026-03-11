@@ -3,15 +3,15 @@
     <!-- Thanh điều hướng chung (Ẩn khi ở trang Login/Register) -->
     <nav v-if="!hideNavbar" class="navbar">
       <div class="brand">
-        <template v-if="systemConfig.state.logoType === 'image' && systemConfig.state.logoUrl">
-          <img :src="systemConfig.state.logoUrl" alt="Logo" class="brand-logo-img" />
+        <template v-if="systemStore.logoType === 'image' && systemStore.logoUrl">
+          <img :src="systemStore.logoUrl" alt="Logo" class="brand-logo-img" />
         </template>
         <template v-else>
           <div class="brand-icon-wrapper">
             <SvgIcon name="layers" size="md" />
           </div>
         </template>
-        <span class="brand-text">{{ systemConfig.state.brandName }}</span>
+        <span class="brand-text">{{ systemStore.brandName }}</span>
       </div>
 
       <div class="links">
@@ -58,8 +58,8 @@
 import AppToast from './components/AppToast.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import NotificationPanel from './components/common/NotificationPanel.vue'
-import auth from './store/auth'
-import systemConfig from './store/systemConfig'
+import { useAuthStore } from './store/auth.store'
+import { useSystemStore } from './store/system.store'
 import eventBus, { EVENTS } from './utils/eventBus'
 import { formatError } from './utils/errorHandler'
 
@@ -74,14 +74,15 @@ export default {
       errorModalMessage: '',
       errorModalCode: '',
       errorModalDetails: '',
-      systemConfig // Cấu hình thương hiệu động
+      authStore: useAuthStore(),
+      systemStore: useSystemStore()
     }
   },
   computed: {
-    isAuthenticated() { return auth.state.isAuthenticated },
-    isAdmin() { return auth.isAdmin.value },
+    isAuthenticated() { return this.authStore.isAuthenticated },
+    isAdmin() { return this.authStore.isAdmin },
     userDisplayName() {
-      return auth.state.user?.profile?.full_name || auth.state.user?.username || 'User'
+      return this.authStore.user?.profile?.full_name || this.authStore.user?.username || 'User'
     },
     hideNavbar() {
       return ['Login', 'Register'].includes(this.$route.name)
@@ -89,7 +90,7 @@ export default {
   },
   methods: {
     logout() {
-      auth.logout();
+      this.authStore.logout();
       this.$router.push('/login');
     },
     openGlobalError(data) {
@@ -110,7 +111,7 @@ export default {
   },
   mounted() {
     // Tải cấu hình Branding từ server ngay khi app khởi chạy
-    systemConfig.loadFromServer();
+    this.systemStore.loadFromServer();
     // Subscribe to global error events
     eventBus.on(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
   },
@@ -135,9 +136,7 @@ body {
 
 /* Navbar Styles - Modernized */
 .navbar {
-  background: v-bind('systemConfig.state.navbarColor');
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: v-bind('systemStore.navbarColor');
   padding: 0 1.5rem;
   height: 64px;
   color: white;
@@ -162,7 +161,7 @@ body {
 .brand-icon-wrapper {
   width: 32px;
   height: 32px;
-  background: v-bind('systemConfig.state.brandColor');
+  background: v-bind('systemStore.brandColor');
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -181,7 +180,7 @@ body {
   font-weight: 800;
   font-size: 1.25rem;
   letter-spacing: -0.02em;
-  color: v-bind('systemConfig.state.brandColor');
+  color: v-bind('systemStore.brandColor');
 }
 
 .links {
@@ -195,7 +194,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  color: v-bind('systemConfig.state.linkColor');
+  color: v-bind('systemStore.linkColor');
   text-decoration: none;
   font-weight: 500;
   font-size: 0.95rem;
@@ -207,12 +206,12 @@ body {
 
 .links a:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: v-bind('systemConfig.state.linkHoverColor');
+  color: v-bind('systemStore.linkHoverColor');
 }
 
 .links a.router-link-active {
-  color: v-bind('systemConfig.state.activeLinkColor');
-  background: v-bind('systemConfig.state.activeLinkBgColor');
+  color: v-bind('systemStore.activeLinkColor');
+  background: v-bind('systemStore.activeLinkBgColor');
 }
 
 .user-info {

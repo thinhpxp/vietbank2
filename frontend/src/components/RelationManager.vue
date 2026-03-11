@@ -20,14 +20,14 @@
             {{ getRelationDescription(rel) }}
 
             <!-- Logic hiển thị: Nếu trong hồ sơ thì text thường, ngoài hồ sơ thì link -->
-            <strong v-if="isObjectInProfile(isSource(rel) ? rel.target_object : rel.source_object)">
+            <strong v-if="isObjectInProfile(isSource(rel) ? rel.target_object : rel.source_object)" class="internal-obj-text">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
             </strong>
-            <strong v-else class="external-link"
-              @click="viewObjectDetail(isSource(rel) ? rel.target_object : rel.source_object)"
+            <span v-else class="external-link"
+              @click.stop="viewObjectDetail(isSource(rel) ? rel.target_object : rel.source_object)"
               title="Xem chi tiết đối tượng">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
-            </strong>
+            </span>
 
             <small>({{ $t(isSource(rel) ? rel.target_type : rel.source_type) }})</small>
 
@@ -43,7 +43,14 @@
 
     <!-- Modal chọn đối tượng để liên kết -->
     <BaseModal :isOpen="showAddModal" title="Gán mối quan hệ mới" @close="closeModal">
-      <p class="modal-subtitle">Chọn đối tượng trong hồ sơ này để thiết lập dẫn chiếu</p>
+      <div class="tabs-container">
+        <div class="tab-button" :class="{ active: activeTab === 'internal' }" @click="activeTab = 'internal'">
+          Trong hồ sơ này
+        </div>
+        <div class="tab-button" :class="{ active: activeTab === 'external' }" @click="activeTab = 'external'">
+          Tìm kiếm toàn hệ thống
+        </div>
+      </div>
 
       <div class="admin-form-section">
         <h4>Cấu hình liên kết</h4>
@@ -59,15 +66,52 @@
 
         <div class="form-group">
           <label>Đối tượng liên kết:</label>
-          <div class="object-selector-list">
-            <div v-for="obj in filteredPossibleTargets" :key="obj.id" class="selectable-object"
-              :class="{ selected: selectedTargetId === obj.id }" @click="selectedTargetId = obj.id">
-              <div class="obj-name">{{ obj.display_name }}</div>
+          
+          <!-- Chế độ 1: Trong hồ sơ (Internal) -->
+          <template v-if="activeTab === 'internal'">
+            <div class="object-selector-list">
+              <div v-for="obj in filteredPossibleTargets" :key="obj.id" class="selectable-object"
+                :class="{ selected: selectedTargetId === obj.id }" @click="selectedTargetId = obj.id">
+                <div class="obj-name">{{ obj.display_name }}</div>
+              </div>
             </div>
-          </div>
-          <div v-if="filteredPossibleTargets.length === 0" class="empty-list">
-            Không tìm thấy đối tượng nào khác trong hồ sơ này để liên kết.
-          </div>
+            <div v-if="filteredPossibleTargets.length === 0" class="empty-list">
+              Không tìm thấy đối tượng nào khác trong hồ sơ này.
+            </div>
+          </template>
+
+          <!-- Chế độ 2: Toàn hệ thống (External) -->
+          <template v-else>
+            <div class="search-box">
+              <input 
+                v-model="searchQuery" 
+                type="text" 
+                placeholder="Tìm theo tên, CCCD, BKS..." 
+                class="admin-form-control"
+                @input="handleSearchInput"
+              >
+              <SvgIcon v-if="searching" name="loading" class="icon-spinning" />
+            </div>
+
+            <div class="object-selector-list search-results">
+              <div v-for="obj in globalSearchResults" :key="obj.id" class="selectable-object"
+                :class="{ selected: selectedTargetId === obj.id }" @click="selectedTargetId = obj.id">
+                <div class="obj-name">{{ obj.display_name }}</div>
+                <div class="obj-sub-info">
+                  <span class="badge-type">{{ $t(obj.object_type) }}</span>
+                  <span class="profile-context" v-if="obj.related_profiles && obj.related_profiles.length">
+                    Hồ sơ gốc: {{ obj.related_profiles[0].name }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="!searching && globalSearchResults.length === 0 && searchQuery" class="empty-list">
+                Không tìm thấy kết quả phù hợp.
+              </div>
+              <div v-if="!searchQuery" class="empty-list">
+                Nhập từ khóa để tìm kiếm (tối thiểu 2 ký tự)
+              </div>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -108,6 +152,13 @@ export default {
       loading: false,
       // Quick View state
       viewingObjectId: null,
+
+      // Cross-profile state
+      activeTab: 'internal', // 'internal' | 'external'
+      searchQuery: '',
+      globalSearchResults: [],
+      searching: false,
+      searchTimeout: null,
 
       // === BƯỚC 1: ĐỊNH NGHĨA BẢN ĐỒ QUAN HỆ ===
       // Thêm đối tượng này vào data()
@@ -180,6 +231,32 @@ export default {
     closeModal() {
       this.showAddModal = false;
       this.selectedTargetId = null;
+      this.activeTab = 'internal';
+      this.searchQuery = '';
+      this.globalSearchResults = [];
+    },
+    handleSearchInput() {
+      if (this.searchTimeout) clearTimeout(this.searchTimeout);
+      
+      const q = this.searchQuery.trim();
+      if (q.length < 2) {
+        this.globalSearchResults = [];
+        return;
+      }
+
+      this.searchTimeout = setTimeout(async () => {
+        this.searching = true;
+        try {
+          // Lưu ý: Có thể lọc theo objectType nếu cần thiết kế chặt chẽ hơn
+          const res = await MasterService.searchMasterObjects(q);
+          // Lọc bỏ chính nó nếu xuất hiện trong kết quả tìm kiếm
+          this.globalSearchResults = res.data.filter(obj => obj.id !== this.masterObjectId);
+        } catch (e) {
+          console.error('Lỗi tìm kiếm đối tượng:', e);
+        } finally {
+          this.searching = false;
+        }
+      }, 500); // Debounce 500ms
     },
     async confirmAddRelation() {
       if (!this.selectedTargetId) return;
@@ -303,9 +380,9 @@ export default {
   color: #2c3e50;
 }
 
-.rel-target strong {
+.rel-target strong.internal-obj-text {
   margin-left: 4px;
-  color: #2980b9;
+  color: #2c3e50; /* Màu tối hơn, không giống link */
 }
 
 .rel-target small {
@@ -380,10 +457,81 @@ export default {
   /* Màu vàng đậm (Dark Gold) cho dễ đọc trên nền trắng */
   cursor: pointer;
   font-weight: 600;
+  transition: all 0.2s;
+  display: inline-block;
+}
+/* Hiệu ứng rõ ràng hơn khi hover để người dùng biết là click được */
+.external-link:hover {
+  color: #9a7d0a !important;
+  text-decoration: underline !important;
+  transform: translateY(-1px);
 }
 
-.external-link:hover {
-  color: #9a7d0a;
-  text-decoration: underline;
+/* New Styles for Cross-profile Tabs */
+.tabs-container {
+  display: flex;
+  border-bottom: 2px solid #edf2f7;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #718096;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.tab-button:hover {
+  color: #4a5568;
+  background: #f7fafc;
+}
+
+.tab-button.active {
+  color: #3182ce;
+  border-bottom-color: #3182ce;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.search-box .icon-spinning {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #3182ce;
+}
+
+.search-results {
+  max-height: 250px !important;
+}
+
+.obj-sub-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.badge-type {
+  font-size: 0.7em;
+  background: #ebf8ff;
+  color: #2b6cb0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.profile-context {
+  font-size: 0.75em;
+  color: #718096;
+  font-style: italic;
 }
 </style>

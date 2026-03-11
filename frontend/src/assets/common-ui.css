@@ -444,7 +444,6 @@ button,
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -542,7 +541,7 @@ body.is-resizing * {
 
 .admin-file-name {
     font-size: var(--font-xs);
-    color: var(--slate-500);
+    color: #fffff;
     max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;

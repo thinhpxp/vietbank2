@@ -29,8 +29,8 @@
                             <input type="file" ref="logoInput" @change="handleLogoUpload" accept="image/*"
                                 style="display: none" />
                             <button class="btn-action btn-secondary" @click="$refs.logoInput.click()"
-                                :disabled="uploading || !auth.isSuperuser"
-                                :title="!auth.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được thay đổi Logo' : 'Tải lên Logo mới'">
+                                :disabled="uploading || !authStore.isSuperuser"
+                                :title="!authStore.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được thay đổi Logo' : 'Tải lên Logo mới'">
                                 <SvgIcon :name="uploading ? 'refresh' : 'upload'" size="sm"
                                     :customClass="uploading ? 'spin' : ''" />
                                 {{ uploading ? 'Đang tải...' : 'Tải lên Logo mới' }}
@@ -125,13 +125,13 @@
 
                 <div class="settings-actions">
                     <button @click="saveChanges" class="btn-action btn-save"
-                        :disabled="!isChanged || uploading || !auth.isSuperuser"
-                        :title="!auth.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được thay đổi cấu hình' : 'Lưu cấu hình'">
+                        :disabled="!isChanged || uploading || !authStore.isSuperuser"
+                        :title="!authStore.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được thay đổi cấu hình' : 'Lưu cấu hình'">
                         <SvgIcon name="save" size="sm" /> Lưu cấu hình
                     </button>
                     <button @click="resetToDefault" class="btn-action btn-secondary ml-2"
-                        :disabled="uploading || !auth.isSuperuser"
-                        :title="!auth.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được khôi phục mặc định' : 'Khôi phục mặc định'">
+                        :disabled="uploading || !authStore.isSuperuser"
+                        :title="!authStore.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được khôi phục mặc định' : 'Khôi phục mặc định'">
                         <SvgIcon name="refresh" size="sm" /> Khôi phục mặc định
                     </button>
                 </div>
@@ -152,8 +152,8 @@
 </template>
 
 <script>
-import systemConfig from '@/store/systemConfig';
-import auth from '@/store/auth';
+import { useSystemStore } from '@/store/system.store';
+import { useAuthStore } from '@/store/auth.store';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 
 export default {
@@ -161,33 +161,35 @@ export default {
     title: 'Cài đặt hệ thống',
     components: { SvgIcon },
     data() {
+        const systemStore = useSystemStore();
         return {
             uploading: false,
             editConfig: {
-                brandName: systemConfig.state.brandName,
-                logoUrl: systemConfig.state.logoUrl,
-                logoType: systemConfig.state.logoType,
-                navbarColor: systemConfig.state.navbarColor,
-                brandColor: systemConfig.state.brandColor,
-                linkColor: systemConfig.state.linkColor,
-                linkHoverColor: systemConfig.state.linkHoverColor,
-                activeLinkColor: systemConfig.state.activeLinkColor,
-                activeLinkBgColor: systemConfig.state.activeLinkBgColor
+                brandName: systemStore.brandName,
+                logoUrl: systemStore.logoUrl,
+                logoType: systemStore.logoType,
+                navbarColor: systemStore.navbarColor,
+                brandColor: systemStore.brandColor,
+                linkColor: systemStore.linkColor,
+                linkHoverColor: systemStore.linkHoverColor,
+                activeLinkColor: systemStore.activeLinkColor,
+                activeLinkBgColor: systemStore.activeLinkBgColor
             },
-            auth
+            authStore: useAuthStore(),
+            systemStore
         };
     },
     computed: {
         isChanged() {
-            return this.editConfig.brandName !== systemConfig.state.brandName ||
-                this.editConfig.logoUrl !== systemConfig.state.logoUrl ||
-                this.editConfig.logoType !== systemConfig.state.logoType ||
-                this.editConfig.navbarColor !== systemConfig.state.navbarColor ||
-                this.editConfig.brandColor !== systemConfig.state.brandColor ||
-                this.editConfig.linkColor !== systemConfig.state.linkColor ||
-                this.editConfig.linkHoverColor !== systemConfig.state.linkHoverColor ||
-                this.editConfig.activeLinkColor !== systemConfig.state.activeLinkColor ||
-                this.editConfig.activeLinkBgColor !== systemConfig.state.activeLinkBgColor;
+            return this.editConfig.brandName !== this.systemStore.brandName ||
+                this.editConfig.logoUrl !== this.systemStore.logoUrl ||
+                this.editConfig.logoType !== this.systemStore.logoType ||
+                this.editConfig.navbarColor !== this.systemStore.navbarColor ||
+                this.editConfig.brandColor !== this.systemStore.brandColor ||
+                this.editConfig.linkColor !== this.systemStore.linkColor ||
+                this.editConfig.linkHoverColor !== this.systemStore.linkHoverColor ||
+                this.editConfig.activeLinkColor !== this.systemStore.activeLinkColor ||
+                this.editConfig.activeLinkBgColor !== this.systemStore.activeLinkBgColor;
         }
     },
     methods: {
@@ -207,7 +209,7 @@ export default {
 
             this.uploading = true;
             try {
-                const result = await systemConfig.uploadLogo(file);
+                const result = await this.systemStore.uploadLogo(file);
                 this.editConfig.logoUrl = result.logoUrl;
                 this.editConfig.logoType = 'image';
                 this.$toast.success('Đã tải logo lên máy chủ thành công!');
@@ -223,7 +225,7 @@ export default {
         },
         async saveChanges() {
             try {
-                await systemConfig.updateConfig(this.editConfig);
+                await this.systemStore.updateConfig(this.editConfig);
                 this.$toast.success('Đã lưu cấu hình lên máy chủ thành công!');
             } catch (error) {
                 const msg = error.response?.data?.detail || error.message || 'Có lỗi xảy ra khi lưu cấu hình.';
@@ -233,8 +235,18 @@ export default {
         async resetToDefault() {
             if (confirm('Bạn có chắc chắn muốn khôi phục về cấu hình mặc định?')) {
                 try {
-                    await systemConfig.resetToDefault();
-                    this.editConfig = { ...systemConfig.state };
+                    await this.systemStore.resetToDefault();
+                    this.editConfig = {
+                        brandName: this.systemStore.brandName,
+                        logoUrl: this.systemStore.logoUrl,
+                        logoType: this.systemStore.logoType,
+                        navbarColor: this.systemStore.navbarColor,
+                        brandColor: this.systemStore.brandColor,
+                        linkColor: this.systemStore.linkColor,
+                        linkHoverColor: this.systemStore.linkHoverColor,
+                        activeLinkColor: this.systemStore.activeLinkColor,
+                        activeLinkBgColor: this.systemStore.activeLinkBgColor
+                    };
                     this.$toast.info('Đã khôi phục cài đặt mặc định.');
                 } catch (error) {
                     this.$toast.error('Không thể khôi phục mặc định. Vui lòng thử lại.');

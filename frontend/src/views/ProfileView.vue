@@ -119,8 +119,8 @@
 </template>
 
 <script>
-import axios from 'axios';
-import auth from '@/store/auth';
+import api from '@/services/api';
+import { useAuthStore } from '@/store/auth.store';
 
 export default {
     name: 'ProfileView',
@@ -142,7 +142,8 @@ export default {
                 old_password: '',
                 new_password: '',
                 confirm_password: ''
-            }
+            },
+            authStore: useAuthStore()
         };
     },
     mounted() {
@@ -151,7 +152,7 @@ export default {
     methods: {
         async fetchUserData() {
             try {
-                const res = await axios.get('http://localhost:8000/api/me/');
+                const res = await api.get('/me/');
                 this.user = res.data;
                 // Map to form
                 this.profileForm.full_name = this.user.full_name || '';
@@ -168,10 +169,10 @@ export default {
         async updateProfile() {
             this.isUpdatingProfile = true;
             try {
-                await axios.patch('http://localhost:8000/api/me/', this.profileForm);
+                await api.patch('/me/', this.profileForm);
                 this.$toast.success('Cập nhật thông tin thành công!');
                 // Refresh auth state to update navbar name if changed
-                auth.fetchProfile();
+                this.authStore.fetchProfile();
             } catch (e) {
                 this.$toast.error('Lỗi cập nhật thông tin');
             } finally {
@@ -185,7 +186,7 @@ export default {
 
             this.isChangingPassword = true;
             try {
-                await axios.post('http://localhost:8000/api/change-password/', {
+                await api.post('/change-password/', {
                     old_password: this.passwordForm.old_password,
                     new_password: this.passwordForm.new_password
                 });

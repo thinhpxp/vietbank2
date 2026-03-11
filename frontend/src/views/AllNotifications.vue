@@ -52,8 +52,7 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_URL } from '@/store/auth';
+import SystemService from '@/services/system.service';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 
 export default {
@@ -78,7 +77,7 @@ export default {
         async fetchNotifications() {
             this.loading = true;
             try {
-                const res = await axios.get(`${API_URL}/notifications/`);
+                const res = await SystemService.getNotifications();
                 this.notifications = res.data;
             } catch (err) {
                 this.$toast.error('Không thể tải danh sách thông báo');
@@ -89,7 +88,7 @@ export default {
         async handleCellClick({ row }) {
             if (!row.is_read) {
                 try {
-                    await axios.post(`${API_URL}/notifications/${row.id}/mark_read/`);
+                    await SystemService.markNotificationRead(row.id);
                     row.is_read = true;
                 } catch (err) {
                     console.error('Failed to mark as read', err);
@@ -97,22 +96,25 @@ export default {
             }
         },
         async markAllAsRead() {
-            const unreadIds = this.notifications.filter(n => !n.is_read).map(n => n.id);
-            if (unreadIds.length === 0) return;
-
             try {
-                // Assuming we don't have a bulk mark-as-read endpoint yet, 
-                // we'll loop or just let the user click items. 
-                // For a better UX, we'd want a bulk endpoint.
-                // For now, let's simulate by marking all locally after individual calls if possible,
-                // or just mark all locally if no bulk API exists.
-                for (const id of unreadIds) {
-                    await axios.post(`${API_URL}/notifications/${id}/mark_read/`);
-                }
+                // Sử dụng endpoint markAllNotificationsRead nếu backend hỗ trợ
+                await SystemService.markAllNotificationsRead();
                 this.notifications.forEach(n => n.is_read = true);
                 this.$toast.success('Đã đánh dấu tất cả là đã đọc');
             } catch (err) {
-                this.$toast.error('Có lỗi xảy ra khi thực hiện');
+                // Fallback nếu markAllNotificationsRead gặp lỗi (ví dụ 404 nếu chưa triển khai)
+                const unreadIds = this.notifications.filter(n => !n.is_read).map(n => n.id);
+                if (unreadIds.length === 0) return;
+
+                try {
+                    for (const id of unreadIds) {
+                        await SystemService.markNotificationRead(id);
+                    }
+                    this.notifications.forEach(n => n.is_read = true);
+                    this.$toast.success('Đã đánh dấu tất cả là đã đọc (fallback)');
+                } catch (e) {
+                    this.$toast.error('Có lỗi xảy ra khi thực hiện');
+                }
             }
         },
         getTypeLabel(type) {
@@ -240,7 +242,6 @@ export default {
 }
 
 .glass-effect {
-    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 </style>

@@ -28,6 +28,9 @@ const SystemService = {
     deleteUser(id) {
         return api.delete(`/users/${id}/`);
     },
+    resetPassword(id, password) {
+        return api.post(`/users/${id}/reset-password/`, { password });
+    },
 
     // User Groups (Django Groups) & Permissions
     getUserGroups() {

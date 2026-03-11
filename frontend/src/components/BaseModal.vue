@@ -1,8 +1,8 @@
 <template>
     <Teleport to="body">
-        <div v-if="isOpen" class="modal-overlay" @click.self="handleOverlayClick">
+        <div v-if="isOpen" class="modal-overlay" :class="['overlay-' + overlayVariant]" @click.self="handleOverlayClick">
             <div class="modal-box" :style="modalStyle" ref="modalBox">
-                <div class="modal-header">
+                <div class="modal-header" @mousedown="startDrag" :class="{ 'draggable': isDraggable }">
                     <slot name="header">
                         <h3>{{ title }}</h3>
                     </slot>
@@ -38,6 +38,8 @@ export default {
         initialWidth: { type: [Number, String], default: 750 },
         initialHeight: { type: [Number, String], default: null },
         isResizable: { type: Boolean, default: true },
+        isDraggable: { type: Boolean, default: true },
+        overlayVariant: { type: String, default: 'transparent' }, // 'dim', 'light', 'transparent', 'none'
         minWidth: { type: Number, default: 400 },
         minHeight: { type: Number, default: 200 },
         closeOnOverlay: { type: Boolean, default: false }
@@ -47,11 +49,19 @@ export default {
         return {
             width: typeof this.initialWidth === 'number' ? this.initialWidth : null,
             height: typeof this.initialHeight === 'number' ? this.initialHeight : null,
+            // Resize state
             isResizing: false,
             startX: 0,
             startY: 0,
             startWidth: 0,
-            startHeight: 0
+            startHeight: 0,
+            // Drag state
+            isDragging: false,
+            dragX: 0,
+            dragY: 0,
+            dragStartX: 0,
+            dragStartY: 0,
+            dragFrameId: null
         };
     },
     computed: {
@@ -63,6 +73,9 @@ export default {
             if (this.height) style.height = `${this.height}px`;
             else if (typeof this.initialHeight === 'string') style.height = this.initialHeight;
 
+            // Apply drag offset
+            style.transform = `translate(${this.dragX}px, ${this.dragY}px)`;
+
             return style;
         }
     },
@@ -73,6 +86,7 @@ export default {
         handleOverlayClick() {
             if (this.closeOnOverlay) this.close();
         },
+        // RESIZE LOGIC
         startResize(e) {
             this.isResizing = true;
             this.startX = e.clientX;
@@ -84,33 +98,60 @@ export default {
 
             window.addEventListener('mousemove', this.doResize);
             window.addEventListener('mouseup', this.stopResize);
-            document.body.style.userSelect = 'none'; // Prevent text selection
+            document.body.style.userSelect = 'none';
         },
         doResize(e) {
             if (!this.isResizing) return;
-
             const deltaX = e.clientX - this.startX;
             const deltaY = e.clientY - this.startY;
-
             const newWidth = this.startWidth + deltaX;
             const newHeight = this.startHeight + deltaY;
 
-            if (newWidth >= this.minWidth) {
-                this.width = newWidth;
-            }
-            if (newHeight >= this.minHeight) {
-                this.height = newHeight;
-            }
+            if (newWidth >= this.minWidth) this.width = newWidth;
+            if (newHeight >= this.minHeight) this.height = newHeight;
         },
         stopResize() {
             this.isResizing = false;
             window.removeEventListener('mousemove', this.doResize);
             window.removeEventListener('mouseup', this.stopResize);
             document.body.style.userSelect = '';
+        },
+        // DRAG LOGIC
+        startDrag(e) {
+            if (!this.isDraggable) return;
+            // Only allow dragging from header, but not from action buttons
+            if (e.target.closest('.header-actions') || e.target.closest('.btn-close')) return;
+
+            this.isDragging = true;
+            this.dragStartX = e.clientX - this.dragX;
+            this.dragStartY = e.clientY - this.dragY;
+
+            window.addEventListener('mousemove', this.doDrag);
+            window.addEventListener('mouseup', this.stopDrag);
+            document.body.style.userSelect = 'none';
+        },
+        doDrag(e) {
+            if (!this.isDragging) return;
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+
+            if (this.dragFrameId) cancelAnimationFrame(this.dragFrameId);
+            this.dragFrameId = requestAnimationFrame(() => {
+                this.dragX = clientX - this.dragStartX;
+                this.dragY = clientY - this.dragStartY;
+            });
+        },
+        stopDrag() {
+            this.isDragging = false;
+            if (this.dragFrameId) cancelAnimationFrame(this.dragFrameId);
+            window.removeEventListener('mousemove', this.doDrag);
+            window.removeEventListener('mouseup', this.stopDrag);
+            document.body.style.userSelect = '';
         }
     },
     beforeUnmount() {
         this.stopResize();
+        this.stopDrag();
     }
 };
 </script>
@@ -122,11 +163,28 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9000;
+    transition: background 0.3s;
+}
+
+.modal-overlay.overlay-dim {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.modal-overlay.overlay-light {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.modal-overlay.overlay-transparent {
+    background: transparent;
+    pointer-events: none; /* Cho phép click xuyên qua lớp nền */
+}
+
+.modal-overlay.overlay-none {
+    background: transparent;
 }
 
 .modal-box {
@@ -140,6 +198,8 @@ export default {
     overflow: hidden;
     position: relative;
     animation: modalAppear 0.25s ease-out;
+    pointer-events: auto; /* Đảm bảo modal vẫn nhận sự kiện khi nền transparent */
+    will-change: transform; /* Tối ưu hiệu năng kéo thả */
 }
 
 @keyframes modalAppear {
@@ -164,6 +224,11 @@ export default {
     background: #fcfcfc;
     flex-shrink: 0;
     cursor: default;
+    user-select: none;
+}
+
+.modal-header.draggable {
+    cursor: move;
 }
 
 .header-actions {

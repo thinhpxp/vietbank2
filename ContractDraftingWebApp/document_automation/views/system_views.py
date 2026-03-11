@@ -169,6 +169,7 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminOrManager]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['target_model', 'target_id', 'action', 'user']
     search_fields = ['details', 'target_id', 'target_model']
     ordering_fields = ['timestamp', 'action']
     ordering = ['-timestamp']

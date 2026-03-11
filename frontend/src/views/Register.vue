@@ -70,7 +70,7 @@
 </template>
 
 <script>
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 
 export default {
     name: 'RegisterPage',
@@ -87,7 +87,8 @@ export default {
                 department: ''
             },
             error: '',
-            isLoading: false
+            isLoading: false,
+            authStore: useAuthStore()
         };
     },
     methods: {
@@ -95,7 +96,7 @@ export default {
             this.isLoading = true;
             this.error = '';
             try {
-                await auth.register(this.form);
+                await this.authStore.register(this.form);
                 this.$toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
                 this.$router.push('/login');
             } catch (err) {

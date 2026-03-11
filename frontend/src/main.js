@@ -1,18 +1,19 @@
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import '@/assets/tokens.scss';
 import '@/assets/admin.css';
 import '@/assets/common-ui.css';
 import '@/assets/icons.css';
 import App from './App.vue'
-import router from './router' // <-- Import router
+import router from './router'
 import toastPlugin from './utils/toast'
 import i18n from './utils/i18n'
-import auth from './store/auth' // Import auth store
-import SvgIcon from './components/common/SvgIcon.vue' // Import SvgIcon
+import SvgIcon from './components/common/SvgIcon.vue'
 import titleMixin from './mixins/titleMixin'
 import { setupVxeTable } from './utils/vxe-table'
 
 const app = createApp(App)
+const pinia = createPinia()
 
 // Suppress ResizeObserver loop limit exceeded error
 window.addEventListener('error', e => {
@@ -29,16 +30,14 @@ window.addEventListener('error', e => {
 // Setup vxe-table
 setupVxeTable(app)
 
-// Khởi tạo trạng thái xác thực từ LocalStorage
-auth.initialize()
-
 // Register SvgIcon globally
 app.component('SvgIcon', SvgIcon)
 
 // Register Global Mixin for titles
 app.mixin(titleMixin)
 
-app.use(router) // <-- Sử dụng router
+app.use(pinia)
+app.use(router)
 app.use(toastPlugin)
 app.use(i18n)
 app.mount('#app')

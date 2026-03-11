@@ -18,7 +18,7 @@ import AdminNotifications from '../views/admin/AdminNotifications.vue'; // ADDED
 import AdminSettings from '../views/admin/AdminSettings.vue'; // ADDED
 import Login from '../views/Login.vue';
 import Register from '../views/Register.vue';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 
 const routes = [
   {
@@ -96,8 +96,9 @@ const router = createRouter({
 
 // Global Navigation Guard
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = auth.state.isAuthenticated;
-  const isAdmin = auth.isAdmin.value;
+  const authStore = useAuthStore();
+  const isAuthenticated = authStore.isAuthenticated;
+  const isAdmin = authStore.isAdmin;
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     // Nếu chưa đăng nhập mà vào trang yêu cầu auth -> Chuyển về Login

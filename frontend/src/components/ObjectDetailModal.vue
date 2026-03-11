@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :isOpen="!!objectId" :title="$t('CHI_TIET_DOI_TUONG')" @close="$emit('close')">
+  <BaseModal :isOpen="!!objectId" :title="$t('CHI_TIET_DOI_TUONG')" overlayVariant="light" @close="$emit('close')">
     <div v-if="loading" class="text-center p-4">
       <div class="loading-spinner"></div>
       <p>Đang tải dữ liệu...</p>

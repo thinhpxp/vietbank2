@@ -217,7 +217,7 @@
 
 <script>
 import MasterService from '@/services/master.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -236,7 +236,8 @@ export default {
             editingData: null,
             filters: { search: '' },
             showDeleteModal: false,
-            deleteTarget: null
+            deleteTarget: null,
+            authStore: useAuthStore()
         };
     },
     computed: {
@@ -245,9 +246,9 @@ export default {
                 search: { type: 'text', fields: ['name', 'code'] }
             });
         },
-        canCreate() { return auth.hasPermission('document_automation.add_masterobjecttype'); },
-        canChange() { return auth.hasPermission('document_automation.change_masterobjecttype'); },
-        canDelete() { return auth.hasPermission('document_automation.delete_masterobjecttype'); },
+        canCreate() { return this.authStore.hasPermission('document_automation.add_masterobjecttype'); },
+        canChange() { return this.authStore.hasPermission('document_automation.change_masterobjecttype'); },
+        canDelete() { return this.authStore.hasPermission('document_automation.delete_masterobjecttype'); },
     },
     mounted() {
         this.fetchTypes();

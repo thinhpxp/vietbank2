@@ -40,18 +40,19 @@
 
 
 <script>
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 
 export default {
   name: 'AdminLayout',
   data() {
     return {
-      isCollapsed: false
+      isCollapsed: false,
+      authStore: useAuthStore()
     };
   },
   computed: {
     hasNotificationAccess() {
-      return auth.hasPermission('document_automation.view_adminnotification');
+      return this.authStore.hasPermission('document_automation.view_adminnotification');
     }
   }
 };

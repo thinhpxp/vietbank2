@@ -44,7 +44,7 @@
 </template>
 
 <script>
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 
 export default {
     name: 'LoginPage',
@@ -54,7 +54,8 @@ export default {
             username: '',
             password: '',
             error: '',
-            isLoading: false
+            isLoading: false,
+            authStore: useAuthStore()
         };
     },
     methods: {
@@ -62,7 +63,7 @@ export default {
             this.isLoading = true;
             this.error = '';
             try {
-                await auth.login(this.username, this.password);
+                await this.authStore.login(this.username, this.password);
                 this.$router.push('/');
             } catch (err) {
                 this.error = 'Tên đăng nhập hoặc mật khẩu không chính xác.';

@@ -128,6 +128,30 @@ class DocumentService:
         return context
 
     @staticmethod
+    def get_template_loop_objects(loan_profile, template):
+        """
+        Trích xuất danh sách các đối tượng lặp theo cấu hình của mẫu (dùng cho return_metadata).
+        """
+        if not template or not template.loop_object_type:
+            return []
+            
+        context = DocumentService.prepare_context(loan_profile)
+        ltype = template.loop_object_type.code
+        ikey = template.loop_object_type.identity_field_key
+
+        objs = context.get(ltype, []) or context.get(ltype.lower(), [])
+        
+        metadata_list = []
+        for obj in objs:
+            ident = obj.get(ikey) or obj.get('id', 'unknown')
+            metadata_list.append({
+                'id': obj.get('id'),
+                'identity': ident
+            })
+            
+        return metadata_list
+
+    @staticmethod
     def generate_documents(loan_profile, template_ids, export_mode='SINGLE', batch_template_ids=None, target_object_id=None):
         """
         Sinh danh sách các file văn bản từ danh sách mã mẫu.

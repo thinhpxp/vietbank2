@@ -1,8 +1,8 @@
 <template>
     <Teleport to="body">
-        <div v-if="visible" class="modal-overlay" @click.self="handleOverlayClick">
-            <div class="modal-box" :class="typeClass">
-                <div class="modal-header">
+        <div v-if="visible" class="modal-overlay" :class="['overlay-' + overlayVariant]" @click.self="handleOverlayClick">
+            <div class="modal-box" :class="typeClass" :style="modalBoxStyle">
+                <div class="modal-header" @mousedown="startDrag">
                     <span class="modal-icon">{{ iconEmoji }}</span>
                     <h3>{{ title }}</h3>
                 </div>
@@ -57,13 +57,21 @@ export default {
         errorCode: { type: String, default: '' }, // Mã lỗi (VD: "ERR_001")
         details: { type: String, default: '' }, // Chi tiết kỹ thuật (stack trace, JSON, etc.)
         showTimestamp: { type: Boolean, default: false }, // Hiển thị timestamp
-        closeOnOverlay: { type: Boolean, default: false } // Đóng khi click overlay
+        closeOnOverlay: { type: Boolean, default: false }, // Đóng khi click overlay
+        overlayVariant: { type: String, default: 'transparent' } // 'dim', 'light', 'transparent'
     },
     emits: ['confirm', 'cancel'],
     data() {
         return {
             showDetails: false,
-            timestamp: new Date().toLocaleString('vi-VN')
+            timestamp: new Date().toLocaleString('vi-VN'),
+            // Drag state
+            isDragging: false,
+            dragX: 0,
+            dragY: 0,
+            dragStartX: 0,
+            dragStartY: 0,
+            dragFrameId: null
         };
     },
     computed: {
@@ -87,6 +95,11 @@ export default {
                 info: 'btn-primary'
             };
             return classes[this.type] || 'btn-warning';
+        },
+        modalBoxStyle() {
+            return {
+                transform: `translate(${this.dragX}px, ${this.dragY}px)`
+            };
         }
     },
     methods: {
@@ -100,7 +113,38 @@ export default {
             if (this.closeOnOverlay) {
                 this.cancel();
             }
+        },
+        // DRAG LOGIC
+        startDrag(e) {
+            this.isDragging = true;
+            this.dragStartX = e.clientX - this.dragX;
+            this.dragStartY = e.clientY - this.dragY;
+
+            window.addEventListener('mousemove', this.doDrag);
+            window.addEventListener('mouseup', this.stopDrag);
+            document.body.style.userSelect = 'none';
+        },
+        doDrag(e) {
+            if (!this.isDragging) return;
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+
+            if (this.dragFrameId) cancelAnimationFrame(this.dragFrameId);
+            this.dragFrameId = requestAnimationFrame(() => {
+                this.dragX = clientX - this.dragStartX;
+                this.dragY = clientY - this.dragStartY;
+            });
+        },
+        stopDrag() {
+            this.isDragging = false;
+            if (this.dragFrameId) cancelAnimationFrame(this.dragFrameId);
+            window.removeEventListener('mousemove', this.doDrag);
+            window.removeEventListener('mouseup', this.stopDrag);
+            document.body.style.userSelect = '';
         }
+    },
+    beforeUnmount() {
+        this.stopDrag();
     }
 }
 </script>
@@ -112,11 +156,24 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
+    transition: background 0.3s;
+}
+
+.modal-overlay.overlay-dim {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-overlay.overlay-light {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.modal-overlay.overlay-transparent {
+    background: transparent;
+    pointer-events: none;
 }
 
 .modal-box {
@@ -129,6 +186,8 @@ export default {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    pointer-events: auto;
+    will-change: transform;
 }
 
 .modal-header {
@@ -138,6 +197,8 @@ export default {
     padding: 15px 20px;
     background: #f8f9fa;
     border-bottom: 1px solid #eee;
+    cursor: move;
+    user-select: none;
 }
 
 .modal-icon {

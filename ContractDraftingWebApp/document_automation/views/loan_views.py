@@ -228,6 +228,21 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         loan_profile = self.get_object()
         data = request.data
         
+        # --- KHÔI PHỤC: Xử lý chức năng tách file (Trả về metadata thay vì file) ---
+        return_metadata = data.get('return_metadata', False)
+        template_id = data.get('template_id')
+        if return_metadata and template_id:
+            from ..models import DocumentTemplate
+            template = DocumentTemplate.objects.filter(id=template_id).first()
+            if template and template.loop_object_type:
+                objects_metadata = DocumentService.get_template_loop_objects(loan_profile, template)
+                return Response({
+                    "template_id": template.id,
+                    "loop_type": template.loop_object_type.code,
+                    "objects": objects_metadata
+                })
+        # -------------------------------------------------------------------------
+        
         results, errors = DocumentService.generate_documents(
             loan_profile=loan_profile,
             template_ids=data.get('template_ids', []) or ([data.get('template_id')] if data.get('template_id') else []),

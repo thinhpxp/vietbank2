@@ -160,7 +160,7 @@
 
 <script>
 import MasterService from '@/services/master.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
@@ -180,7 +180,8 @@ export default {
       filters: { search: '' },
       showDeleteModal: false,
       deleteTargetId: null,
-      deleteTargetName: ''
+      deleteTargetName: '',
+      authStore: useAuthStore()
     }
   },
   computed: {
@@ -189,9 +190,9 @@ export default {
         search: { type: 'text', fields: ['name', 'slug'] }
       });
     },
-    canCreate() { return auth.hasPermission('auth.add_group'); },
-    canChange() { return auth.hasPermission('auth.change_group'); },
-    canDelete() { return auth.hasPermission('auth.delete_group'); },
+    canCreate() { return this.authStore.hasPermission('auth.add_group'); },
+    canChange() { return this.authStore.hasPermission('auth.change_group'); },
+    canDelete() { return this.authStore.hasPermission('auth.delete_group'); },
   },
   async mounted() {
     await this.fetchGroups();

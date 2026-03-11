@@ -291,7 +291,7 @@
 
 <script>
 import MasterService from '@/services/master.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '../../mixins/FilterableTableMixin';
@@ -322,7 +322,8 @@ export default {
         order: null, width_cols: null, css_class: '', default_value: '', allowed_forms: [], allowed_object_types: [],
         use_digit_grouping: false, show_amount_in_words: false
       },
-      allowed_object_types: []
+      allowed_object_types: [],
+      authStore: useAuthStore()
     }
   },
   mounted() {
@@ -338,9 +339,9 @@ export default {
         objectType: { type: 'array_includes', field: 'allowed_object_types' }
       });
     },
-    canCreate() { return auth.hasPermission('document_automation.add_field'); },
-    canChange() { return auth.hasPermission('document_automation.change_field'); },
-    canDelete() { return auth.hasPermission('document_automation.delete_field'); },
+    canCreate() { return this.authStore.hasPermission('document_automation.add_field'); },
+    canChange() { return this.authStore.hasPermission('document_automation.change_field'); },
+    canDelete() { return this.authStore.hasPermission('document_automation.delete_field'); },
   },
   methods: {
     async fetchData() {

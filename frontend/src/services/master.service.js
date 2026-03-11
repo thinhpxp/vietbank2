@@ -107,6 +107,12 @@ const MasterService = {
         });
     },
 
+    searchMasterObjects(query, objectType = null) {
+        return api.get('/master-objects/search/', {
+            params: { q: query, object_type: objectType }
+        });
+    },
+
     acquireLock(id) {
         return api.post(`/master-objects/${id}/acquire_lock/`);
     },

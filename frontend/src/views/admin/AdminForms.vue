@@ -108,7 +108,7 @@
 
 <script>
 import MasterService from '@/services/master.service';
-import auth from '@/store/auth';
+import { useAuthStore } from '@/store/auth.store';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
@@ -127,7 +127,8 @@ export default {
             newForm: { name: '', slug: '', note: '' },
             showDeleteModal: false,
             deleteTargetId: null,
-            deleteTargetName: ''
+            deleteTargetName: '',
+            authStore: useAuthStore()
         }
     },
     computed: {
@@ -136,9 +137,9 @@ export default {
                 search: { type: 'text', fields: ['name', 'slug'] }
             });
         },
-        canCreate() { return auth.hasPermission('document_automation.add_formview'); },
-        canChange() { return auth.hasPermission('document_automation.change_formview'); },
-        canDelete() { return auth.hasPermission('document_automation.delete_formview'); },
+        canCreate() { return this.authStore.hasPermission('document_automation.add_formview'); },
+        canChange() { return this.authStore.hasPermission('document_automation.change_formview'); },
+        canDelete() { return this.authStore.hasPermission('document_automation.delete_formview'); },
     },
     mounted() {
         this.fetchData();

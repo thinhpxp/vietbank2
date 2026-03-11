@@ -1,8 +1,8 @@
 <template>
     <Teleport to="body">
-        <div v-if="visible" class="modal-overlay" @click.self="cancel">
-            <div class="modal-box">
-                <div class="modal-header">
+        <div v-if="visible" class="modal-overlay" :class="['overlay-' + overlayVariant]" @click.self="cancel">
+            <div class="modal-box" :style="{ transform: `translate(${dragX}px, ${dragY}px)` }" ref="modalBox">
+                <div class="modal-header" @mousedown="startDrag">
                     <h3>{{ title }}</h3>
                 </div>
                 <div class="modal-body">
@@ -27,12 +27,20 @@ export default {
         title: { type: String, default: 'Nhập thông tin' },
         label: { type: String, default: 'Tên:' },
         defaultValue: { type: String, default: '' },
-        confirmText: { type: String, default: 'Xác nhận' }
+        confirmText: { type: String, default: 'Xác nhận' },
+        overlayVariant: { type: String, default: 'transparent' }
     },
     emits: ['confirm', 'cancel'],
     data() {
         return {
-            inputValue: ''
+            inputValue: '',
+            // Drag state
+            isDragging: false,
+            dragX: 0,
+            dragY: 0,
+            dragStartX: 0,
+            dragStartY: 0,
+            dragFrameId: null
         }
     },
     watch: {
@@ -45,6 +53,10 @@ export default {
                         this.$refs.inputRef.select();
                     }
                 });
+            } else {
+                // Reset position when closed
+                this.dragX = 0;
+                this.dragY = 0;
             }
         }
     },
@@ -56,7 +68,41 @@ export default {
         },
         cancel() {
             this.$emit('cancel');
+        },
+        // DRAG LOGIC
+        startDrag(e) {
+            // Only allow dragging from header
+            if (e.target.closest('.modal-footer') || e.target.closest('.modal-body') || e.target.tagName === 'INPUT') return;
+
+            this.isDragging = true;
+            this.dragStartX = e.clientX - this.dragX;
+            this.dragStartY = e.clientY - this.dragY;
+
+            window.addEventListener('mousemove', this.doDrag);
+            window.addEventListener('mouseup', this.stopDrag);
+            document.body.style.userSelect = 'none';
+        },
+        doDrag(e) {
+            if (!this.isDragging) return;
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+
+            if (this.dragFrameId) cancelAnimationFrame(this.dragFrameId);
+            this.dragFrameId = requestAnimationFrame(() => {
+                this.dragX = clientX - this.dragStartX;
+                this.dragY = clientY - this.dragStartY;
+            });
+        },
+        stopDrag() {
+            this.isDragging = false;
+            if (this.dragFrameId) cancelAnimationFrame(this.dragFrameId);
+            window.removeEventListener('mousemove', this.doDrag);
+            window.removeEventListener('mouseup', this.stopDrag);
+            document.body.style.userSelect = '';
         }
+    },
+    beforeUnmount() {
+        this.stopDrag();
     }
 }
 </script>
@@ -68,11 +114,24 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
+    transition: background 0.3s;
+}
+
+.modal-overlay.overlay-dim {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-overlay.overlay-light {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.modal-overlay.overlay-transparent {
+    background: transparent;
+    pointer-events: none;
 }
 
 .modal-box {
@@ -82,12 +141,16 @@ export default {
     max-width: 90%;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     overflow: hidden;
+    pointer-events: auto;
+    will-change: transform;
 }
 
 .modal-header {
     padding: 15px 20px;
     background: #f8f9fa;
     border-bottom: 1px solid #eee;
+    cursor: move;
+    user-select: none;
 }
 
 .modal-header h3 {
