@@ -45,6 +45,7 @@
 
 <script>
 import { useAuthStore } from '@/store/auth.store';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 export default {
     name: 'LoginPage',
@@ -66,7 +67,8 @@ export default {
                 await this.authStore.login(this.username, this.password);
                 this.$router.push('/');
             } catch (err) {
-                this.error = 'Tên đăng nhập hoặc mật khẩu không chính xác.';
+                // Sử dụng getErrorMessage thay vì hardcode
+                this.error = getErrorMessage(err);
             } finally {
                 this.isLoading = false;
             }

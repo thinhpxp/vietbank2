@@ -8,7 +8,7 @@ import logging
 from ..models import MasterObjectType, MasterObject, MasterObjectRelation, Field, FieldValue
 from ..serializers import MasterObjectTypeSerializer, MasterObjectSerializer, MasterObjectRelationSerializer
 from ..permissions import IsAdminOrManager
-from .system_views import log_action
+from .system_views import log_action, format_changes
 
 logger = logging.getLogger(__name__)
 
@@ -156,8 +156,21 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         instance = serializer.save(last_updated_by=user)
         field_values = self.request.data.get('field_values', {})
         save_master_field_values(instance, field_values)
-        changed = {k: {"from": old_v, "to": field_values.get(k)} for k, old_v in old_fvs.items() if str(old_v) != str(field_values.get(k))}
-        log_action(user, 'UPDATE', f'MasterObject:{instance.object_type}', instance.id, f"Cập nhật thông tin: {changed}" if changed else "Cập nhật MasterObject")
+        
+        # 4. LOG DIFF
+        changed = {}
+        all_keys = set(old_fvs.keys()) | set(field_values.keys())
+        for k in all_keys:
+            old_v = old_fvs.get(k, '')
+            new_v = field_values.get(k, '')
+            if str(old_v) != str(new_v):
+                changed[k] = {"from": old_v, "to": new_v}
+        
+        if changed:
+            formatted_detail = f"Cập nhật thông tin: {format_changes(changed)}"
+            log_action(user, 'UPDATE', f'MasterObject:{instance.object_type}', instance.id, formatted_detail)
+        else:
+            log_action(user, 'UPDATE', f'MasterObject:{instance.object_type}', instance.id, "Cập nhật MasterObject")
 
     def perform_destroy(self, instance):
         o_id, o_type = instance.id, instance.object_type

@@ -541,7 +541,7 @@ body.is-resizing * {
 
 .admin-file-name {
     font-size: var(--font-xs);
-    color: #fffff;
+    color: #ffffff;
     max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -611,6 +611,7 @@ body.is-resizing * {
     font-size: var(--font-md);
     font-weight: 700;
     gap: var(--spacing-sm);
+    text-transform: uppercase;
 }
 
 .card-header-glass h3 {

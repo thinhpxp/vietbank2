@@ -74,25 +74,26 @@
           </div>
 
           <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
-          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated">
-            <div class="card-header-glass">
+          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated" :class="{ 'is-collapsed': isSegmentCollapsed(segment) }">
+            <div class="card-header-glass" @click="toggleSegmentCollapse(segment)">
               <div class="header-left">
+                <SvgIcon name="chevron-down" size="sm" customClass="toggle-icon-svg" />
                 <SvgIcon name="shield" size="sm" />
                 <h4>{{ segment.name }}</h4>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="openSelectModal(segment.code)"
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click.stop="openSelectModal(segment.code)"
                   title="Tìm & Chọn đối tượng">
                   <SvgIcon name="search" size="sm" />
                 </button>
-                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(segment.code)"
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click.stop="addEntity(segment.code)"
                   title="Thêm mới đối tượng">
                   <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
 
-            <div class="card-body-content">
+            <div class="card-body-content" v-show="!isSegmentCollapsed(segment)">
               <!-- Trường hợp: Các đối tượng (Asset List/Dedicated List) -->
               <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0"
                 class="empty-state-standard">
@@ -101,17 +102,20 @@
 
               <div v-for="(item, index) in objectSections[segment.code]"
                 :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
-                class="premium-card theme-group mt-2">
-                <div class="card-header-glass">
+                class="premium-card theme-group mt-2" :class="{ 'is-collapsed': isItemCollapsed(item, segment.code, index) }">
+                <div class="card-header-glass" @click="toggleItemCollapse(item, segment.code, index)">
                   <div class="header-left">
+                    <SvgIcon name="chevron-down" size="xs" customClass="toggle-icon-svg" />
                     <SvgIcon name="file" size="xs" />
-                    <strong>{{ segment.name }} #{{ index + 1 }}</strong>
+                    <h4>{{ segment.name }} #{{ index + 1 }}</h4>
                   </div>
-                  <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">
-                    <SvgIcon name="trash" size="sm" />
-                  </button>
+                  <div class="header-actions">
+                    <button class="btn-remove-mini" @click.stop="removeEntity(segment.code, index)">
+                      <SvgIcon name="trash" size="sm" />
+                    </button>
+                  </div>
                 </div>
-                <div class="card-body-content">
+                <div class="card-body-content" v-show="!isItemCollapsed(item, segment.code, index)">
                   <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
                     :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
                     :allSections="fullProfileData"
@@ -127,20 +131,21 @@
           </div>
 
           <!-- Type: ASSET_LIST (Danh sách Tài sản) -->
-          <div v-else-if="segment.type === 'ASSET_LIST'" class="premium-card theme-asset">
-            <div class="card-header-glass">
+          <div v-else-if="segment.type === 'ASSET_LIST'" class="premium-card theme-asset" :class="{ 'is-collapsed': isSegmentCollapsed(segment) }">
+            <div class="card-header-glass" @click="toggleSegmentCollapse(segment)">
               <div class="header-left">
+                <SvgIcon name="chevron-down" size="sm" customClass="toggle-icon-svg" />
                 <SvgIcon name="shield" size="sm" />
-                <h3>Danh sách Tài sản</h3>
+                <h4>Danh sách Tài sản</h4>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(null)"
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click.stop="addEntity(null)"
                   title="Thêm Tài sản">
                   <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
-            <div class="card-body-content">
+            <div class="card-body-content" v-show="!isSegmentCollapsed(segment)">
               <div v-if="computedAssetList.length === 0" class="empty-state-standard">Chưa có tài sản nào.</div>
               <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
                 <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
@@ -153,20 +158,21 @@
           </div>
 
           <!-- Type: PERSON_LIST (Danh sách Người liên quan) -->
-          <div v-else-if="segment.type === 'PERSON_LIST'" class="premium-card theme-person">
-            <div class="card-header-glass">
+          <div v-else-if="segment.type === 'PERSON_LIST'" class="premium-card theme-person" :class="{ 'is-collapsed': isSegmentCollapsed(segment) }">
+            <div class="card-header-glass" @click="toggleSegmentCollapse(segment)">
               <div class="header-left">
+                <SvgIcon name="chevron-down" size="sm" customClass="toggle-icon-svg" />
                 <SvgIcon name="users" size="sm" />
-                <h3>Danh sách Người liên quan</h3>
+                <h4>Danh sách Người liên quan</h4>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity('PERSON')"
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click.stop="addEntity('PERSON')"
                   title="Thêm Người">
                   <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
-            <div class="card-body-content">
+            <div class="card-body-content" v-show="!isSegmentCollapsed(segment)">
               <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0"
                 class="empty-state-standard">
                 Chưa có người nào liên quan.
@@ -200,25 +206,26 @@
           </div>
 
           <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
-          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated">
-            <div class="card-header-glass">
+          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated" :class="{ 'is-collapsed': segment._isCollapsed }">
+            <div class="card-header-glass" @click="toggleSegmentCollapse(segment)">
               <div class="header-left">
+                <SvgIcon name="chevron-down" size="sm" customClass="toggle-icon-svg" />
                 <SvgIcon name="shield" size="sm" />
                 <h4>{{ segment.name }}</h4>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="openSelectModal(segment.code)"
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click.stop="openSelectModal(segment.code)"
                   title="Tìm & Chọn đối tượng">
                   <SvgIcon name="search" size="sm" />
                 </button>
-                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(segment.code)"
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click.stop="addEntity(segment.code)"
                   title="Thêm mới đối tượng">
                   <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
 
-            <div class="card-body-content">
+            <div class="card-body-content" v-show="!isSegmentCollapsed(segment)">
               <!-- Trường hợp: Các đối tượng -->
               <div v-if="!objectSections[segment.code] || objectSections[segment.code].length === 0"
                 class="empty-state-standard">
@@ -227,17 +234,20 @@
 
               <div v-for="(item, index) in objectSections[segment.code]"
                 :key="item.master_object?.id || item._uid || (segment.code + '-' + index)"
-                class="premium-card theme-group mt-2">
-                <div class="card-header-glass">
+                class="premium-card theme-group mt-2" :class="{ 'is-collapsed': isItemCollapsed(item, segment.code, index) }">
+                <div class="card-header-glass" @click="toggleItemCollapse(item, segment.code, index)">
                   <div class="header-left">
+                    <SvgIcon name="chevron-down" size="xs" customClass="toggle-icon-svg" />
                     <SvgIcon name="file" size="xs" />
-                    <strong>{{ segment.name }} #{{ index + 1 }}</strong>
+                    <h4>{{ segment.name }} #{{ index + 1 }}</h4>
                   </div>
-                  <button class="btn-remove-mini" @click="removeEntity(segment.code, index)">
-                    <SvgIcon name="trash" size="sm" />
-                  </button>
+                  <div class="header-actions">
+                    <button class="btn-remove-mini" @click.stop="removeEntity(segment.code, index)">
+                      <SvgIcon name="trash" size="sm" />
+                    </button>
+                  </div>
                 </div>
-                <div class="card-body-content">
+                <div class="card-body-content" v-show="!isItemCollapsed(item, segment.code, index)">
                   <DynamicForm :fields="getFieldsForType(segment.code)" v-model="item.individual_field_values"
                     :disabled="isReadOnly" :idPrefix="`ded-${segment.code.toLowerCase()}-${index}-`"
                     :allSections="fullProfileData"
@@ -253,20 +263,21 @@
           </div>
 
           <!-- Type: ASSET_LIST (Danh sách Tài sản) -->
-          <div v-else-if="segment.type === 'ASSET_LIST'" class="premium-card theme-asset">
-            <div class="card-header-glass">
+          <div v-else-if="segment.type === 'ASSET_LIST'" class="premium-card theme-asset" :class="{ 'is-collapsed': isSegmentCollapsed(segment) }">
+            <div class="card-header-glass" @click="toggleSegmentCollapse(segment)">
               <div class="header-left">
+                <SvgIcon name="chevron-down" size="sm" customClass="toggle-icon-svg" />
                 <SvgIcon name="shield" size="sm" />
-                <h3>Danh sách Tài sản</h3>
+                <h4>Danh sách Tài sản</h4>
               </div>
               <div class="header-actions">
-                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click="addEntity(null)"
+                <button class="btn-action btn-secondary btn-sm btn-icon-only" @click.stop="addEntity(null)"
                   title="Thêm Tài sản">
                   <SvgIcon name="plus" size="sm" />
                 </button>
               </div>
             </div>
-            <div class="card-body-content">
+            <div class="card-body-content" v-show="!isSegmentCollapsed(segment)">
               <div v-if="computedAssetList.length === 0" class="empty-state-standard">Chưa có tài sản nào.</div>
               <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
                 <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
@@ -279,18 +290,21 @@
           </div>
 
           <!-- Type: PERSON_LIST (Danh sách Người liên quan) -->
-          <div v-else-if="segment.type === 'PERSON_LIST'" class="premium-card theme-person">
-            <div class="card-header-glass">
+          <div v-else-if="segment.type === 'PERSON_LIST'" class="premium-card theme-person" :class="{ 'is-collapsed': isSegmentCollapsed(segment) }">
+            <div class="card-header-glass" @click="toggleSegmentCollapse(segment)">
               <div class="header-left">
+                <SvgIcon name="chevron-down" size="sm" customClass="toggle-icon-svg" />
                 <SvgIcon name="users" size="sm" />
-                <h3>Danh sách Người liên quan</h3>
+                <h4>Danh sách Người liên quan</h4>
               </div>
-              <button class="btn-action btn-secondary btn-sm" @click="addEntity('PERSON')">
-                <SvgIcon name="plus" size="xs" />
-                <span>Thêm Người</span>
-              </button>
+              <div class="header-actions">
+                <button class="btn-action btn-secondary btn-sm" @click.stop="addEntity('PERSON')">
+                  <SvgIcon name="plus" size="xs" />
+                  <span>Thêm Người</span>
+                </button>
+              </div>
             </div>
-            <div class="card-body-content">
+            <div class="card-body-content" v-show="!isSegmentCollapsed(segment)">
               <div v-if="!objectSections['PERSON'] || objectSections['PERSON'].length === 0"
                 class="empty-state-standard">
                 Chưa có người nào liên quan.
@@ -783,6 +797,32 @@ export default {
     this.releaseLock();
   },
   methods: {
+    toggleSegmentCollapse(segment) {
+      const key = segment.id;
+      this.collapsedSections = {
+        ...this.collapsedSections,
+        [key]: !this.collapsedSections[key]
+      };
+    },
+    isSegmentCollapsed(segment) {
+      return !!this.collapsedSections[segment.id];
+    },
+    getItemKey(item, segmentCode, index) {
+      if (item.master_object && item.master_object.id) return `sys-${item.master_object.id}`;
+      if (item._uid) return `uid-${item._uid}`;
+      return `idx-${segmentCode}-${index}`;
+    },
+    toggleItemCollapse(item, segmentCode, index) {
+      const key = this.getItemKey(item, segmentCode, index);
+      this.collapsedSections = {
+        ...this.collapsedSections,
+        [key]: !this.collapsedSections[key]
+      };
+    },
+    isItemCollapsed(item, segmentCode, index) {
+      const key = this.getItemKey(item, segmentCode, index);
+      return !!this.collapsedSections[key];
+    },
     // Nhận kết quả tính toán từ DynamicForm computed fields → cập nhật vào đúng ngữ cảnh
     handleComputedUpdate(computedVals, typeCode = null, index = null) {
       // Guard: Không xử lý khi đang reload dữ liệu từ server

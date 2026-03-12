@@ -7,7 +7,7 @@ from ..models import (
     LoanProfile, Field, FieldValue, FormView, MasterObject, 
     LoanProfileObjectLink, MasterObjectRelation, Role, MasterObjectType
 )
-from ..views.system_views import log_action
+from ..views.system_views import log_action, format_changes
 from ..views.master_views import find_existing_master_object, save_master_field_values
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,20 @@ class LoanService:
         """Xử lý lưu dữ liệu từ dynamic form vào hồ sơ"""
         is_auto_save = str(data.get('is_auto_save', 'False')).lower() == 'true'
         
+        # Snapshot old values for detailed audit log (only if not auto-save)
+        old_values = {}
+        if not is_auto_save:
+            # 1. Snapshot common field values
+            old_fvs = loan_profile.fieldvalue_set.filter(master_object__isnull=True).select_related('field')
+            for fv in old_fvs:
+                old_values[fv.field.placeholder_key] = fv.value
+                
+            # 2. Snapshot object field values (flattened for easy comparison)
+            # format: { 'master_id:field_key': value }
+            old_obj_fvs = loan_profile.fieldvalue_set.filter(master_object__isnull=False).select_related('field', 'master_object')
+            for fv in old_obj_fvs:
+                old_values[f"{fv.master_object_id}:{fv.field.placeholder_key}"] = fv.value
+
         try:
             with transaction.atomic():
                 # A. Cập nhật thông tin cơ bản
@@ -170,7 +184,33 @@ class LoanService:
                 FieldValue.objects.filter(loan_profile=loan_profile, master_object__isnull=False).exclude(master_object__id__in=processed_master_ids).delete()
 
                 if not is_auto_save:
-                    log_action(user, 'UPDATE', 'LoanProfile', loan_profile.id, f"Cập nhật dữ liệu từ Form: {loan_profile.name}")
+                    # 1. Collect new values
+                    new_values = {}
+                    # Common fields
+                    fvs = loan_profile.fieldvalue_set.filter(master_object__isnull=True).select_related('field')
+                    for fv in fvs:
+                        new_values[fv.field.placeholder_key] = fv.value
+                    
+                    # Object fields
+                    obj_fvs = loan_profile.fieldvalue_set.filter(master_object__isnull=False).select_related('field', 'master_object')
+                    for fv in obj_fvs:
+                        new_values[f"{fv.master_object_id}:{fv.field.placeholder_key}"] = fv.value
+                    
+                    # 2. Compare and format
+                    changed = {}
+                    all_keys = set(old_values.keys()) | set(new_values.keys())
+                    
+                    for k in all_keys:
+                        old_v = old_values.get(k, '')
+                        new_v = new_values.get(k, '')
+                        if str(old_v) != str(new_v):
+                            changed[k] = {"from": old_v, "to": new_v}
+                    
+                    if changed:
+                        formatted_detail = f"Cập nhật hồ sơ từ Form: {format_changes(changed)}"
+                        log_action(user, 'UPDATE', 'LoanProfile', loan_profile.id, formatted_detail)
+                    else:
+                        log_action(user, 'UPDATE', 'LoanProfile', loan_profile.id, f"Cập nhật hồ sơ: {loan_profile.name}")
                 
                 return loan_profile
         except Exception as e:

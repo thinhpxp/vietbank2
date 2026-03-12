@@ -50,7 +50,7 @@ const dictionary = {
     'THONG_TIN_CHUNG': 'Thông tin chung',
     'LOAI_DOI_TUONG': 'Loại đối tượng',
     'TEN_HIEN_THI': 'Tên hiển thị',
-    'THUO_TINH_CHI_TIET': 'Thuộc tính chi tiết',
+    'THUOC_TINH_CHI_TIET': 'Thuộc tính chi tiết',
     'TRUONG_DU_LIEU': 'Trường dữ liệu',
     'GIA_TRI': 'Giá trị',
     'KHONG_CO_DU_LIEU_CHI_TIET': 'Không có dữ liệu chi tiết',
@@ -63,6 +63,9 @@ const dictionary = {
     // Error Messages
     'YOU DO NOT HAVE PERMISSION TO PERFORM THIS ACTION.': 'Bạn không có quyền thực hiện hành động này.',
     'AUTHENTICATION CREDENTIALS WERE NOT PROVIDED.': 'Thông tin xác thực không được cung cấp.',
+    'NO ACTIVE ACCOUNT FOUND WITH THE GIVEN CREDENTIALS': 'Tên đăng nhập hoặc mật khẩu không chính xác.',
+    'USER ACCOUNT IS DISABLED.': 'Tài khoản của bạn đã bị khóa.',
+    'TOKEN IS INVALID OR EXPIRED': 'Mã truy cập không hợp lệ hoặc đã hết hạn.',
 };
 
 /**

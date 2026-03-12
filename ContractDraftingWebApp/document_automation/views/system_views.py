@@ -24,6 +24,35 @@ from ..permissions import IsAdminOrManager, IsSuperUser
 logger = logging.getLogger(__name__)
 
 # --- HELPER GHI LOG ---
+def format_changes(changed_dict, target_model=None):
+    """
+    Chuyển đổi dictionary thay đổi thành văn bản thân thiện:
+    Input: {'field_key': {'from': old_val, 'to': new_val}}
+    Output: "Họ tên: A -> B, Số điện thoại: 1 -> 2"
+    """
+    if not changed_dict or not isinstance(changed_dict, dict):
+        return ""
+    
+    from ..models import Field
+    results = []
+    
+    # Lấy cache danh sách fields để tránh nhiều query
+    field_keys = list(changed_dict.keys())
+    fields_map = {f.placeholder_key: f.label for f in Field.objects.filter(placeholder_key__in=field_keys)}
+    
+    for key, diff in changed_dict.items():
+        label = fields_map.get(key, key) # Fallback về key nếu không tìm thấy label
+        old_val = diff.get('from', '')
+        new_val = diff.get('to', '')
+        
+        # Định dạng giá trị (ví dụ: None -> rỗng)
+        old_val = "N/A" if old_val is None else old_val
+        new_val = "N/A" if new_val is None else new_val
+        
+        results.append(f"{label}: {old_val} -> {new_val}")
+    
+    return ", ".join(results)
+
 def log_action(user, action, target_model, target_id=None, details=None):
     """Ghi nhật ký thao tác người dùng"""
     try:
