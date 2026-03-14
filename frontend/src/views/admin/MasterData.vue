@@ -412,8 +412,8 @@ export default {
         async fetchObjectTypes() {
             try {
                 const res = await MasterService.getObjectTypes();
-                // Lọc bỏ USER_EXT khỏi danh sách tab dữ liệu thực tế
-                this.objectTypes = res.data.filter(t => t.code !== 'USER_EXT');
+                // Lọc bỏ USER_EXT và BRANCH khỏi danh sách tab dữ liệu thực tế
+                this.objectTypes = res.data.filter(t => t.code !== 'USER_EXT' && t.code !== 'BRANCH');
                 if (this.objectTypes.length > 0) {
                     this.activeTab = this.objectTypes[0].code;
                 }

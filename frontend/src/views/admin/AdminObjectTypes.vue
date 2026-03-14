@@ -187,7 +187,7 @@
                                 </button>
                                 <button class="btn-action btn-delete btn-icon-only"
                                     :disabled="row.is_system || !canDelete" @click="confirmDelete(row)"
-                                    :title="row.is_system ? 'Không thể xóa loại mặc định' : (canDelete ? 'Xóa loại này' : 'Không có quyền xóa')">
+                                    :title="row.is_system ? 'Dữ liệu hệ thống, không thể xóa' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
                                     <SvgIcon name="trash" size="sm" />
                                 </button>
                             </template>

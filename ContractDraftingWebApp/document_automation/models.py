@@ -43,7 +43,7 @@ class FieldGroup(models.Model):
         verbose_name="Vị trí hiển thị"
     )
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
-    is_protected = models.BooleanField(default=False, verbose_name="Được bảo vệ (không xóa được)")
+    is_system = models.BooleanField(default=False, verbose_name="Là hệ thống (Không xóa được)")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='groups', verbose_name="Hiển thị ở Form")
     allowed_object_types = models.ManyToManyField('MasterObjectType', blank=True, related_name='groups',
@@ -92,7 +92,7 @@ class Field(models.Model):
     css_class = models.CharField(max_length=255, blank=True, null=True, verbose_name="CSS Class tùy chỉnh")
     
     is_active = models.BooleanField(default=True)
-    is_protected = models.BooleanField(default=False, verbose_name="Được bảo vệ (không xóa được)")
+    is_system = models.BooleanField(default=False, verbose_name="Là hệ thống (Không xóa được)")
     use_digit_grouping = models.BooleanField(default=False, verbose_name="Phân tách hàng nghìn (chuẩn vi-VN)")
     show_amount_in_words = models.BooleanField(default=False, verbose_name="Hiển thị số thành chữ (Frontend)")
     default_value = models.TextField(blank=True, null=True, verbose_name="Giá trị mặc định")
@@ -361,6 +361,17 @@ class UserProfile(models.Model):
     workplace = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nơi làm việc")
     department = models.CharField(max_length=255, blank=True, null=True, verbose_name="Phòng ban")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú thêm")
+    # Chi nhánh / Đơn vị mà người dùng thuộc về
+    branch = models.ForeignKey(
+        'MasterObject',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='branch_members',
+        verbose_name="Chi nhánh / Đơn vị",
+        limit_choices_to={'object_type': 'BRANCH'},
+        help_text="Chi nhánh hoặc phòng giao dịch mà người dùng này thuộc về"
+    )
 
     def __str__(self):
         return f"Profile of {self.user.username}"

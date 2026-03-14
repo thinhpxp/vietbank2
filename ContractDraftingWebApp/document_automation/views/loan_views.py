@@ -47,7 +47,7 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.is_protected:
+        if instance.is_system:
             return Response({"error": "Không thể xóa nhóm trường được bảo vệ."}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
 
@@ -73,11 +73,11 @@ class FieldViewSet(viewsets.ModelViewSet):
         return queryset
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.is_protected:
+        if instance.is_system:
             return Response({"error": "Không thể xóa trường được bảo vệ."}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def active_fields_grouped(self, request):
         form_slug = request.query_params.get('form_slug')
         entity_type = request.query_params.get('entity_type')

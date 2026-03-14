@@ -77,6 +77,13 @@ class MasterObjectTypeViewSet(viewsets.ModelViewSet):
 class MasterObjectViewSet(viewsets.ModelViewSet):
     serializer_class = MasterObjectSerializer
     permission_classes = [permissions.DjangoModelPermissions]
+
+    def get_permissions(self):
+        # Cho phép unauthenticated user lấy danh sách Chi nhánh (phục vụ trang Đăng ký)
+        if self.action == 'list' and self.request.query_params.get('object_type') == 'BRANCH':
+            return [permissions.AllowAny()]
+        return super().get_permissions()
+
     def get_queryset(self):
         # Mặc định lọc bỏ các đối tượng thuộc loại USER_EXT (dữ liệu hệ thống)
         qs = MasterObject.objects.filter(deleted_at__isnull=True).exclude(object_type='USER_EXT').order_by('-id')

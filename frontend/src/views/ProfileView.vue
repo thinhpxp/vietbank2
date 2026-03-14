@@ -53,6 +53,20 @@
                         </div>
                     </div>
 
+                    <!-- Chọn Chi nhánh / Đơn vị -->
+                    <div class="form-group">
+                        <label>🏢 Chi nhánh / Đơn vị công tác</label>
+                        <select v-model="profileForm.branch_id" class="admin-input">
+                            <option :value="null">-- Chưa chọn đơn vị --</option>
+                            <option v-for="b in branches" :key="b.id" :value="b.id">
+                                {{ b.display_name }}
+                            </option>
+                        </select>
+                        <small v-if="branches.length === 0" class="text-muted">
+                            Chưa có chi nhánh nào được cấu hình. Liên hệ Admin để thiết lập.
+                        </small>
+                    </div>
+
                     <div class="form-actions">
                         <button type="submit" class="btn-action btn-primary" :disabled="isUpdatingProfile">
                             {{ isUpdatingProfile ? 'Đang cập nhật...' : 'Lưu thay đổi' }}
@@ -153,8 +167,10 @@ export default {
                 email: '',
                 phone: '',
                 workplace: '',
-                department: ''
+                department: '',
+                branch_id: null
             },
+            branches: [],
             dynamicGroups: {},
             dynamicValues: {},
             passwordForm: {
@@ -162,6 +178,7 @@ export default {
                 new_password: '',
                 confirm_password: ''
             },
+            isChangingPassword: false,
             authStore: useAuthStore()
         };
     },
@@ -173,7 +190,8 @@ export default {
     async mounted() {
         await Promise.all([
             this.fetchUserData(),
-            this.fetchDynamicFields()
+            this.fetchDynamicFields(),
+            this.fetchBranches()
         ]);
     },
     methods: {
@@ -187,11 +205,20 @@ export default {
                 this.profileForm.phone = this.user.phone || '';
                 this.profileForm.workplace = this.user.workplace || '';
                 this.profileForm.department = this.user.department || '';
+                this.profileForm.branch_id = this.user.branch_id ? Number(this.user.branch_id) : null;
                 this.dynamicValues = this.user.field_values || {};
             } catch (e) {
                 this.$toast.error('Không thể tải thông tin cá nhân');
             } finally {
                 this.loading = false;
+            }
+        },
+        async fetchBranches() {
+            try {
+                const res = await MasterService.getBranches();
+                this.branches = res.data || [];
+            } catch (e) {
+                console.warn('Không thể tải danh sách chi nhánh:', e);
             }
         },
         async fetchDynamicFields() {

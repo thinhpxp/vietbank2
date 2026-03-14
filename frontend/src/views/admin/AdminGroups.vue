@@ -68,6 +68,13 @@
             </span>
           </template>
         </vxe-column>
+
+        <vxe-column field="is_system" title="Hệ thống" width="100" align="center">
+          <template #default="{ row }">
+            <span v-if="row.is_system" class="admin-badge badge-admin">System</span>
+            <span v-else class="admin-badge badge-inactive">Custom</span>
+          </template>
+        </vxe-column>
         <vxe-column field="note" title="Ghi chú" min-width="150">
           <template #default="{ row }">
             <input v-if="editingId === row.id" v-model="row.note" class="vxe-input-minimal">
@@ -141,8 +148,8 @@
                   :title="canChange ? 'Chỉnh sửa' : 'Không có quyền sửa'">
                   <SvgIcon name="edit" size="sm" />
                 </button>
-                <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only" :disabled="!canDelete"
-                  :title="canDelete ? 'Xóa' : 'Không có quyền xóa'">
+                <button @click="deleteGroup(row.id)" class="btn-action btn-delete btn-icon-only" :disabled="row.is_system || !canDelete"
+                  :title="row.is_system ? 'Dữ liệu hệ thống, không thể xóa' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
                   <SvgIcon name="trash" size="sm" />
                 </button>
               </template>

@@ -20,7 +20,7 @@ class UserExtensionProtectionTest(TestCase):
         self.group = FieldGroup.objects.create(
             name='System Info', 
             entity_type='USER_EXT', 
-            is_protected=True
+            is_system=True
         )
 
     def test_delete_protected_object_type_fails(self):

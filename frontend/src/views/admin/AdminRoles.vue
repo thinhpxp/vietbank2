@@ -66,8 +66,8 @@
         </vxe-column>
         <vxe-column field="is_system" title="Hệ thống" width="100" align="center">
           <template #default="{ row }">
-            <span v-if="row.is_system" class="status-badge finalized">System</span>
-            <span v-else class="status-badge draft">User</span>
+            <span v-if="row.is_system" class="admin-badge badge-admin">System</span>
+            <span v-else class="admin-badge badge-inactive">Custom</span>
           </template>
         </vxe-column>
         <vxe-column title="Hành động" width="160" fixed="right">
@@ -88,7 +88,7 @@
                 </button>
                 <button :disabled="row.is_system || !canDelete" @click="deleteRole(row.id)"
                   class="btn-action btn-delete btn-icon-only"
-                  :title="row.is_system ? 'Role hệ thống không thể xóa' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
+                  :title="row.is_system ? 'Dữ liệu hệ thống, không thể xóa' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
                   <SvgIcon name="trash" size="sm" />
                 </button>
               </template>

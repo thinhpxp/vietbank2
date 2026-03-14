@@ -51,17 +51,24 @@
                             placeholder="Phòng tín dụng..." />
                     </div>
                 </div>
-                
+
+                <!-- Chọn Chi nhánh / Đơn vị -->
+                <div class="form-group">
+                    <label>🏢 Chi nhánh / Đơn vị công tác</label>
+                    <select v-model="form.branch_id" class="admin-input">
+                        <option :value="null">-- Chưa chọn đơn vị (có thể cập nhật sau) --</option>
+                        <option v-for="b in branches" :key="b.id" :value="b.id">
+                            {{ b.display_name }}
+                        </option>
+                    </select>
+                </div>
+
                 <!-- DYNAMIC FIELDS FOR USER_EXT -->
                 <div v-if="hasDynamicFields" class="dynamic-extension mt-4 pt-4 border-t border-gray-100">
-                    <p class="text-sm font-semibold mb-3 text-gray-600 text-left">Thông tin bổ sung (theo yêu cầu hệ thống):</p>
-                    <DynamicForm 
-                        v-if="dynamicGroups"
-                        :groups="dynamicGroups"
-                        :initial-values="dynamicValues"
-                        mode="horizontal"
-                        @update:values="updateDynamicValues"
-                    />
+                    <p class="text-sm font-semibold mb-3 text-gray-600 text-left">Thông tin bổ sung (theo yêu cầu hệ
+                        thống):</p>
+                    <DynamicForm v-if="dynamicGroups" :groups="dynamicGroups" :initial-values="dynamicValues"
+                        mode="horizontal" @update:values="updateDynamicValues" />
                 </div>
 
                 <div v-if="error" class="error-message">
@@ -100,12 +107,14 @@ export default {
                 full_name: '',
                 phone: '',
                 workplace: '',
-                department: ''
+                department: '',
+                branch_id: null
             },
             error: '',
             isLoading: false,
             dynamicGroups: {},
             dynamicValues: {},
+            branches: [],
             authStore: useAuthStore()
         };
     },
@@ -116,6 +125,7 @@ export default {
     },
     async mounted() {
         this.fetchDynamicFields();
+        this.fetchBranches();
     },
     methods: {
         async fetchDynamicFields() {
@@ -124,6 +134,14 @@ export default {
                 this.dynamicGroups = res.data;
             } catch (e) {
                 console.error('Error fetching dynamic fields for registration:', e);
+            }
+        },
+        async fetchBranches() {
+            try {
+                const res = await MasterService.getBranches();
+                this.branches = res.data || [];
+            } catch (e) {
+                console.warn('Không thể tải danh sách chi nhánh:', e);
             }
         },
         updateDynamicValues(values) {
@@ -138,7 +156,7 @@ export default {
                     ...this.form,
                     field_values: this.dynamicValues
                 };
-                
+
                 await UserService.register(registrationData);
                 this.$toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
                 this.$router.push('/login');
@@ -174,7 +192,7 @@ export default {
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
     width: 100%;
-    max-width: 550px;
+    max-width: 800px;
 }
 
 .register-header {

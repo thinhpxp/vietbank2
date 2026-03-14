@@ -139,6 +139,11 @@ const MasterService = {
     },
     deleteTemplate(id) {
         return api.delete(`/document-templates/${id}/`);
+    },
+
+    // Chi nhánh / Đơn vị (BRANCH)
+    getBranches() {
+        return api.get('/master-objects/', { params: { object_type: 'BRANCH' } });
     }
 };
 

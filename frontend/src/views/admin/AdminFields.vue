@@ -141,6 +141,13 @@
           </template>
         </vxe-column>
 
+        <vxe-column field="is_system" title="Hệ thống" width="100" align="center">
+          <template #default="{ row }">
+            <span v-if="row.is_system" class="admin-badge badge-admin">System</span>
+            <span v-else class="admin-badge badge-inactive">Custom</span>
+          </template>
+        </vxe-column>
+
         <vxe-column field="group_name" title="Nhóm" width="150" sortable>
           <template #default="{ row }">
             <select v-if="editingId === row.id" v-model="row.group" class="vxe-input-minimal">
@@ -261,9 +268,9 @@
                   :title="canCreate ? 'Sao chép' : 'Không có quyền tạo'">
                   <SvgIcon name="copy" size="sm" />
                 </button>
-                <button :disabled="row.is_protected || !canDelete" @click="deleteField(row.id)"
+                <button :disabled="row.is_system || !canDelete" @click="deleteField(row.id)"
                   class="btn-action btn-delete btn-icon-only"
-                  :title="row.is_protected ? 'Trường được bảo vệ' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
+                  :title="row.is_system ? 'Dữ liệu hệ thống, không thể xóa' : (canDelete ? 'Xóa' : 'Không có quyền xóa')">
                   <SvgIcon name="trash" size="sm" />
                 </button>
               </template>

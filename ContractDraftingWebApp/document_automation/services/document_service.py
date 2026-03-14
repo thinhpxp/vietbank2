@@ -126,7 +126,7 @@ class DocumentService:
 
         context['today'] = date.today().strftime('%d/%m/%Y')
 
-        # 10. Thông tin người dùng hiện tại (current_user)
+        # 10. Thông tin người dùng hiện tại (current_user) và chi nhánh (current_branch)
         if user:
             from ..serializers import UserSerializer
             # Trích xuất dữ liệu cơ bản và mở rộng từ UserProfile & FieldValue
@@ -142,6 +142,23 @@ class DocumentService:
             # Bổ sung các trường động (USER_EXT)
             current_user.update(u_data.get('field_values', {}))
             context['current_user'] = current_user
+
+            # Thông tin chi nhánh của người dùng (current_branch)
+            try:
+                branch_obj = user.profile.branch
+                if branch_obj:
+                    current_branch = {
+                        'id': branch_obj.id,
+                        'name': branch_obj.display_name,
+                    }
+                    # Flatten toàn bộ field values của chi nhánh
+                    for fv in FieldValue.objects.filter(master_object=branch_obj, loan_profile__isnull=True):
+                        current_branch[fv.field.placeholder_key] = fv.value
+                    context['current_branch'] = current_branch
+                else:
+                    context['current_branch'] = {}
+            except Exception:
+                context['current_branch'] = {}
 
         return context
 
