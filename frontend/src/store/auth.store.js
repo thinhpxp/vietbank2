@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import apiClient from '@/services/api';
+import UserService from '@/services/user.service';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -43,7 +44,7 @@ export const useAuthStore = defineStore('auth', {
 
         async fetchProfile() {
             try {
-                const response = await apiClient.get('/me/');
+                const response = await UserService.getProfile();
                 const { permissions, ...userData } = response.data;
                 this.user = userData;
                 this.permissions = permissions || [];
@@ -67,7 +68,7 @@ export const useAuthStore = defineStore('auth', {
 
         async register(data) {
             try {
-                await apiClient.post('/register/', data);
+                await UserService.register(data);
                 return true;
             } catch (error) {
                 console.error('Registration failed:', error);

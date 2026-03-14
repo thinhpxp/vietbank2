@@ -9,6 +9,9 @@ from .models import (
     MasterObjectRelation, AuditLog, AdminNotification, NotificationRead, SystemConfig
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 # 0. Serializer cho Role (MỚI)
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -131,10 +134,11 @@ class UserSerializer(serializers.ModelSerializer):
     note = serializers.CharField(source='profile.note', required=False, allow_blank=True, allow_null=True)
     groups_details = GroupSerializer(source='groups', many=True, read_only=True)
     permissions = serializers.SerializerMethodField()
+    field_values = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'is_staff', 'is_superuser', 'is_active', 'password', 'full_name', 'phone', 'workplace', 'department', 'note', 'groups', 'groups_details', 'permissions']
+        fields = ['id', 'username', 'email', 'is_staff', 'is_superuser', 'is_active', 'password', 'full_name', 'phone', 'workplace', 'department', 'note', 'groups', 'groups_details', 'permissions', 'field_values']
         extra_kwargs = {
             'password': {'write_only': True, 'required': False}
         }
@@ -171,13 +175,23 @@ class UserSerializer(serializers.ModelSerializer):
         
         return user
 
+    def get_field_values(self, obj):
+        fvs = obj.dynamic_values.all()
+        return {fv.field.placeholder_key: fv.value for fv in fvs}
+
     def update(self, instance, validated_data):
         # Tách dữ liệu profile (được source nén vào)
         profile_data = validated_data.pop('profile', {})
         
+        # Tách field_values (nêu có gửi lên từ frontend)
+        request = self.context.get('request')
+        field_values_data = request.data.get('field_values', {}) if request else {}
+        logger.info(f"User update: {instance.username}, field_values counts: {len(field_values_data)}")
+        
         # Ngăn chặn đổi username nếu đã có
         validated_data.pop('username', None)
         
+        # ... (đoạn code cũ giữ nguyên)
         # Cập nhật mật khẩu nếu có (thường Admin ít dùng qua update chung này)
         password = validated_data.pop('password', None)
         if password:
@@ -199,6 +213,20 @@ class UserSerializer(serializers.ModelSerializer):
             setattr(profile, attr, value)
         profile.save()
 
+        # Cập nhật FieldValues động cho User
+        if field_values_data:
+            for key, val in field_values_data.items():
+                field = Field.objects.filter(placeholder_key=key, group__entity_type='USER_EXT').first()
+                if field:
+                    obj, created = FieldValue.objects.update_or_create(
+                        user=instance,
+                        field=field,
+                        loan_profile=None,
+                        master_object=None,
+                        defaults={'value': str(val)}
+                    )
+                    logger.info(f"Saved {key}={val} for {instance.username}. Created: {created}")
+
         # Làm mới instance để serializer lấy được dữ liệu profile vừa lưu
         instance.refresh_from_db()
         return instance
@@ -213,7 +241,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'full_name', 'phone', 'workplace', 'department']
+        fields = ['username', 'password', 'email', 'full_name', 'phone', 'workplace', 'department', 'field_values']
 
     def create(self, validated_data):
         full_name = validated_data.pop('full_name')
@@ -233,6 +261,18 @@ class RegistrationSerializer(serializers.ModelSerializer):
         user.profile.workplace = workplace
         user.profile.department = department
         user.profile.save()
+
+        # Xử lý các trường động khi đăng ký
+        field_values_data = self.initial_data.get('field_values', {})
+        if field_values_data:
+            for key, val in field_values_data.items():
+                field = Field.objects.filter(placeholder_key=key, group__entity_type='USER_EXT').first()
+                if field:
+                    FieldValue.objects.create(
+                        user=user,
+                        field=field,
+                        value=str(val)
+                    )
 
         # Tự động gán nhóm "soạn thảo" nếu có
         try:
@@ -262,7 +302,7 @@ class FieldValueSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FieldValue
-        fields = ['id', 'field', 'field_id', 'value', 'master_object']
+        fields = ['id', 'field', 'field_id', 'value', 'master_object', 'user']
 
 
 # 6. Serializer cho LoanProfile

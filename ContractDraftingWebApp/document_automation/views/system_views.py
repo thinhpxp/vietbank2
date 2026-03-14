@@ -90,14 +90,16 @@ class RegistrationView(APIView):
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
     def patch(self, request):
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer = UserSerializer(request.user, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def put(self, request):
+        return self.patch(request)
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]

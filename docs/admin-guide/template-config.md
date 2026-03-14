@@ -163,6 +163,25 @@ HỢP ĐỒNG TÍN DỤNG HẠN MỨC:
 
 ---
 
+### 1.5. Nhóm: Cán bộ thực hiện (`current_user`)
+Dùng để in thông tin của người dùng đang thực hiện thao tác xuất văn bản (Người dùng đăng nhập). Các trường này hữu ích cho phần "Cán bộ soạn thảo" hoặc ký tên cán bộ ngân hàng.
+
+**Cách dùng**: Phải sử dụng tiền tố `current_user.` trước tên trường.
+
+**Trường cơ bản:**
+- **Họ tên đầy đủ**: `{{ current_user.full_name }}`
+- **Số điện thoại**: `{{ current_user.phone }}`
+- **Nơi công tác**: `{{ current_user.workplace }}`
+- **Phòng/Ban**: `{{ current_user.department }}`
+- **Email**: `{{ current_user.email }}`
+
+**Trường mở rộng (USER_EXT):**
+Đây là các trường động được admin cấu hình thêm. Tên biến chính là "Mã (Placeholder)" được định nghĩa trong trang quản lý Trường thông tin.
+*Ví dụ*: Nếu bạn thêm trường "Số Fax" với mã là `user_ex_fax`, bạn sẽ gọi:
+- **Số Fax**: `{{ current_user.user_ex_fax }}`
+
+---
+
 ## 2. Các Bộ lọc (Filters) hỗ trợ xử lý dữ liệu
 Để định dạng dữ liệu, sử dụng ký hiệu `|` sau tên biến.
 
@@ -173,14 +192,56 @@ HỢP ĐỒNG TÍN DỤNG HẠN MỨC:
 
 ---
 
-## 3. Lưu ý quan trọng khi thiết kế
+## 3. Sử dụng Công thức Tính toán Tự động (Formulas)
+Hệ thống tích hợp một công cụ xử lý công thức (Formula Engine) cho phép tự động tính toán dữ liệu trực tiếp trên form nhập liệu trước khi xuất văn bản. 
+
+Để bật tính năng tính toán tự động cho một trường dữ liệu (field), bạn thiết lập **Giá trị mặc định (Default Value)** của trường đó bắt đầu bằng dấu bằng `=`.
+
+### 3.1. Cú pháp Toán hạng cơ bản
+Bạn có thể tham chiếu đến các trường dữ liệu khác trong hồ sơ:
+- Tính trên toàn bộ Hồ sơ: Ghi trực tiếp tên biến (VD: `=SUM(dinh_gia)`). Hệ thống sẽ tự động quét mọi danh sách tài sản để lấy giá trị `dinh_gia`.
+- Tính trên một Nhóm (Object) cụ thể: Bổ sung tiền tố nhóm (VD: `=SUM(REALESTATE.dinh_gia)` chỉ tính tổng định giá của các tài sản Bất động sản).
+
+### 3.2. Các Hàm được hỗ trợ
+
+**1. Hàm Toán học:**
+- `SUM(trường_1, trường_2...)`: Tính tổng các giá trị.
+- `SUB(a, b...)`: Trừ tuần tự (a - b - ...).
+- `MUL(a, b...)` hoặc `PRODUCT(a, b...)`: Nhân các giá trị.
+- `DIV(a, b...)`: Chia tuần tự (a / b / ...).
+- `ROUND(trường, số_chữ_số)`: Làm tròn số.
+- `AVG(trường)`: Tính trung bình cộng.
+- `MIN(trường)` / `MAX(trường)`: Tìm giá trị nhỏ nhất/lớn nhất.
+
+**2. Hàm Thống kê / Đếm:**
+- `COUNT(REALESTATE)`: Đếm số lượng tài sản Bất động sản hiện có.
+- `COUNT(ASSET)`: Đếm tổng số lượng mọi loại tài sản.
+
+**3. Hàm Xử lý Chuỗi:**
+- `CONCAT(trường_1, trường_2, "kí_tự_phân_cách")`: Nối các chuỗi văn bản bằng một kí tự phân cách. 
+*(Ví dụ nối địa chỉ các thửa đất: `=CONCAT(REALESTATE.dia_chi_thua_dat, "; ")`)*
+
+**4. Hàm Điều kiện Logic:**
+- `IF(điều_kiện, "kết_quả_1", "kết_quả_2")`: Trả về kết quả tùy thuộc vào điều kiện đúng hay sai.
+*(Hỗ trợ các phép so sánh: `>=`, `<=`, `>`, `<`, `=`).*
+*(Ví dụ đánh giá rủi ro: `=IF(SUM(dinh_gia) > 1000000000, "DUYET", "TU_CHOI")`)*
+
+### 3.3. Ví dụ Thực tiễn
+- Tính tổng giá trị toàn bộ tài sản bảo đảm trong hồ sơ để tự động điền vào một trường "Tổng định giá":
+  `=SUM(dinh_gia)`
+- Góp chuỗi tất cả các biển số xe ô tô thế chấp, cách nhau bởi dấu phẩy:
+  `=CONCAT(VEHICLE.dang_ky_xe, ", ")`
+
+---
+
+## 4. Lưu ý quan trọng khi thiết kế
 1. **Chính xác tên biến**: Phải viết đúng 100% tên trong dấu `{{ }}`.
 2. **Dấu gạch dưới**: Sử dụng dấu gạch dưới `_` thay cho khoảng trắng.
 3. **Dữ liệu trống**: Nếu biến không có dữ liệu, hệ thống sẽ để trống vị trí đó.
 
 ---
 
-## 4. Template cho chế độ Tách riêng file (Batch Export)
+## 5. Template cho chế độ Tách riêng file (Batch Export)
 
 ### 4.1. Giới thiệu
 Tính năng **Batch Export** cho phép xuất **n file .docx riêng biệt** từ **1 template**, mỗi file ứng với **1 đối tượng** (VD: 3 thửa đất → 3 file).

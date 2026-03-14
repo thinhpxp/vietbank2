@@ -75,7 +75,7 @@
             </template>
           </template>
         </vxe-column>
-        <vxe-column title="Hành động" width="160" fixed="right">
+        <vxe-column title="Hành động" width="220" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
               <template v-if="editingId === row.id">
@@ -87,7 +87,10 @@
                 </button>
               </template>
               <template v-else>
-                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa">
+                <button @click="editUserExt(row)" class="btn-action btn-primary btn-icon-only" title="Thông tin mở rộng">
+                  <SvgIcon name="user-plus" size="sm" />
+                </button>
+                <button @click="editingId = row.id" class="btn-action btn-edit btn-icon-only" title="Sửa cơ bản">
                   <SvgIcon name="edit" size="sm" />
                 </button>
                 <button @click="deleteUser(row.id)" class="btn-action btn-delete btn-icon-only" title="Xóa">
@@ -116,20 +119,45 @@
     <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
       :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
       @cancel="showWarningModal = false" />
+
+    <!-- Modal sửa thông tin mở rộng -->
+    <BaseModal v-if="showExtModal" :visible="showExtModal" title="Thông tin người dùng mở rộng" @close="showExtModal = false">
+      <div v-if="loadingExt" class="p-4 text-center">Đang tải cấu hình...</div>
+      <div v-else class="p-4">
+        <p class="mb-4 text-sm text-gray-500">Đang hiệu chỉnh: <strong>{{ selectedUser?.username }}</strong></p>
+        <DynamicForm 
+          v-if="dynamicGroups"
+          :groups="dynamicGroups" 
+          :initial-values="selectedUser?.field_values || {}"
+          mode="horizontal"
+          @update:values="val => selectedUserExtValues = val"
+        />
+      </div>
+      <template #footer>
+        <button class="btn-action btn-secondary" @click="showExtModal = false">Hủy</button>
+        <button class="btn-action btn-save" @click="saveUserExt" :disabled="savingExt">
+          {{ savingExt ? 'Đang lưu...' : 'Lưu thông tin mở rộng' }}
+        </button>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <script>
 import SystemService from '@/services/system.service';
+import MasterService from '@/services/master.service';
+import UserService from '@/services/user.service';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import BaseModal from '../../components/BaseModal.vue';
+import DynamicForm from '@/components/DynamicForm.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 
 export default {
   name: 'AdminUsers',
-  title: 'Quản lý Người dùng (Legacy)',
-  components: { ConfirmModal, SvgIcon },
+  title: 'Quản lý Người dùng',
+  components: { ConfirmModal, BaseModal, DynamicForm, SvgIcon },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
@@ -145,7 +173,15 @@ export default {
       showDeleteModal: false,
       deleteTargetId: null,
       deleteTargetName: '',
-      filters: { search: '' }
+      filters: { search: '' },
+
+      // USER_EXT data
+      showExtModal: false,
+      loadingExt: false,
+      savingExt: false,
+      selectedUser: null,
+      selectedUserExtValues: {},
+      dynamicGroups: {}
     }
   },
   computed: {
@@ -215,6 +251,35 @@ export default {
           this.showDeleteModal = false;
           this.showError(error, 'Lỗi khi xóa user');
         }
+      }
+    },
+    async editUserExt(user) {
+      this.selectedUser = user;
+      this.selectedUserExtValues = user.field_values || {};
+      this.showExtModal = true;
+      this.loadingExt = true;
+      try {
+        const res = await MasterService.getActiveFieldsGrouped('USER_EXT');
+        this.dynamicGroups = res.data;
+      } catch (e) {
+        this.$toast.error('Lỗi khi tải cấu hình trường động');
+      } finally {
+        this.loadingExt = false;
+      }
+    },
+    async saveUserExt() {
+      this.savingExt = true;
+      try {
+        await SystemService.updateUser(this.selectedUser.id, {
+          field_values: this.selectedUserExtValues
+        });
+        this.$toast.success('Cập nhật thông tin mở rộng thành công');
+        this.showExtModal = false;
+        this.fetchUsers();
+      } catch (e) {
+        this.showError(e, 'Lỗi khi lưu thông tin mở rộng');
+      } finally {
+        this.savingExt = false;
       }
     }
   }

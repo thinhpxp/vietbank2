@@ -26,6 +26,7 @@ class FieldGroup(models.Model):
         ('PERSON', 'Cá nhân'),
         ('ASSET', 'Tài sản'),
         ('SAVINGS', 'Sổ tiết kiệm'),
+        ('USER_EXT', 'Thông tin mở rộng Người dùng'),
     ]
     name = models.CharField(max_length=255, verbose_name="Tên nhóm")
     slug = models.SlugField(max_length=100, unique=True, null=True, blank=True, verbose_name="Mã định danh (Slug)") # MỚI
@@ -42,6 +43,7 @@ class FieldGroup(models.Model):
         verbose_name="Vị trí hiển thị"
     )
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
+    is_protected = models.BooleanField(default=False, verbose_name="Được bảo vệ (không xóa được)")
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     allowed_forms = models.ManyToManyField(FormView, blank=True, related_name='groups', verbose_name="Hiển thị ở Form")
     allowed_object_types = models.ManyToManyField('MasterObjectType', blank=True, related_name='groups',
@@ -334,12 +336,13 @@ class LoanProfileObjectLink(models.Model):
 class FieldValue(models.Model):
     loan_profile = models.ForeignKey(LoanProfile, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Hồ sơ")
     master_object = models.ForeignKey(MasterObject, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Đối tượng")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='dynamic_values', verbose_name="Người dùng")
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name="Trường")
     value = models.TextField(verbose_name="Giá trị thực tế")
 
     class Meta:
-        # Unique constraint: (profile, object, field) - cho phép null ở cả profile và object
-        unique_together = ('loan_profile', 'master_object', 'field')
+        # Unique constraint: (profile, object, field, user) - cho phép null ở các thực thể
+        unique_together = ('loan_profile', 'master_object', 'field', 'user')
         verbose_name = "Giá trị"
         verbose_name_plural = "Các giá trị"
         indexes = [

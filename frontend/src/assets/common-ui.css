@@ -555,7 +555,7 @@ body.is-resizing * {
     gap: var(--spacing-xs);
     font-size: var(--font-sm);
     font-weight: 600;
-    color: var(--slate-700);
+    color: #272626;
     cursor: pointer;
     user-select: none;
 }

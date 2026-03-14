@@ -45,6 +45,12 @@ class FieldGroupViewSet(viewsets.ModelViewSet):
         if form_slug: queryset = queryset.filter(allowed_forms__slug=form_slug).distinct()
         return queryset
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_protected:
+            return Response({"error": "Không thể xóa nhóm trường được bảo vệ."}, status=status.HTTP_400_BAD_REQUEST)
+        return super().destroy(request, *args, **kwargs)
+
 class FormViewViewSet(viewsets.ModelViewSet):
     queryset = FormView.objects.all()
     serializer_class = FormViewSerializer
@@ -82,8 +88,10 @@ class FieldViewSet(viewsets.ModelViewSet):
             groups_qs = groups_qs.filter(allowed_forms__slug=form_slug).distinct()
         
         fields_filter = Q(is_active=True)
-        if entity_type: fields_filter &= Q(allowed_object_types__code=entity_type)
-        elif form_slug: fields_filter &= Q(allowed_forms__slug=form_slug)
+        if entity_type: 
+            fields_filter &= (Q(allowed_object_types__code=entity_type) | Q(group__entity_type=entity_type))
+        elif form_slug: 
+            fields_filter &= Q(allowed_forms__slug=form_slug)
             
         groups = groups_qs.prefetch_related(Prefetch('fields', queryset=Field.objects.filter(fields_filter).distinct()))
         result = {grp.name: FieldSerializer(grp.fields.all(), many=True).data for grp in groups if grp.fields.exists()}
@@ -235,7 +243,7 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             from ..models import DocumentTemplate
             template = DocumentTemplate.objects.filter(id=template_id).first()
             if template and template.loop_object_type:
-                objects_metadata = DocumentService.get_template_loop_objects(loan_profile, template)
+                objects_metadata = DocumentService.get_template_loop_objects(loan_profile, template, user=request.user)
                 return Response({
                     "template_id": template.id,
                     "loop_type": template.loop_object_type.code,
@@ -248,7 +256,8 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
             template_ids=data.get('template_ids', []) or ([data.get('template_id')] if data.get('template_id') else []),
             export_mode=data.get('export_mode', 'SINGLE'),
             batch_template_ids=[int(i) for i in data.get('batch_template_ids', [])],
-            target_object_id=data.get('target_object_id')
+            target_object_id=data.get('target_object_id'),
+            user=request.user
         )
 
         if not results:

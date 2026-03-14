@@ -137,7 +137,8 @@ export default {
             if (this.objectTypes.length > 0) return;
             try {
                 const response = await MasterService.getObjectTypes();
-                this.objectTypes = response.data;
+                // Luôn lọc bỏ USER_EXT để không bao giờ xuất hiện trong việc chọn cho hồ sơ
+                this.objectTypes = response.data.filter(t => t.code !== 'USER_EXT');
             } catch (error) {
                 console.error('Lỗi khi tải loại đối tượng:', error);
             }

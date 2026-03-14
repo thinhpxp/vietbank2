@@ -51,6 +51,18 @@
                             placeholder="Phòng tín dụng..." />
                     </div>
                 </div>
+                
+                <!-- DYNAMIC FIELDS FOR USER_EXT -->
+                <div v-if="hasDynamicFields" class="dynamic-extension mt-4 pt-4 border-t border-gray-100">
+                    <p class="text-sm font-semibold mb-3 text-gray-600 text-left">Thông tin bổ sung (theo yêu cầu hệ thống):</p>
+                    <DynamicForm 
+                        v-if="dynamicGroups"
+                        :groups="dynamicGroups"
+                        :initial-values="dynamicValues"
+                        mode="horizontal"
+                        @update:values="updateDynamicValues"
+                    />
+                </div>
 
                 <div v-if="error" class="error-message">
                     ⚠️ {{ error }}
@@ -71,10 +83,14 @@
 
 <script>
 import { useAuthStore } from '@/store/auth.store';
+import UserService from '@/services/user.service';
+import MasterService from '@/services/master.service';
+import DynamicForm from '@/components/DynamicForm.vue';
 
 export default {
     name: 'RegisterPage',
     title: 'Đăng ký tài khoản',
+    components: { DynamicForm },
     data() {
         return {
             form: {
@@ -88,15 +104,42 @@ export default {
             },
             error: '',
             isLoading: false,
+            dynamicGroups: {},
+            dynamicValues: {},
             authStore: useAuthStore()
         };
     },
+    computed: {
+        hasDynamicFields() {
+            return Object.keys(this.dynamicGroups).length > 0;
+        }
+    },
+    async mounted() {
+        this.fetchDynamicFields();
+    },
     methods: {
+        async fetchDynamicFields() {
+            try {
+                const res = await MasterService.getActiveFieldsGrouped('USER_EXT');
+                this.dynamicGroups = res.data;
+            } catch (e) {
+                console.error('Error fetching dynamic fields for registration:', e);
+            }
+        },
+        updateDynamicValues(values) {
+            this.dynamicValues = { ...this.dynamicValues, ...values };
+        },
         async handleRegister() {
             this.isLoading = true;
             this.error = '';
             try {
-                await this.authStore.register(this.form);
+                // Chuẩn bị payload bao gồm cả trường động
+                const registrationData = {
+                    ...this.form,
+                    field_values: this.dynamicValues
+                };
+                
+                await UserService.register(registrationData);
                 this.$toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
                 this.$router.push('/login');
             } catch (err) {

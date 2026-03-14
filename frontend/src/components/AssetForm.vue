@@ -161,7 +161,7 @@ export default {
   async mounted() {
     // We use the availableTypes prop which should be passed from LoanProfileForm
     if (this.availableTypes && this.availableTypes.length > 0) {
-      this.assetTypes = this.availableTypes.filter(t => t.code !== 'PERSON');
+      this.assetTypes = this.availableTypes.filter(t => t.code !== 'PERSON' && t.code !== 'USER_EXT');
     } else {
       await this.fetchAssetTypes();
     }
@@ -173,13 +173,13 @@ export default {
     },
     async fetchAssetTypes() {
       if (this.availableTypes && this.availableTypes.length > 0) {
-        this.assetTypes = this.availableTypes.filter(t => t.code !== 'PERSON');
+        this.assetTypes = this.availableTypes.filter(t => t.code !== 'PERSON' && t.code !== 'USER_EXT');
         return;
       }
       try {
         const res = await MasterService.getObjectTypes();
-        // Filter only asset-related types (exclude PERSON)
-        this.assetTypes = res.data.filter(t => t.code !== 'PERSON');
+        // Filter only asset-related types (exclude PERSON and USER_EXT)
+        this.assetTypes = res.data.filter(t => t.code !== 'PERSON' && t.code !== 'USER_EXT');
       } catch (e) {
         console.error('Lỗi tải loại tài sản:', e);
       }

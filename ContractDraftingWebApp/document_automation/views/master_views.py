@@ -78,7 +78,8 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
     serializer_class = MasterObjectSerializer
     permission_classes = [permissions.DjangoModelPermissions]
     def get_queryset(self):
-        qs = MasterObject.objects.filter(deleted_at__isnull=True).order_by('-id')
+        # Mặc định lọc bỏ các đối tượng thuộc loại USER_EXT (dữ liệu hệ thống)
+        qs = MasterObject.objects.filter(deleted_at__isnull=True).exclude(object_type='USER_EXT').order_by('-id')
         include_drafts = self.request.query_params.get('include_drafts', 'false').lower() == 'true'
         if getattr(self, 'detail', False): return MasterObject.objects.all()
         if not include_drafts: qs = qs.filter(is_draft=False)

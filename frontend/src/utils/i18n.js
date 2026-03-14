@@ -66,6 +66,24 @@ const dictionary = {
     'NO ACTIVE ACCOUNT FOUND WITH THE GIVEN CREDENTIALS': 'Tên đăng nhập hoặc mật khẩu không chính xác.',
     'USER ACCOUNT IS DISABLED.': 'Tài khoản của bạn đã bị khóa.',
     'TOKEN IS INVALID OR EXPIRED': 'Mã truy cập không hợp lệ hoặc đã hết hạn.',
+
+    // Fields / Form Labels
+    'CODE': 'Mã',
+    'NAME': 'Tên',
+    'ORDER': 'Thứ tự ưu tiên',
+    'FORM_DISPLAY_MODE': 'Kiểu hiển thị',
+    'LAYOUT_POSITION': 'Vị trí hiển thị',
+    'IDENTITY_FIELD_KEY': 'Trường định danh',
+    'DESCRIPTION': 'Mô tả',
+    'DYNAMIC_SUMMARY_TEMPLATE': 'Mẫu hiển thị thông tin',
+    'ALLOW_RELATIONS': 'Cho phép liên kết',
+
+    // Validation Messages
+    'THIS FIELD IS REQUIRED.': 'Trường này là bắt buộc.',
+    'THIS FIELD MAY NOT BE NULL.': 'Trường này không được để trống.',
+    'THIS FIELD MAY NOT BE BLANK.': 'Trường này không được để trống.',
+    'ENSURE THIS VALUE HAS AT LEAST 1 CHARACTERS': 'Vui lòng nhập ít nhất 1 ký tự.',
+    'A MASTER OBJECT TYPE WITH THIS CODE ALREADY EXISTS.': 'Mã đối tượng này đã tồn tại trong hệ thống.',
 };
 
 /**

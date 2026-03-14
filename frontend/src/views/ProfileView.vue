@@ -59,6 +59,20 @@
                         </button>
                     </div>
                 </form>
+
+                <!-- DYNAMIC FIELDS FOR USER_EXT -->
+                <div v-if="hasDynamicFields" class="dynamic-profile-extension mt-8 pt-8 border-t border-gray-100">
+                    <h3 class="mb-4">📋 Thông tin bổ sung</h3>
+                    <DynamicForm v-if="dynamicGroups && Object.keys(dynamicGroups).length" :groups="dynamicGroups"
+                        :initial-values="user.field_values || {}" mode="horizontal"
+                        @update:values="updateDynamicValues" />
+                    <div class="form-actions mt-4">
+                        <button type="button" class="btn-action btn-save" @click="saveDynamicValues"
+                            :disabled="isUpdatingFields">
+                            {{ isUpdatingFields ? 'Đang lưu...' : 'Cập nhật thông tin bổ sung' }}
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- CỘT PHẢI: BẢO MẬT & QUYỀN HẠN -->
@@ -108,7 +122,7 @@
                             <p class="font-bold mb-2">Nhóm quyền:</p>
                             <div class="groups-flex">
                                 <span v-for="g in user.groups_details" :key="g.id" class="status-badge draft">{{ g.name
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                     </div>
@@ -119,18 +133,21 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import UserService from '@/services/user.service';
+import MasterService from '@/services/master.service';
+import DynamicForm from '@/components/DynamicForm.vue';
 import { useAuthStore } from '@/store/auth.store';
 
 export default {
     name: 'ProfileView',
     title: 'Quản lý tài khoản',
+    components: { DynamicForm },
     data() {
         return {
             loading: true,
             user: {},
             isUpdatingProfile: false,
-            isChangingPassword: false,
+            isUpdatingFields: false,
             profileForm: {
                 full_name: '',
                 email: '',
@@ -138,6 +155,8 @@ export default {
                 workplace: '',
                 department: ''
             },
+            dynamicGroups: {},
+            dynamicValues: {},
             passwordForm: {
                 old_password: '',
                 new_password: '',
@@ -146,13 +165,21 @@ export default {
             authStore: useAuthStore()
         };
     },
-    mounted() {
-        this.fetchUserData();
+    computed: {
+        hasDynamicFields() {
+            return Object.keys(this.dynamicGroups).length > 0;
+        }
+    },
+    async mounted() {
+        await Promise.all([
+            this.fetchUserData(),
+            this.fetchDynamicFields()
+        ]);
     },
     methods: {
         async fetchUserData() {
             try {
-                const res = await api.get('/me/');
+                const res = await UserService.getProfile();
                 this.user = res.data;
                 // Map to form
                 this.profileForm.full_name = this.user.full_name || '';
@@ -160,16 +187,43 @@ export default {
                 this.profileForm.phone = this.user.phone || '';
                 this.profileForm.workplace = this.user.workplace || '';
                 this.profileForm.department = this.user.department || '';
+                this.dynamicValues = this.user.field_values || {};
             } catch (e) {
                 this.$toast.error('Không thể tải thông tin cá nhân');
             } finally {
                 this.loading = false;
             }
         },
+        async fetchDynamicFields() {
+            try {
+                // Lấy cấu hình các trường dành riêng cho USER_EXT
+                const res = await MasterService.getActiveFieldsGrouped('USER_EXT');
+                this.dynamicGroups = res.data;
+            } catch (e) {
+                console.error('Error fetching user extension fields:', e);
+            }
+        },
+        updateDynamicValues(values) {
+            this.dynamicValues = { ...this.dynamicValues, ...values };
+        },
+        async saveDynamicValues() {
+            this.isUpdatingFields = true;
+            try {
+                await UserService.updateProfile({
+                    field_values: this.dynamicValues
+                });
+                this.$toast.success('Cập nhật thông tin bổ sung thành công!');
+                this.fetchUserData(); // Refresh data
+            } catch (e) {
+                this.$toast.error('Lỗi khi lưu thông tin bổ sung');
+            } finally {
+                this.isUpdatingFields = false;
+            }
+        },
         async updateProfile() {
             this.isUpdatingProfile = true;
             try {
-                await api.patch('/me/', this.profileForm);
+                await UserService.updateProfile(this.profileForm);
                 this.$toast.success('Cập nhật thông tin thành công!');
                 // Refresh auth state to update navbar name if changed
                 this.authStore.fetchProfile();
@@ -186,7 +240,7 @@ export default {
 
             this.isChangingPassword = true;
             try {
-                await api.post('/change-password/', {
+                await UserService.changePassword({
                     old_password: this.passwordForm.old_password,
                     new_password: this.passwordForm.new_password
                 });
@@ -206,7 +260,7 @@ export default {
 
 <style scoped>
 .profile-page {
-    max-width: 1000px;
+    /*max-width: 1000px;*/
     margin-top: 30px;
 }
 

@@ -891,7 +891,8 @@ export default {
     async fetchObjectTypes() {
       try {
         const res = await MasterService.getObjectTypes();
-        this.objectTypes = res.data;
+        // Lọc bỏ USER_EXT để không hiện trong các phần chọn đối tượng của hồ sơ
+        this.objectTypes = res.data.filter(t => t.code !== 'USER_EXT');
       } catch (e) { console.error("Lỗi load object types:", e); }
     },
     async fetchRoles() {

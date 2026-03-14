@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class DocumentService:
     @staticmethod
-    def prepare_context(loan_profile):
+    def prepare_context(loan_profile, user=None):
         """
         Chuẩn bị dữ liệu context tập hợp từ Hồ sơ vay để trộn vào Template.
         """
@@ -125,10 +125,28 @@ class DocumentService:
             if res is not None: context[cf.placeholder_key] = res
 
         context['today'] = date.today().strftime('%d/%m/%Y')
+
+        # 10. Thông tin người dùng hiện tại (current_user)
+        if user:
+            from ..serializers import UserSerializer
+            # Trích xuất dữ liệu cơ bản và mở rộng từ UserProfile & FieldValue
+            u_data = UserSerializer(user).data
+            current_user = {
+                'username': user.username,
+                'email': user.email,
+                'full_name': u_data.get('full_name', ''),
+                'phone': u_data.get('phone', ''),
+                'workplace': u_data.get('workplace', ''),
+                'department': u_data.get('department', ''),
+            }
+            # Bổ sung các trường động (USER_EXT)
+            current_user.update(u_data.get('field_values', {}))
+            context['current_user'] = current_user
+
         return context
 
     @staticmethod
-    def get_template_loop_objects(loan_profile, template):
+    def get_template_loop_objects(loan_profile, template, user=None):
         """
         Trích xuất danh sách các đối tượng lặp theo cấu hình của mẫu (dùng cho return_metadata).
         """
@@ -152,12 +170,12 @@ class DocumentService:
         return metadata_list
 
     @staticmethod
-    def generate_documents(loan_profile, template_ids, export_mode='SINGLE', batch_template_ids=None, target_object_id=None):
+    def generate_documents(loan_profile, template_ids, export_mode='SINGLE', batch_template_ids=None, target_object_id=None, user=None):
         """
         Sinh danh sách các file văn bản từ danh sách mã mẫu.
         """
         if not batch_template_ids: batch_template_ids = []
-        context = DocumentService.prepare_context(loan_profile)
+        context = DocumentService.prepare_context(loan_profile, user=user)
         
         jinja_env = Environment()
         jinja_env.filters.update({

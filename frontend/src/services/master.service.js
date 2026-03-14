@@ -33,7 +33,7 @@ const MasterService = {
     getFields(params = {}) {
         return api.get('/fields/', { params });
     },
-    getFieldsGrouped(entityType) {
+    getActiveFieldsGrouped(entityType) {
         return api.get('/fields/active_fields_grouped/', {
             params: { entity_type: entityType }
         });

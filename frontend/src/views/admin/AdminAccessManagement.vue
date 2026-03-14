@@ -157,12 +157,22 @@
                                     <input type="text" v-model="selectedUser.phone" class="admin-form-control" />
                                 </div>
                                 <div class="admin-field">
-                                    <label>Nơi làm việc</label>
+                                    <label>Nơi công tác</label>
                                     <input type="text" v-model="selectedUser.workplace" class="admin-form-control" />
                                 </div>
                                 <div class="admin-field">
                                     <label>Phòng ban</label>
                                     <input type="text" v-model="selectedUser.department" class="admin-form-control" />
+                                </div>
+                            </section>
+
+                            <!-- DYNAMIC FIELDS FOR USER_EXT - CÁC THÔNG TIN MỞ RỘNG CỦA USER HIỂN THỊ TẠI ĐÂY -->
+                            <section v-if="hasDynamicFields" class="admin-form-section">
+                                <div class="dynamic-editor-wrapper">
+                                    <div v-if="loadingDynamic" class="loading-small">Đang tải cấu hình...</div>
+                                    <DynamicForm v-else :groups="dynamicGroups"
+                                        :initial-values="selectedUser.field_values || {}" mode="horizontal"
+                                        @update:values="val => selectedUser.field_values = val" />
                                 </div>
                             </section>
                         </div>
@@ -354,17 +364,19 @@
 
 <script>
 import SystemService from '@/services/system.service';
+import MasterService from '@/services/master.service';
 import { useAuthStore } from '@/store/auth.store';
 import { errorHandlingMixin } from '@/utils/errorHandler';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import InputModal from '@/components/InputModal.vue';
+import DynamicForm from '@/components/DynamicForm.vue';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 
 export default {
     name: 'AdminAccessManagement',
     title: 'Quản trị Người dùng',
-    components: { SvgIcon, ConfirmModal, InputModal },
+    components: { SvgIcon, ConfirmModal, InputModal, DynamicForm },
     mixins: [errorHandlingMixin, FilterableTableMixin],
     data() {
         return {
@@ -399,6 +411,10 @@ export default {
             showCreateGroupInput: false,
             isCreating: false,
 
+            // USER_EXT data
+            loadingDynamic: false,
+            dynamicGroups: {},
+
             authStore: useAuthStore() // Pinia store
         };
     },
@@ -428,9 +444,13 @@ export default {
             });
             return grouped;
         },
+        hasDynamicFields() {
+            return Object.keys(this.dynamicGroups).length > 0;
+        }
     },
     async created() {
         await this.loadAllData();
+        await this.fetchDynamicConfig();
     },
     methods: {
         async loadAllData() {
@@ -445,6 +465,18 @@ export default {
                 this.permissions = pRes.data;
             } catch (e) {
                 this.showError(e, 'Lỗi tải dữ liệu hệ thống');
+            }
+        },
+
+        async fetchDynamicConfig() {
+            this.loadingDynamic = true;
+            try {
+                const res = await MasterService.getActiveFieldsGrouped('USER_EXT');
+                this.dynamicGroups = res.data;
+            } catch (e) {
+                console.error('Lỗi tải cấu hình trường động:', e);
+            } finally {
+                this.loadingDynamic = false;
             }
         },
 
@@ -471,7 +503,8 @@ export default {
                 department: '',
                 note: '',
                 groups: [],
-                permissions: []
+                permissions: [],
+                field_values: {}
             };
         },
         cancelCreate() {

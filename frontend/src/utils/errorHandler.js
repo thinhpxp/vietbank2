@@ -29,12 +29,21 @@ export function formatError(error) {
         // Message chính
         if (data && typeof data === 'object' && !data.message && !data.error) {
             // DRF field-specific errors: {"field": ["error message"]}
-            const firstKey = Object.keys(data)[0];
-            const firstError = data[firstKey];
-            if (Array.isArray(firstError)) {
-                message = firstError[0];
-            } else if (typeof firstError === 'string') {
-                message = firstError;
+            const errors = [];
+            Object.keys(data).forEach(key => {
+                const fieldName = translate(key);
+                const fieldErrors = data[key];
+                if (Array.isArray(fieldErrors)) {
+                    fieldErrors.forEach(msg => {
+                        errors.push(`• ${fieldName}: ${translate(msg)}`);
+                    });
+                } else {
+                    errors.push(`• ${fieldName}: ${translate(fieldErrors)}`);
+                }
+            });
+
+            if (errors.length > 0) {
+                message = "Dữ liệu nhập vào chưa hợp lệ:\n" + errors.join('\n');
             } else {
                 message = `Lỗi ${status}: ${error.response.statusText}`;
             }
@@ -42,8 +51,10 @@ export function formatError(error) {
             message = data?.detail || data?.message || data?.error || `Lỗi ${status}: ${error.response.statusText}`;
         }
 
-        // Tự động dịch message nếu có trong từ điển
-        message = translate(message);
+        // Tự động dịch message nếu có trong từ điển (cho các message đơn lẻ)
+        if (!message.includes('\n')) {
+            message = translate(message);
+        }
 
         // Error code
         errorCode = data?.code || `HTTP_${status}`;
