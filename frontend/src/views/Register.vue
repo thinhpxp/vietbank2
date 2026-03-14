@@ -63,10 +63,8 @@
                     </select>
                 </div>
 
-                <!-- DYNAMIC FIELDS FOR USER_EXT -->
+                <!-- DYNAMIC FIELDS FOR USER_EXT / THONG TIN BO SUNG THEO YEU CAU HE THONG-->
                 <div v-if="hasDynamicFields" class="dynamic-extension mt-4 pt-4 border-t border-gray-100">
-                    <p class="text-sm font-semibold mb-3 text-gray-600 text-left">Thông tin bổ sung (theo yêu cầu hệ
-                        thống):</p>
                     <DynamicForm v-if="dynamicGroups" :groups="dynamicGroups" :initial-values="dynamicValues"
                         mode="horizontal" @update:values="updateDynamicValues" />
                 </div>

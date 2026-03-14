@@ -132,8 +132,8 @@ class UserSerializer(serializers.ModelSerializer):
     workplace = serializers.CharField(source='profile.workplace', required=False, allow_blank=True, allow_null=True)
     department = serializers.CharField(source='profile.department', required=False, allow_blank=True, allow_null=True)
     note = serializers.CharField(source='profile.note', required=False, allow_blank=True, allow_null=True)
-    # Chi nhánh: branch_id để ghi, branch_name để đọc
-    branch_id = serializers.SerializerMethodField()
+    # Chi nhánh: Dùng field thông thường để write, và to_representation để read
+    branch_id = serializers.IntegerField(required=False, allow_null=True)
     branch_name = serializers.SerializerMethodField()
     groups_details = GroupSerializer(source='groups', many=True, read_only=True)
     permissions = serializers.SerializerMethodField()
@@ -153,12 +153,7 @@ class UserSerializer(serializers.ModelSerializer):
         # Trả về danh sách codename của tất cả các quyền mà user có (bao gồm quyền từ Group)
         return list(obj.get_all_permissions())
 
-    def get_branch_id(self, obj):
-        try:
-            branch = obj.profile.branch
-            return branch.id if branch else None
-        except Exception:
-            return None
+    # (Đã chuyển branch_id thành IntegerField cho write/read)
 
     def get_branch_name(self, obj):
         try:
@@ -167,10 +162,19 @@ class UserSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Đảm bảo branch_id lấy đúng từ Profile khi trả về cho Frontend
+        try:
+            ret['branch_id'] = instance.profile.branch_id if instance.profile else None
+        except Exception:
+            ret['branch_id'] = None
+        return ret
+
     @staticmethod
     def _apply_branch_to_profile(profile, branch_id):
         """Gán hoặc xóa chi nhánh cho UserProfile."""
-        from ..models import MasterObject
+        from .models import MasterObject
         if branch_id:
             try:
                 profile.branch = MasterObject.objects.get(id=int(branch_id), object_type='BRANCH')
@@ -204,9 +208,8 @@ class UserSerializer(serializers.ModelSerializer):
         for attr, value in profile_data.items():
             setattr(profile, attr, value)
         
-        # Xử lý branch_id từ request.data (vì SerializerMethodField không vào validated_data)
-        request = self.context.get('request')
-        branch_id = request.data.get('branch_id') if request else None
+        # Xử lý branch_id
+        branch_id = validated_data.pop('branch_id', None)
         self._apply_branch_to_profile(profile, branch_id)
         
         profile.save()
@@ -250,10 +253,9 @@ class UserSerializer(serializers.ModelSerializer):
         for attr, value in profile_data.items():
             setattr(profile, attr, value)
 
-        # Xử lý branch_id từ request.data
-        branch_id = request.data.get('branch_id') if request else None
-        # Chỉ cập nhật branch nếu key được truyền lên (kể cả null)
-        if 'branch_id' in (request.data if request else {}):
+        # Xử lý branch_id
+        if 'branch_id' in validated_data:
+            branch_id = validated_data.pop('branch_id')
             self._apply_branch_to_profile(profile, branch_id)
 
         profile.save()
@@ -283,16 +285,18 @@ class RegistrationSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     workplace = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     department = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    branch_id = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'full_name', 'phone', 'workplace', 'department', 'field_values']
+        fields = ['username', 'password', 'email', 'full_name', 'phone', 'workplace', 'department', 'branch_id']
 
     def create(self, validated_data):
         full_name = validated_data.pop('full_name')
         phone = validated_data.pop('phone', '')
         workplace = validated_data.pop('workplace', '')
         department = validated_data.pop('department', '')
+        branch_id = validated_data.pop('branch_id', None)
         
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -305,6 +309,14 @@ class RegistrationSerializer(serializers.ModelSerializer):
         user.profile.phone = phone
         user.profile.workplace = workplace
         user.profile.department = department
+        
+        if branch_id:
+            from .models import MasterObject
+            try:
+                user.profile.branch = MasterObject.objects.get(id=branch_id, object_type='BRANCH')
+            except MasterObject.DoesNotExist:
+                pass
+                
         user.profile.save()
 
         # Xử lý các trường động khi đăng ký
@@ -313,6 +325,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             for key, val in field_values_data.items():
                 field = Field.objects.filter(placeholder_key=key, group__entity_type='USER_EXT').first()
                 if field:
+                    from .models import FieldValue
                     FieldValue.objects.create(
                         user=user,
                         field=field,

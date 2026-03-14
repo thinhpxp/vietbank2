@@ -412,8 +412,12 @@ export default {
         async fetchObjectTypes() {
             try {
                 const res = await MasterService.getObjectTypes();
-                // Lọc bỏ USER_EXT và BRANCH khỏi danh sách tab dữ liệu thực tế
-                this.objectTypes = res.data.filter(t => t.code !== 'USER_EXT' && t.code !== 'BRANCH');
+                // Lọc bỏ USER_EXT (ẩn với tất cả). BRANCH chỉ hiển thị với ROOT.
+                this.objectTypes = res.data.filter(t => {
+                    if (t.code === 'USER_EXT') return false;
+                    if (t.code === 'BRANCH') return this.authStore.isSuperuser;
+                    return true;
+                });
                 if (this.objectTypes.length > 0) {
                     this.activeTab = this.objectTypes[0].code;
                 }

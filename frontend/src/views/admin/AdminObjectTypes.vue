@@ -136,7 +136,7 @@
                     </template>
                 </vxe-column>
 
-                <vxe-column field="dynamic_summary_template" title="Mẫu hiển thị" width="200">
+                <vxe-column field="dynamic_summary_template" title="Thông tin thêm" width="200">
                     <template #default="{ row }">
                         <input v-if="editingId === row.id" v-model="editingData.dynamic_summary_template"
                             class="vxe-input-minimal" />

@@ -112,7 +112,7 @@ export default {
         async fetchFields() {
             this.loadingFields = true;
             try {
-                const res = await MasterService.getFieldsGrouped(this.type);
+                const res = await MasterService.getActiveFieldsGrouped(this.type);
 
                 // Flatten the grouped result from API into a simple array for DynamicForm if needed
                 const flatFields = [];
