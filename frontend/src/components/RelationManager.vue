@@ -61,6 +61,7 @@
             <option value="SECURES">{{ $t('SECURES') }}</option>
             <option value="AMENDS">{{ $t('AMENDS') }}</option>
             <option value="REFERENCES">{{ $t('REFERENCES') }}</option>
+            <option value="REPRESENTATIVE">{{ $t('REPRESENTATIVE') }}</option>
           </select>
         </div>
 
@@ -178,6 +179,10 @@ export default {
         'REFERENCES': {
           source: 'dẫn chiếu đến',
           target: 'được dẫn chiếu bởi'
+        },
+        'REPRESENTATIVE': {
+          source: 'có đại diện là',
+          target: 'là đại diện cho'
         },
         // Thêm các loại quan hệ khác ở đây trong tương lai
       }

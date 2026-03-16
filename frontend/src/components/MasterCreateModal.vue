@@ -14,6 +14,13 @@
                 <h4>{{ groupName }}</h4>
                 <DynamicForm :fields="fields" v-model="formData" :disabled="readOnly" inputClass="admin-input" />
             </div>
+
+            <!-- MỚI: Quản lý liên kết cho Dữ liệu gốc -->
+            <div v-if="isEdit" class="admin-form-section mt-4">
+                <h4>🖇️ Quản lý liên kết</h4>
+                <RelationManager :masterObjectId="editObject.id" :allFields="allFields" :disabled="readOnly"
+                    :currentObjectType="type" />
+            </div>
         </div>
 
         <template #footer>
@@ -34,10 +41,11 @@ import MasterService from '@/services/master.service';
 import DynamicForm from './DynamicForm.vue';
 import BaseModal from './BaseModal.vue';
 import SvgIcon from './common/SvgIcon.vue';
+import RelationManager from './RelationManager.vue';
 
 export default {
     name: 'MasterCreateModal',
-    components: { DynamicForm, BaseModal, SvgIcon },
+    components: { DynamicForm, BaseModal, SvgIcon, RelationManager },
     props: {
         isOpen: Boolean,
         type: String, // 'PERSON', 'ASSET', 'SAVINGS'

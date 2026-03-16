@@ -27,6 +27,7 @@ const dictionary = {
     'SECURES': 'Bảo đảm cho',
     'AMENDS': 'Sửa đổi cho',
     'REFERENCES': 'Dẫn chiếu đến',
+    'REPRESENTATIVE': 'Người đại diện',
 
 
     // Statuses

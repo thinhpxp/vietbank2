@@ -94,6 +94,18 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         if object_types:
             codes = [c.strip() for c in object_types.split(',') if c.strip()]
             if codes: qs = qs.filter(object_type__in=codes)
+
+        # Lọc theo quan hệ (VD: Tìm ATTORNEY thuộc BRANCH cụ thể)
+        related_to_source = self.request.query_params.get('related_to_source')
+        relation_type = self.request.query_params.get('relation_type')
+        if related_to_source:
+            from ..models import MasterObjectRelation
+            rel_qs = MasterObjectRelation.objects.filter(source_object_id=related_to_source)
+            if relation_type:
+                rel_qs = rel_qs.filter(relation_type=relation_type)
+            target_ids = rel_qs.values_list('target_object_id', flat=True)
+            qs = qs.filter(id__in=target_ids)
+
         return qs
 
     @action(detail=False, methods=['post'], permission_classes=[IsAdminOrManager])

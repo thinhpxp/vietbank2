@@ -96,6 +96,14 @@ export default {
         type: {
             type: String,
             default: 'person' // 'person', 'attorney' or 'asset'
+        },
+        relatedToSource: {
+            type: [Number, String],
+            default: null
+        },
+        relationType: {
+            type: String,
+            default: null
         }
     },
     emits: ['close', 'select'],
@@ -165,7 +173,9 @@ export default {
 
                 const params = {
                     object_type: types,
-                    search: this.searchQuery
+                    search: this.searchQuery,
+                    related_to_source: this.relatedToSource,
+                    relation_type: this.relationType
                 };
                 const response = await MasterService.getAllObjects(params);
 

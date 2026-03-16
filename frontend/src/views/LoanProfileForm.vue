@@ -358,7 +358,9 @@
     <ContractDownloader :isOpen="isDownloadModalOpen" :profileId="Number(currentId || id)" :profileName="profileName"
       @close="isDownloadModalOpen = false" />
 
-    <ObjectSelectModal :isOpen="showUniversalSelect" :type="currentSelectType" @select="handleUniversalSelect"
+    <ObjectSelectModal :isOpen="showUniversalSelect" :type="currentSelectType"
+      :relatedToSource="currentSelectType === 'ATTORNEY' ? userBranchId : null"
+      :relationType="currentSelectType === 'ATTORNEY' ? 'REPRESENTATIVE' : null" @select="handleUniversalSelect"
       @close="showUniversalSelect = false" />
 
     <!-- MANDATORY DUPLICATE CONFIRMATION MODAL -->
@@ -458,6 +460,7 @@ import RelationManager from '../components/RelationManager.vue';
 import HistoryTimeline from '../components/HistoryTimeline.vue';
 import SvgIcon from '../components/common/SvgIcon.vue';
 import { errorHandlingMixin } from '../utils/errorHandler';
+import { useAuthStore } from '@/store/auth.store';
 
 export default {
   name: 'LoanProfileForm',
@@ -529,7 +532,15 @@ export default {
       heartbeatInterval: null,
     };
   },
+  setup() {
+    const authStore = useAuthStore();
+    return { authStore };
+  },
   computed: {
+    userBranchId() {
+      // Giả sử branch được lưu trong user object sau khi fetchProfile
+      return this.authStore.user?.branch;
+    },
     isReadOnly() {
       return this.profileStatus === 'FINALIZED' || !!this.editingLockedBy;
     },
