@@ -268,39 +268,22 @@ class MasterObject(models.Model):
 
     @property
     def display_name(self):
-        """Ưu tiên trả về Tên (Mã định danh) để hiển thị thân thiện trên toàn hệ thống"""
+        """Trả về giá trị định danh thuần túy dựa trên identity_field_key của từng loại đối tượng"""
         try:
-            # 1. Tìm các trường tiềm năng là "Tên"
-            name_keys = ['ho_ten', 'ten_tai_san', 'ten_doi_tuong', 'ten_khach_hang', 'name', 'full_name']
-            name_fv = self.fieldvalue_set.filter(
-                field__placeholder_key__in=name_keys, 
-                loan_profile__isnull=True
-            ).first()
-            name_val = name_fv.value if name_fv else ""
-            
-            # 2. Lấy giá trị định danh từ cấu hình identity_field_key của loại
+            # 1. Lấy giá trị định danh từ cấu hình identity_field_key của loại
             from .models import MasterObjectType
             cfg = MasterObjectType.objects.filter(code=self.object_type).first()
             id_key = cfg.identity_field_key if cfg else None
             
-            id_val = ""
-            if id_key:
-                id_fv = self.fieldvalue_set.filter(
-                    field__placeholder_key=id_key, 
-                    loan_profile__isnull=True
-                ).first()
-                id_val = id_fv.value if id_fv else ""
+            if not id_key:
+                return f"{self.object_type} #{self.id}"
                 
-            # 3. Kết hợp kết quả: Tên (Mã)
-            if name_val and id_val and name_val != id_val:
-                return f"{name_val} ({id_val})"
-            if name_val:
-                return name_val
-            if id_val:
-                return id_val
+            id_fv = self.fieldvalue_set.filter(
+                field__placeholder_key=id_key, 
+                loan_profile__isnull=True
+            ).first()
             
-            # 4. Fallback cuối cùng
-            return f"{self.object_type} #{self.id}"
+            return id_fv.value if id_fv and id_fv.value else f"None ({id_key})"
         except Exception:
             return f"Object #{self.id}"
 

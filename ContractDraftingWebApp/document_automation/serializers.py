@@ -495,9 +495,38 @@ class MasterObjectTypeSerializer(serializers.ModelSerializer):
             }
         }
 
+# --- HELPERS ---
+def get_master_object_additional_info(obj):
+    """
+    Helper function to generate additional info based on dynamic_summary_template.
+    Used by both MasterObjectSerializer and MasterObjectRelationSerializer.
+    """
+    import re
+    try:
+        from .models import MasterObjectType, FieldValue
+        obj_type_cfg = MasterObjectType.objects.filter(code=obj.object_type).first()
+        template = obj_type_cfg.dynamic_summary_template if obj_type_cfg else ""
+        if not template:
+            return ""
+        
+        # Lấy tất cả field values của object này
+        fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True).select_related('field')
+        fv_dict = {fv.field.placeholder_key: fv.value for fv in fvs}
+        
+        # Thay thế {key} bằng value
+        def replace_match(match):
+            key = match.group(1)
+            return str(fv_dict.get(key, f"{{{key}}}"))
+        
+        result = re.sub(r'\{(\w+)\}', replace_match, template)
+        return result
+    except Exception:
+        return ""
+
 class MasterObjectSerializer(serializers.ModelSerializer):
     """Universal serializer for all entity types (Person, Asset, Savings, etc.)"""
     display_name = serializers.SerializerMethodField()
+    additional_info = serializers.SerializerMethodField()
     last_updated_by_name = serializers.CharField(source='last_updated_by.username', read_only=True)
     profiles_count = serializers.SerializerMethodField()
     field_values = serializers.SerializerMethodField()
@@ -506,7 +535,7 @@ class MasterObjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = MasterObject
         fields = [
-            'id', 'object_type', 'object_type_display', 'display_name', 
+            'id', 'object_type', 'object_type_display', 'display_name', 'additional_info',
             'created_at', 'updated_at', 'last_updated_by_name', 
             'profiles_count', 'related_profiles', 'field_values', 
             'relations_out', 'relations_in'
@@ -534,24 +563,19 @@ class MasterObjectSerializer(serializers.ModelSerializer):
 
 
     def get_relations_out(self, obj):
-        """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source), trừ các loại bị tắt allow_relations"""
-        # 1. Lấy danh sách các loại đối tượng KHÔNG cho phép liên kết
-        disallowed_types = MasterObjectType.objects.filter(allow_relations=False).values_list('code', flat=True)
-        
-        # 2. Lọc bỏ các quan hệ mà đối tượng ĐÍCH thuộc về loại bị cấm
-        rels = obj.relations_as_source.exclude(target_object__object_type__in=disallowed_types)
-        
+        """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source)"""
+        # Bỏ lọc disallowed_types để đảm bảo các quan hệ đặc thù (như Chi nhánh) vẫn hiển thị
+        rels = obj.relations_as_source.all()
         return MasterObjectRelationSerializer(rels, many=True).data
 
     def get_relations_in(self, obj):
-        """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target), trừ các loại bị tắt allow_relations"""
-        # 1. Lấy danh sách các loại đối tượng KHÔNG cho phép liên kết
-        disallowed_types = MasterObjectType.objects.filter(allow_relations=False).values_list('code', flat=True)
-        
-        # 2. Lọc bỏ các quan hệ mà đối tượng NGUỒN thuộc về loại bị cấm
-        rels = obj.relations_as_target.exclude(source_object__object_type__in=disallowed_types)
-        
+        """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target)"""
+        # Bỏ lọc disallowed_types
+        rels = obj.relations_as_target.all()
         return MasterObjectRelationSerializer(rels, many=True).data
+
+    def get_additional_info(self, obj):
+        return get_master_object_additional_info(obj)
 
     def get_display_name(self, obj):
         """Sử dụng thuộc tính display_name đã được định nghĩa trong Model"""
@@ -575,17 +599,63 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True)
         return {fv.field.placeholder_key: fv.value for fv in fvs}
 
+class MasterObjectLiteSerializer(serializers.ModelSerializer):
+    """Serializer rút gọn cho tìm kiếm, tối ưu payload"""
+    display_name = serializers.CharField(read_only=True)
+    additional_info = serializers.SerializerMethodField()
+    object_type_display = serializers.SerializerMethodField()
+    field_values = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MasterObject
+        fields = ['id', 'object_type', 'object_type_display', 'display_name', 'additional_info', 'field_values']
+
+    def get_additional_info(self, obj):
+        # Tái sử dụng logic từ serializer chính hoặc gọi trực tiếp (vì đây là class riêng nên copy tạm logic để độc lập)
+        import re
+        try:
+            obj_type_cfg = MasterObjectType.objects.filter(code=obj.object_type).first()
+            template = obj_type_cfg.dynamic_summary_template if obj_type_cfg else ""
+            if not template: return ""
+            fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True).select_related('field')
+            fv_dict = {fv.field.placeholder_key: fv.value for fv in fvs}
+            def replace_match(match):
+                key = match.group(1)
+                return str(fv_dict.get(key, f"{{{key}}}"))
+            return re.sub(r'\{(\w+)\}', replace_match, template)
+        except: return ""
+
+    def get_object_type_display(self, obj):
+        try:
+            return MasterObjectType.objects.get(code=obj.object_type).name
+        except:
+            return obj.object_type
+
+    def get_field_values(self, obj):
+        fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True)
+        return {fv.field.placeholder_key: fv.value for fv in fvs}
+
 # 8. Serializer cho Relation (MỚI)
 class MasterObjectRelationSerializer(serializers.ModelSerializer):
-    source_name = serializers.CharField(source='source_object.display_name', read_only=True) # Reuse logic from MO
+    source_name = serializers.CharField(source='source_object.display_name', read_only=True)
     target_name = serializers.CharField(source='target_object.display_name', read_only=True)
     target_type = serializers.CharField(source='target_object.object_type', read_only=True)
     source_type = serializers.CharField(source='source_object.object_type', read_only=True)
+    
+    source_additional_info = serializers.SerializerMethodField()
+    target_additional_info = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterObjectRelation
         fields = ['id', 'source_object', 'target_object', 'relation_type', 'created_at', 
-                  'source_name', 'target_name', 'target_type', 'source_type']
+                  'source_name', 'target_name', 'target_type', 'source_type',
+                  'source_additional_info', 'target_additional_info']
+
+    def get_source_additional_info(self, obj):
+        return get_master_object_additional_info(obj.source_object)
+
+    def get_target_additional_info(self, obj):
+        return get_master_object_additional_info(obj.target_object)
 
 
 class LoanProfileObjectLinkSerializer(serializers.ModelSerializer):

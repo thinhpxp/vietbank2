@@ -6,7 +6,7 @@ from django.db import transaction
 import logging
 
 from ..models import MasterObjectType, MasterObject, MasterObjectRelation, Field, FieldValue
-from ..serializers import MasterObjectTypeSerializer, MasterObjectSerializer, MasterObjectRelationSerializer
+from ..serializers import MasterObjectTypeSerializer, MasterObjectSerializer, MasterObjectRelationSerializer, MasterObjectLiteSerializer
 from ..permissions import IsAdminOrManager
 from .system_views import log_action, format_changes
 
@@ -221,7 +221,7 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         # Giới hạn 20 kết quả để tối ưu hiệu năng
         qs = qs[:20]
         
-        serializer = self.get_serializer(qs, many=True)
+        serializer = MasterObjectLiteSerializer(qs, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])

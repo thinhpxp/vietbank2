@@ -22,10 +22,10 @@
                     :column-config="{ resizable: true }" :sort-config="{ trigger: 'cell' }" height="auto"
                     class="select-table">
 
-                    <vxe-column field="display_name" title="Tên / Số hiệu" width="200" sortable>
+                    <vxe-column field="identity_value" title="Định danh / Số hiệu" width="200" sortable>
                         <template #default="{ row }">
                             <strong class="font-bold">
-                                {{ row.ho_ten || row.so_giay_chung_nhan || row.display_name || '---' }}
+                                {{ getIdentityValue(row) }}
                             </strong>
                         </template>
                     </vxe-column>
@@ -198,30 +198,12 @@ export default {
             return '---';
         },
         getAdditionalInfo(item) {
-            const typeConfig = this.objectTypes.find(t => t.code === item.object_type);
-            if (typeConfig && typeConfig.dynamic_summary_template) {
-                let result = typeConfig.dynamic_summary_template;
-                const placeholders = result.match(/{([^}]+)}/g);
-                if (placeholders) {
-                    placeholders.forEach(ph => {
-                        const key = ph.slice(1, -1);
-                        const val = item[key] !== undefined ? item[key] : '...';
-                        result = result.replace(ph, val);
-                    });
-                }
-                return result;
+            // Ưu tiên sử dụng thông tin đã được Backend xử lý theo template (Dynamic)
+            if (item.additional_info) {
+                return item.additional_info;
             }
 
-            const fallbacks = {
-                'PERSON': item.cccd ? `CCCD: ${item.cccd}` : '---',
-                'VEHICLE': item.nhan_hieu_xe ? `Hãng: ${item.nhan_hieu_xe}` : '---',
-                'REALESTATE': item.so_vao_so ? `Số vào sổ: ${item.so_vao_so}` : '---',
-                'BOND': item.ky_han_trai_phieu ? `Kỳ hạn: ${item.ky_han_trai_phieu}` : '---',
-                'SAVINGS': item.so_tien_goi ? `Số tiền: ${item.so_tien_goi}` : '---',
-                'ATTORNEY': item.nguoi_dai_dien ? `Họ tên: ${item.nguoi_dai_dien}` : '---'
-            };
-
-            return fallbacks[item.object_type] || item.owner_name || '---';
+            return '---';
         },
         selectItem(item) {
             this.$emit('select', item);

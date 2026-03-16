@@ -538,8 +538,8 @@ export default {
   },
   computed: {
     userBranchId() {
-      // Giả sử branch được lưu trong user object sau khi fetchProfile
-      return this.authStore.user?.branch;
+      // Backend trả về branch_id trong UserSerializer
+      return this.authStore.user?.branch_id;
     },
     isReadOnly() {
       return this.profileStatus === 'FINALIZED' || !!this.editingLockedBy;

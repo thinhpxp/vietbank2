@@ -20,13 +20,20 @@
             {{ getRelationDescription(rel) }}
 
             <!-- Logic hiển thị: Nếu trong hồ sơ thì text thường, ngoài hồ sơ thì link -->
-            <strong v-if="isObjectInProfile(isSource(rel) ? rel.target_object : rel.source_object)" class="internal-obj-text">
+            <strong v-if="isObjectInProfile(isSource(rel) ? rel.target_object : rel.source_object)"
+              class="internal-obj-text">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
+              <span v-if="isSource(rel) ? rel.target_additional_info : rel.source_additional_info">
+                | {{ isSource(rel) ? rel.target_additional_info : rel.source_additional_info }}
+              </span>
             </strong>
             <span v-else class="external-link"
               @click.stop="viewObjectDetail(isSource(rel) ? rel.target_object : rel.source_object)"
               title="Xem chi tiết đối tượng">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
+              <span v-if="isSource(rel) ? rel.target_additional_info : rel.source_additional_info">
+                | {{ isSource(rel) ? rel.target_additional_info : rel.source_additional_info }}
+              </span>
             </span>
 
             <small>({{ $t(isSource(rel) ? rel.target_type : rel.source_type) }})</small>
@@ -67,7 +74,7 @@
 
         <div class="form-group">
           <label>Đối tượng liên kết:</label>
-          
+
           <!-- Chế độ 1: Trong hồ sơ (Internal) -->
           <template v-if="activeTab === 'internal'">
             <div class="object-selector-list">
@@ -84,13 +91,8 @@
           <!-- Chế độ 2: Toàn hệ thống (External) -->
           <template v-else>
             <div class="search-box">
-              <input 
-                v-model="searchQuery" 
-                type="text" 
-                placeholder="Tìm theo tên, CCCD, BKS..." 
-                class="admin-form-control"
-                @input="handleSearchInput"
-              >
+              <input v-model="searchQuery" type="text" placeholder="Tìm theo tên, CCCD, BKS..."
+                class="admin-form-control" @input="handleSearchInput">
               <SvgIcon v-if="searching" name="loading" class="icon-spinning" />
             </div>
 
@@ -98,6 +100,9 @@
               <div v-for="obj in globalSearchResults" :key="obj.id" class="selectable-object"
                 :class="{ selected: selectedTargetId === obj.id }" @click="selectedTargetId = obj.id">
                 <div class="obj-name">{{ obj.display_name }}</div>
+                <div class="obj-additional" v-if="obj.additional_info">
+                  {{ obj.additional_info }}
+                </div>
                 <div class="obj-sub-info">
                   <span class="badge-type">{{ $t(obj.object_type) }}</span>
                   <span class="profile-context" v-if="obj.related_profiles && obj.related_profiles.length">
@@ -242,7 +247,7 @@ export default {
     },
     handleSearchInput() {
       if (this.searchTimeout) clearTimeout(this.searchTimeout);
-      
+
       const q = this.searchQuery.trim();
       if (q.length < 2) {
         this.globalSearchResults = [];
@@ -387,7 +392,8 @@ export default {
 
 .rel-target strong.internal-obj-text {
   margin-left: 4px;
-  color: #2c3e50; /* Màu tối hơn, không giống link */
+  color: #2c3e50;
+  /* Màu tối hơn, không giống link */
 }
 
 .rel-target small {
@@ -448,6 +454,13 @@ export default {
   font-weight: 500;
 }
 
+.obj-additional {
+  font-size: 0.8em;
+  color: #2c3e50;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
 .empty-list {
   font-size: 0.9em;
   color: #999;
@@ -465,6 +478,7 @@ export default {
   transition: all 0.2s;
   display: inline-block;
 }
+
 /* Hiệu ứng rõ ràng hơn khi hover để người dùng biết là click được */
 .external-link:hover {
   color: #9a7d0a !important;

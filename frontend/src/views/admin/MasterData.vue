@@ -71,10 +71,10 @@
                         </template>
                     </vxe-column>
 
-                    <vxe-column field="display_name" title="Tên / Số hiệu" width="300" sortable>
+                    <vxe-column field="identity_value" title="Định danh / Số hiệu" width="300" sortable>
                         <template #default="{ row }">
                             <span class="font-bold">
-                                {{ row.ho_ten || row.so_giay_chung_nhan || $t(row.display_name) || '---' }}
+                                {{ getIdentityValue(row) }}
                             </span>
                         </template>
                     </vxe-column>
@@ -388,17 +388,27 @@ export default {
         this.stopHeartbeat();
     },
     methods: {
+        getIdentityValue(item) {
+            const typeConfig = this.objectTypes.find(t => t.code === (item.object_type || this.activeTab));
+            if (typeConfig && typeConfig.identity_field_key) {
+                // Ưu tiên lấy từ field_values đã được flatten hoặc item trực tiếp
+                return item[typeConfig.identity_field_key] || item.display_name || '---';
+            }
+            return item.display_name || '---';
+        },
         getDynamicSummary(item, typeCode) {
-            const typeDef = this.objectTypes.find(t => t.code === typeCode);
-            if (!typeDef || !typeDef.dynamic_summary_template) {
-                // Fallback cũ nếu không có cấu hình template
-                if (typeCode === 'PERSON') return item.cccd ? `CCCD: ${item.cccd}` : '---';
-                if (typeCode === 'ATTORNEY') return item.nguoi_dai_dien || '---';
-                return item.owner_name || '---';
+            // Ưu tiên sử dụng thông tin đã được Backend xử lý theo template (Dynamic)
+            if (item.additional_info) {
+                return item.additional_info;
             }
 
+            const typeDef = this.objectTypes.find(t => t.code === typeCode);
+            if (!typeDef || !typeDef.dynamic_summary_template) {
+                return '---';
+            }
+
+            // Tự render nếu chưa có additional_info từ API
             let result = typeDef.dynamic_summary_template;
-            // Thay thế các placeholder {key} bằng giá trị thực
             const placeholders = result.match(/{([^}]+)}/g);
             if (placeholders) {
                 placeholders.forEach(ph => {
