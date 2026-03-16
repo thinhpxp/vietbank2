@@ -56,12 +56,10 @@
                     <!-- Chọn Chi nhánh / Đơn vị -->
                     <div class="form-group">
                         <label>🏢 Chi nhánh / Đơn vị công tác</label>
-                        <select v-model="profileForm.branch_id" class="admin-input">
-                            <option :value="null">-- Chưa chọn đơn vị --</option>
-                            <option v-for="b in branches" :key="b.id" :value="b.id">
-                                {{ b.display_name }}
-                            </option>
-                        </select>
+                        <vxe-select v-model="profileForm.branch_id" class="admin-select-full" filterable clearable placeholder="-- Chọn chi nhánh / đơn vị --">
+                            <vxe-option :value="null" label="-- Chưa chọn đơn vị --"></vxe-option>
+                            <vxe-option v-for="b in branches" :key="b.id" :value="b.id" :label="b.display_name"></vxe-option>
+                        </vxe-select>
                         <small v-if="branches.length === 0" class="text-muted">
                             Chưa có chi nhánh nào được cấu hình. Liên hệ Admin để thiết lập.
                         </small>
@@ -385,5 +383,9 @@ export default {
     .profile-right {
         width: 100%;
     }
+}
+
+.admin-select-full {
+    width: 100%;
 }
 </style>

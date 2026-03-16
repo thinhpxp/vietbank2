@@ -55,12 +55,10 @@
                 <!-- Chọn Chi nhánh / Đơn vị -->
                 <div class="form-group">
                     <label>🏢 Chi nhánh / Đơn vị công tác</label>
-                    <select v-model="form.branch_id" class="admin-input">
-                        <option :value="null">-- Chưa chọn đơn vị (có thể cập nhật sau) --</option>
-                        <option v-for="b in branches" :key="b.id" :value="b.id">
-                            {{ b.display_name }}
-                        </option>
-                    </select>
+                    <vxe-select v-model="form.branch_id" class="admin-select-full" filterable clearable placeholder="-- Chọn chi nhánh / đơn vị --">
+                        <vxe-option :value="null" label="-- Chưa chọn đơn vị (có thể cập nhật sau) --"></vxe-option>
+                        <vxe-option v-for="b in branches" :key="b.id" :value="b.id" :label="b.display_name"></vxe-option>
+                    </vxe-select>
                 </div>
 
                 <!-- DYNAMIC FIELDS FOR USER_EXT / THONG TIN BO SUNG THEO YEU CAU HE THONG-->
@@ -285,5 +283,9 @@ export default {
     100% {
         transform: rotate(360deg);
     }
+}
+
+.admin-select-full {
+    width: 100%;
 }
 </style>
