@@ -58,6 +58,18 @@
 
         <NotificationEditModal v-if="showModal" :visible="showModal" :item="editingItem" @close="showModal = false"
             @saved="fetchNotifications" />
+
+        <!-- Confirm Modal Xóa Thông báo -->
+        <ConfirmModal
+            :visible="showDeleteConfirm"
+            title="Xóa Thông báo"
+            message="Bạn có chắc chắn muốn xóa thông báo này? Hành động này không thể hoàn tác."
+            confirmText="Xóa"
+            type="error"
+            mode="confirm"
+            @confirm="handleDeleteConfirmed"
+            @cancel="showDeleteConfirm = false"
+        />
     </div>
 </template>
 
@@ -65,18 +77,21 @@
 import SystemService from '@/services/system.service';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import NotificationEditModal from './NotificationEditModal.vue';
+import ConfirmModal from '@/components/ConfirmModal.vue';
 import { useAuthStore } from '@/store/auth.store';
 
 export default {
     name: 'AdminNotifications',
     title: 'Quản lý Thông báo Admin',
-    components: { SvgIcon, NotificationEditModal },
+    components: { SvgIcon, NotificationEditModal, ConfirmModal },
     data() {
         return {
             notifications: [],
             loading: false,
             showModal: false,
             editingItem: null,
+            showDeleteConfirm: false,
+            pendingDeleteRow: null,
             authStore: useAuthStore()
         };
     },
@@ -145,14 +160,20 @@ export default {
                 this.$toast.error('Bạn không có quyền xóa thông báo');
                 return;
             }
-            if (confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
-                try {
-                    await SystemService.deleteAdminNotification(row.id);
-                    this.$toast.success('Đã xóa thông báo');
-                    this.fetchNotifications();
-                } catch (err) {
-                    this.$toast.error('Lỗi khi xóa thông báo');
-                }
+            this.pendingDeleteRow = row;
+            this.showDeleteConfirm = true;
+        },
+        async handleDeleteConfirmed() {
+            this.showDeleteConfirm = false;
+            if (!this.pendingDeleteRow) return;
+            try {
+                await SystemService.deleteAdminNotification(this.pendingDeleteRow.id);
+                this.$toast.success('Đã xóa thông báo');
+                this.fetchNotifications();
+            } catch (err) {
+                this.$toast.error('Lỗi khi xóa thông báo');
+            } finally {
+                this.pendingDeleteRow = null;
             }
         }
     }

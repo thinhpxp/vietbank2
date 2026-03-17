@@ -14,7 +14,7 @@
     <div class="filter-bar">
       <div class="filter-group">
         <label>Hành động:</label>
-        <select v-model="filterAction" @change="fetchLogs" class="admin-form-control filter-control">
+        <select v-model="filterAction" @change="onFilterChange" class="admin-form-control filter-control">
           <option value="">Tất cả</option>
           <option value="LOGIN">Đăng nhập</option>
           <option value="LOGOUT">Đăng xuất</option>
@@ -26,15 +26,15 @@
       <div class="filter-group">
         <label>Tên đăng nhập:</label>
         <input type="text" v-model="filterUserName" class="admin-form-control filter-control"
-          placeholder="Nhập tên đăng nhập..." @keyup.enter="fetchLogs">
+          placeholder="Nhập tên đăng nhập..." @keyup.enter="onFilterChange">
       </div>
       <div class="filter-group">
         <label>Từ ngày:</label>
-        <input type="date" v-model="fromDate" class="admin-form-control filter-control" @change="fetchLogs">
+        <input type="date" v-model="fromDate" class="admin-form-control filter-control" @change="onFilterChange">
       </div>
       <div class="filter-group">
         <label>Đến ngày:</label>
-        <input type="date" v-model="toDate" class="admin-form-control filter-control" @change="fetchLogs">
+        <input type="date" v-model="toDate" class="admin-form-control filter-control" @change="onFilterChange">
       </div>
     </div>
 
@@ -91,13 +91,10 @@
       </vxe-table>
     </div>
 
-    <!-- Pagination (Simple Previous/Next based on DRF) -->
-    <div class="pagination-controls">
-      <button :disabled="!prevPage" @click="loadPage(prevPage, 'prev')" class="btn-action btn-secondary">◀
-        Trước</button>
-      <span class="page-info">Trang {{ currentPage }}/{{ totalPages || 1 }}</span>
-      <button :disabled="!nextPage" @click="loadPage(nextPage, 'next')" class="btn-action btn-secondary">Sau ▶</button>
-    </div>
+    <!-- Pagination (vxe-pager) -->
+    <vxe-pager border :loading="loading" :current-page="currentPage" :page-size="pageSize" :total="totalCount"
+      :layouts="['PrevPage', 'JumpNumber', 'NextPage', 'FullJump', 'Total']" @page-change="handlePageChange">
+    </vxe-pager>
 
   </div>
 </template>
@@ -112,7 +109,9 @@ import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
 export default {
   name: 'AdminAuditLog',
   title: 'Nhật ký hệ thống',
-  components: { SvgIcon },
+  components: { 
+    SvgIcon 
+  },
   mixins: [errorHandlingMixin, FilterableTableMixin],
   data() {
     return {
@@ -122,8 +121,6 @@ export default {
       filterUserName: '',
       fromDate: format(subDays(new Date(), 15), 'yyyy-MM-dd'),
       toDate: format(new Date(), 'yyyy-MM-dd'),
-      nextPage: null,
-      prevPage: null,
       currentPage: 1,
       totalCount: 0,
       pageSize: 15
@@ -141,6 +138,10 @@ export default {
     this.fetchLogs();
   },
   methods: {
+    async onFilterChange() {
+      this.currentPage = 1;
+      this.fetchLogs();
+    },
     async fetchLogs() {
       this.loading = true;
       try {
@@ -152,16 +153,14 @@ export default {
         if (this.fromDate) params.timestamp_gte = this.fromDate + "T00:00:00";
         if (this.toDate) params.timestamp_lte = this.toDate + "T23:59:59";
 
-        const response = await SystemService.getAuditLogs(params);
-
-        // Reset to first page
-        this.currentPage = 1;
+        const response = await SystemService.getAuditLogs({
+          ...params,
+          page: this.currentPage
+        });
 
         // DRF Pagination support
         if (response.data.results) {
           this.logs = response.data.results;
-          this.nextPage = response.data.next;
-          this.prevPage = response.data.previous;
           this.totalCount = response.data.count || 0;
         } else {
           this.logs = response.data;
@@ -174,30 +173,9 @@ export default {
         this.loading = false;
       }
     },
-    async loadPage(url, direction) {
-      if (!url) return;
-      this.loading = true;
-      try {
-        // Here url is already full, we can use SystemService to call it directly if we modify it, 
-        // but SystemService.getAuditLogs expects params. 
-        // For simplicity, we can use a direct axios call if needed, but per requirement we use Service.
-        // Let's assume SystemService has a way to handle direct URLs or we extract params.
-
-        const response = await SystemService.getAuditLogsByUrl(url);
-        if (response.data.results) {
-          this.logs = response.data.results;
-          this.nextPage = response.data.next;
-          this.prevPage = response.data.previous;
-          this.totalCount = response.data.count || 0;
-
-          if (direction === 'next') this.currentPage++;
-          else if (direction === 'prev') this.currentPage--;
-        }
-      } catch (error) {
-        this.showError(error);
-      } finally {
-        this.loading = false;
-      }
+    async handlePageChange({ currentPage }) {
+      this.currentPage = currentPage;
+      this.fetchLogs();
     },
     formatDate(isoString) {
       if (!isoString) return '';

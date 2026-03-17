@@ -61,6 +61,15 @@ const SystemService = {
     getAdminNotifications() {
         return api.get('/notifications/');
     },
+    createAdminNotification(data) {
+        return api.post('/notifications/', data);
+    },
+    updateAdminNotification(id, data) {
+        return api.patch(`/notifications/${id}/`, data);
+    },
+    deleteAdminNotification(id) {
+        return api.delete(`/notifications/${id}/`);
+    },
 
     getNotifications() {
         return api.get('/notifications/');

@@ -156,7 +156,7 @@
 
                 <div class="side-modal-body unified-side-body">
                     <div v-if="relatedLoading" class="text-center p-8 text-gray-500">
-                        <span class="inline-block animate-spin mr-2">⏳</span> Đвязаt tải...
+                        <span class="inline-block animate-spin mr-2">⏳</span> Đang tải...
                     </div>
                     <div v-else class="side-content-sections">
                         <!-- SECTION 1: PROFILES -->
@@ -193,8 +193,12 @@
                                     <div class="flex items-center gap-2">
                                         <span class="font-bold text-slate-800">
                                             {{ rel.isSource ? (rel.target_type === 'PERSON' ? '👤 ' : '🏠 ') +
-                                                $t(rel.target_name) : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
-                                                $t(rel.source_name) }}
+                                                rel.target_name : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
+                                                rel.source_name }}
+                                            <span v-if="rel.isSource ? rel.target_additional_info : rel.source_additional_info"
+                                                class="font-normal text-gray-500">
+                                                | {{ rel.isSource ? rel.target_additional_info : rel.source_additional_info }}
+                                            </span>
                                         </span>
 
                                         <span class="badge-role">CHỦ SỞ HỮU</span>
@@ -225,14 +229,18 @@
                                 <div class="card-main">
                                     <div class="font-bold text-slate-700">
                                         {{ rel.isSource ? (rel.target_type === 'PERSON' ? '👤 ' : '🏠 ') +
-                                            $t(rel.target_name) : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
-                                            $t(rel.source_name) }}
+                                            rel.target_name : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
+                                            rel.source_name }}
+                                        <span v-if="rel.isSource ? rel.target_additional_info : rel.source_additional_info"
+                                            class="font-normal text-gray-500">
+                                            | {{ rel.isSource ? rel.target_additional_info : rel.source_additional_info }}
+                                        </span>
                                     </div>
 
                                     <div class="text-xs text-gray-500 flex items-center gap-1">
                                         <span class="badge-relation">{{ $t(rel.relation_type) }}</span>
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
-                                            }}</span>
+                                        }}</span>
                                     </div>
 
                                 </div>
@@ -458,7 +466,9 @@ export default {
             this.showRelatedModal = true;
             this.relatedLoading = true;
             this.relatedType = obj.object_type; // PERSON, ASSET, etc.
-            this.relatedTitle = `Thông tin liên quan: ${obj.ho_ten || obj.display_name}`;
+            const name = obj.ho_ten || obj.display_name;
+            const info = obj.additional_info ? ` | ${obj.additional_info}` : '';
+            this.relatedTitle = `Thông tin liên quan: ${name}${info}`;
             this.relatedTab = 'profiles'; // Reset tab
 
             try {

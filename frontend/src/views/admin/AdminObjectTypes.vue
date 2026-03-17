@@ -202,16 +202,6 @@
             :message="`Bạn có chắc muốn xóa loại '${deleteTarget?.name}'? Các dữ liệu thuộc loại này có thể bị ảnh hưởng.`"
             confirmText="Xóa ngay" @confirm="executeDelete" @cancel="showDeleteModal = false" />
 
-        <!-- Generic Modals -->
-        <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
-            :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
-            confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
-        <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
-            :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
-            @cancel="showSuccessModal = false" />
-        <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
-            :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
-            @cancel="showWarningModal = false" />
     </div>
 </template>
 

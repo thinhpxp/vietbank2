@@ -45,6 +45,18 @@
       </div>
     </div>
 
+    <!-- Modal xác nhận xóa liên kết -->
+    <ConfirmModal
+      :visible="showRemoveConfirm"
+      title="Xóa liên kết"
+      message="Bạn có chắc muốn xóa liên kết này? Hành động này không thể hoàn tác."
+      confirmText="Xóa"
+      type="error"
+      mode="confirm"
+      @confirm="handleRemoveConfirmed"
+      @cancel="showRemoveConfirm = false"
+    />
+
     <!-- Modal xem chi tiết -->
     <ObjectDetailModal :objectId="viewingObjectId" :fieldDefinitions="allFields" @close="viewingObjectId = null" />
 
@@ -136,10 +148,11 @@ import MasterService from '@/services/master.service';
 import MasterRelationService from '@/services/relation.service';
 import BaseModal from './BaseModal.vue';
 import ObjectDetailModal from './ObjectDetailModal.vue';
+import ConfirmModal from './ConfirmModal.vue';
 
 export default {
   name: 'RelationManager',
-  components: { BaseModal, ObjectDetailModal },
+  components: { BaseModal, ObjectDetailModal, ConfirmModal },
   props: {
     masterObjectId: { type: Number, required: true },
     profileObjects: { type: Array, default: () => [] },
@@ -158,6 +171,10 @@ export default {
       loading: false,
       // Quick View state
       viewingObjectId: null,
+
+      // Confirm remove state
+      showRemoveConfirm: false,
+      pendingRemoveRelId: null,
 
       // Cross-profile state
       activeTab: 'internal', // 'internal' | 'external'
@@ -284,13 +301,20 @@ export default {
       }
     },
     async removeRelation(relId) {
-      if (!confirm('Bạn có chắc muốn xóa liên kết này?')) return;
+      this.pendingRemoveRelId = relId;
+      this.showRemoveConfirm = true;
+    },
+    async handleRemoveConfirmed() {
+      this.showRemoveConfirm = false;
+      if (!this.pendingRemoveRelId) return;
       try {
-        await MasterRelationService.deleteRelation(relId);
-        this.relations = this.relations.filter(r => r.id !== relId);
+        await MasterRelationService.deleteRelation(this.pendingRemoveRelId);
+        this.relations = this.relations.filter(r => r.id !== this.pendingRemoveRelId);
         this.$toast.success('Đã xóa liên kết');
       } catch (e) {
         this.$toast.error('Lỗi khi xóa liên kết');
+      } finally {
+        this.pendingRemoveRelId = null;
       }
     },
     // Kiểm tra xem một ID object có nằm trong hồ sơ hiện tại không

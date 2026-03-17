@@ -50,7 +50,15 @@
     <!-- Global Error Modal -->
     <ConfirmModal :visible="showErrorModal" :title="errorModalTitle" :message="errorModalMessage"
       :errorCode="errorModalCode" :details="errorModalDetails" type="error" mode="alert" confirmText="Đóng"
-      @confirm="closeErrorModal" @cancel="closeErrorModal" :closeOnOverlay="true" />
+      :showTimestamp="true" @confirm="closeErrorModal" @cancel="closeErrorModal" :closeOnOverlay="true" />
+
+    <!-- Global Success Modal -->
+    <ConfirmModal :visible="showSuccessModal" :title="successModalTitle" :message="successModalMessage" type="success"
+      mode="alert" confirmText="OK" @confirm="showSuccessModal = false" @cancel="showSuccessModal = false" />
+
+    <!-- Global Warning Modal -->
+    <ConfirmModal :visible="showWarningModal" :title="warningModalTitle" :message="warningModalMessage" type="warning"
+      mode="alert" confirmText="Đóng" @confirm="showWarningModal = false" @cancel="showWarningModal = false" />
   </div>
 </template>
 
@@ -74,6 +82,17 @@ export default {
       errorModalMessage: '',
       errorModalCode: '',
       errorModalDetails: '',
+
+      // Global Success Modal State
+      showSuccessModal: false,
+      successModalTitle: 'Thành công',
+      successModalMessage: '',
+
+      // Global Warning Modal State
+      showWarningModal: false,
+      warningModalTitle: 'Cảnh báo',
+      warningModalMessage: '',
+
       authStore: useAuthStore(),
       systemStore: useSystemStore()
     }
@@ -107,6 +126,26 @@ export default {
     },
     closeErrorModal() {
       this.showErrorModal = false;
+    },
+    openGlobalSuccess(data) {
+      if (typeof data === 'string') {
+        this.successModalMessage = data;
+        this.successModalTitle = 'Thành công';
+      } else {
+        this.successModalMessage = data.message;
+        this.successModalTitle = data.title || 'Thành công';
+      }
+      this.showSuccessModal = true;
+    },
+    openGlobalWarning(data) {
+      if (typeof data === 'string') {
+        this.warningModalMessage = data;
+        this.warningModalTitle = 'Cảnh báo';
+      } else {
+        this.warningModalMessage = data.message;
+        this.warningModalTitle = data.title || 'Cảnh báo';
+      }
+      this.showWarningModal = true;
     }
   },
   mounted() {
@@ -114,9 +153,13 @@ export default {
     this.systemStore.loadFromServer();
     // Subscribe to global error events
     eventBus.on(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
+    eventBus.on(EVENTS.SHOW_GLOBAL_SUCCESS, this.openGlobalSuccess);
+    eventBus.on(EVENTS.SHOW_GLOBAL_WARNING, this.openGlobalWarning);
   },
   unmounted() {
     eventBus.off(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
+    eventBus.off(EVENTS.SHOW_GLOBAL_SUCCESS, this.openGlobalSuccess);
+    eventBus.off(EVENTS.SHOW_GLOBAL_WARNING, this.openGlobalWarning);
   }
 }
 </script>

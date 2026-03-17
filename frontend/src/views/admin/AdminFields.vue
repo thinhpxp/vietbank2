@@ -283,16 +283,6 @@
     <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
       :message="`Bạn có chắc muốn xóa trường '${deleteTargetLabel}'?`" confirmText="Xóa" @confirm="confirmDelete"
       @cancel="showDeleteModal = false" />
-    <!-- Generic Modals -->
-    <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
-      :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
-      confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
-    <ConfirmModal :visible="showSuccessModal" type="success" mode="alert" :title="successModalTitle"
-      :message="successModalMessage" confirmText="OK" @confirm="showSuccessModal = false"
-      @cancel="showSuccessModal = false" />
-    <ConfirmModal :visible="showWarningModal" type="warning" mode="alert" :title="warningModalTitle"
-      :message="warningModalMessage" confirmText="Đóng" @confirm="showWarningModal = false"
-      @cancel="showWarningModal = false" />
   </div>
 </template>
 

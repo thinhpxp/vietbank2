@@ -355,10 +355,6 @@
             :message="`Bạn có chắc chắn muốn xóa nhóm '${selectedGroup.name}'?`" confirmText="Xóa"
             @confirm="handleDeleteGroup" @cancel="showDeleteGroupConfirm = false" />
 
-        <!-- Error Modal (from mixin) -->
-        <ConfirmModal :visible="showErrorModal" type="error" mode="alert" :title="errorModalTitle"
-            :message="errorModalMessage" :errorCode="errorModalCode" :details="errorModalDetails" :showTimestamp="true"
-            confirmText="Đóng" @confirm="showErrorModal = false" @cancel="showErrorModal = false" />
     </div>
 </template>
 

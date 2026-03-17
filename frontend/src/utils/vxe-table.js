@@ -1,4 +1,4 @@
-import { VxeUI, VxeSwitch, VxeInput, VxeSelect, VxeOption, VxeTextarea, VxeModal } from 'vxe-pc-ui'
+import { VxeUI, VxeSwitch, VxeInput, VxeSelect, VxeOption, VxeTextarea, VxeModal, VxeDatePicker, VxePager } from 'vxe-pc-ui'
 import { VxeTable, VxeColumn } from 'vxe-table'
 import viVN from 'vxe-table/lib/locale/lang/vi-VN'
 
@@ -34,4 +34,9 @@ export function setupVxeTable(app) {
     app.use(VxeOption)
     app.use(VxeTextarea)
     app.use(VxeModal)
+    app.component('VxeDatePicker', VxeDatePicker)
+    app.component('vxe-date-picker', VxeDatePicker)
+    app.component('VxePager', VxePager)
+    app.component('vxe-pager', VxePager)
+    VxeUI.component(VxePager)
 }

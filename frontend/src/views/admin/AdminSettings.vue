@@ -129,7 +129,7 @@
                         :title="!authStore.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được thay đổi cấu hình' : 'Lưu cấu hình'">
                         <SvgIcon name="save" size="sm" /> Lưu cấu hình
                     </button>
-                    <button @click="resetToDefault" class="btn-action btn-secondary ml-2"
+                    <button @click="showResetConfirm = true" class="btn-action btn-secondary ml-2"
                         :disabled="uploading || !authStore.isSuperuser"
                         :title="!authStore.isSuperuser ? 'Chỉ quản trị viên cấp cao (Root) mới được khôi phục mặc định' : 'Khôi phục mặc định'">
                         <SvgIcon name="refresh" size="sm" /> Khôi phục mặc định
@@ -138,7 +138,7 @@
             </section>
 
             <section class="admin-form-section">
-                <h4>Hướng dẫn & Mẹo</h4>
+                <h4>Hướng dẫn &amp; Mẻo</h4>
                 <ul class="settings-tips">
                     <li><strong>Brand Name:</strong> Xuất hiện trên thanh Navbar và tiêu đề trình duyệt.</li>
                     <li><strong>Upload Logo:</strong> File của bạn sẽ được tải lên máy chủ và đổi tên an toàn. Điều này
@@ -148,6 +148,18 @@
                 </ul>
             </section>
         </div>
+
+        <!-- Confirm Modal Khôi phục Mặc định -->
+        <ConfirmModal
+            :visible="showResetConfirm"
+            title="Khôi phục Mặc định"
+            message="Bạn có chắc chắn muốn khôi phục toàn bộ cấu hình về mặc định? Hành động này không thể hoàn tác."
+            confirmText="Khôi phục"
+            type="warning"
+            mode="confirm"
+            @confirm="handleResetConfirmed"
+            @cancel="showResetConfirm = false"
+        />
     </div>
 </template>
 
@@ -155,15 +167,17 @@
 import { useSystemStore } from '@/store/system.store';
 import { useAuthStore } from '@/store/auth.store';
 import SvgIcon from '@/components/common/SvgIcon.vue';
+import ConfirmModal from '@/components/ConfirmModal.vue';
 
 export default {
     name: 'AdminSettings',
     title: 'Cài đặt hệ thống',
-    components: { SvgIcon },
+    components: { SvgIcon, ConfirmModal },
     data() {
         const systemStore = useSystemStore();
         return {
             uploading: false,
+            showResetConfirm: false,
             editConfig: {
                 brandName: systemStore.brandName,
                 logoUrl: systemStore.logoUrl,
@@ -233,24 +247,26 @@ export default {
             }
         },
         async resetToDefault() {
-            if (confirm('Bạn có chắc chắn muốn khôi phục về cấu hình mặc định?')) {
-                try {
-                    await this.systemStore.resetToDefault();
-                    this.editConfig = {
-                        brandName: this.systemStore.brandName,
-                        logoUrl: this.systemStore.logoUrl,
-                        logoType: this.systemStore.logoType,
-                        navbarColor: this.systemStore.navbarColor,
-                        brandColor: this.systemStore.brandColor,
-                        linkColor: this.systemStore.linkColor,
-                        linkHoverColor: this.systemStore.linkHoverColor,
-                        activeLinkColor: this.systemStore.activeLinkColor,
-                        activeLinkBgColor: this.systemStore.activeLinkBgColor
-                    };
-                    this.$toast.info('Đã khôi phục cài đặt mặc định.');
-                } catch (error) {
-                    this.$toast.error('Không thể khôi phục mặc định. Vui lòng thử lại.');
-                }
+            this.showResetConfirm = true;
+        },
+        async handleResetConfirmed() {
+            this.showResetConfirm = false;
+            try {
+                await this.systemStore.resetToDefault();
+                this.editConfig = {
+                    brandName: this.systemStore.brandName,
+                    logoUrl: this.systemStore.logoUrl,
+                    logoType: this.systemStore.logoType,
+                    navbarColor: this.systemStore.navbarColor,
+                    brandColor: this.systemStore.brandColor,
+                    linkColor: this.systemStore.linkColor,
+                    linkHoverColor: this.systemStore.linkHoverColor,
+                    activeLinkColor: this.systemStore.activeLinkColor,
+                    activeLinkBgColor: this.systemStore.activeLinkBgColor
+                };
+                this.$toast.info('Đã khôi phục cài đặt mặc định.');
+            } catch (error) {
+                this.$toast.error('Không thể khôi phục mặc định. Vui lòng thử lại.');
             }
         }
     }

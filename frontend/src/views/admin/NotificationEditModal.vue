@@ -19,8 +19,8 @@
                 </div>
                 <div class="form-group half">
                     <label>Ngày hết hạn (Tuỳ chọn)</label>
-                    <vxe-input v-model="formData.expires_at" type="datetime" placeholder="Để trống nếu không giới hạn"
-                        clearable class="input-expires"></vxe-input>
+                    <VxeDatePicker v-model="formData.expires_at" type="datetime" placeholder="Để trống nếu không giới hạn"
+                        clearable class="input-expires"></VxeDatePicker>
                 </div>
             </div>
 
@@ -44,10 +44,11 @@
 <script>
 import SystemService from '@/services/system.service';
 import SvgIcon from '@/components/common/SvgIcon.vue';
+import { VxeDatePicker } from 'vxe-pc-ui';
 
 export default {
     name: 'NotificationEditModal',
-    components: { SvgIcon },
+    components: { SvgIcon, VxeDatePicker },
     props: {
         visible: Boolean,
         item: Object
@@ -93,7 +94,7 @@ export default {
             this.loading = true;
             try {
                 if (this.item) {
-                    await SystemService.replaceAdminNotification(this.item.id, this.formData);
+                    await SystemService.updateAdminNotification(this.item.id, this.formData);
                     this.$toast.success('Đã cập nhật thông báo');
                 } else {
                     await SystemService.createAdminNotification(this.formData);

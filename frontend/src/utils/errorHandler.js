@@ -107,7 +107,6 @@ const ERROR_DEBOUNCE_MS = 500; // Không hiện 2 lỗi cùng loại trong 0.5s
  */
 export function showErrorDialog(vm, error, title = 'Lỗi') {
     const now = Date.now();
-    const { message, errorCode, details } = formatError(error);
 
     // Chống lặp thông báo (Debounce) cho cùng một lỗi trong thời gian ngắn
     if (now - lastErrorTime < ERROR_DEBOUNCE_MS) {
@@ -115,22 +114,9 @@ export function showErrorDialog(vm, error, title = 'Lỗi') {
     }
     lastErrorTime = now;
 
-    // 1. Emit to Global Event Bus (Ưu tiên số 1)
+    // 1. Emit to Global Event Bus (Ưu tiên duy nhất theo error-guide.md)
     // App.vue sẽ nhận và hiển thị Global Modal
     eventBus.emit(EVENTS.SHOW_GLOBAL_ERROR, { error, title });
-
-    // 2. Fallback: Chỉ set local data nếu KHÔNG PHẢI lỗi 403/401 
-    // (Vì 403/401 đã có Global Modal hoặc Interceptor xử lý riêng)
-    const status = error.response?.status;
-    const isAccessError = status === 403 || status === 401;
-
-    if (vm && !isAccessError) {
-        if (vm.errorModalTitle !== undefined) vm.errorModalTitle = title;
-        if (vm.errorModalMessage !== undefined) vm.errorModalMessage = message;
-        if (vm.errorModalCode !== undefined) vm.errorModalCode = errorCode;
-        if (vm.errorModalDetails !== undefined) vm.errorModalDetails = details;
-        if (vm.showErrorModal !== undefined) vm.showErrorModal = true;
-    }
 }
 
 /**
@@ -140,9 +126,7 @@ export function showErrorDialog(vm, error, title = 'Lỗi') {
  * @param {String} title - Tiêu đề (optional)
  */
 export function showSuccessDialog(vm, message, title = 'Thành công') {
-    vm.successModalTitle = title;
-    vm.successModalMessage = message;
-    vm.showSuccessModal = true;
+    eventBus.emit(EVENTS.SHOW_GLOBAL_SUCCESS, { message, title });
 }
 
 /**
@@ -152,9 +136,7 @@ export function showSuccessDialog(vm, message, title = 'Thành công') {
  * @param {String} title - Tiêu đề (optional)
  */
 export function showWarningDialog(vm, message, title = 'Cảnh báo') {
-    vm.warningModalTitle = title;
-    vm.warningModalMessage = message;
-    vm.showWarningModal = true;
+    eventBus.emit(EVENTS.SHOW_GLOBAL_WARNING, { message, title });
 }
 
 /**

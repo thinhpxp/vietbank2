@@ -12,6 +12,7 @@ from django.dispatch import receiver
 from django_filters.rest_framework import DjangoFilterBackend
 import os
 import logging
+import django_filters
 
 from ..models import AuditLog, AdminNotification, NotificationRead, SystemConfig, Role
 from ..serializers import (
@@ -20,8 +21,25 @@ from ..serializers import (
     AuditLogSerializer, AdminNotificationSerializer, SystemConfigSerializer
 )
 from ..permissions import IsAdminOrManager, IsSuperUser
+from rest_framework.pagination import PageNumberPagination
 
 logger = logging.getLogger(__name__)
+
+# --- FILTERS ---
+class AuditLogFilter(django_filters.FilterSet):
+    timestamp_gte = django_filters.DateTimeFilter(field_name="timestamp", lookup_expr='gte')
+    timestamp_lte = django_filters.DateTimeFilter(field_name="timestamp", lookup_expr='lte')
+    username = django_filters.CharFilter(field_name="user__username", lookup_expr='icontains')
+
+    class Meta:
+        model = AuditLog
+        fields = ['action', 'target_model', 'target_id']
+
+# --- PAGINATION ---
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 15
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 # --- HELPER GHI LOG ---
 def format_changes(changed_dict, target_model=None):
@@ -199,8 +217,9 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminOrManager]
+    pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['target_model', 'target_id', 'action', 'user']
+    filterset_class = AuditLogFilter
     search_fields = ['details', 'target_id', 'target_model']
     ordering_fields = ['timestamp', 'action']
     ordering = ['-timestamp']
