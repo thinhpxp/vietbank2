@@ -131,8 +131,8 @@ export default {
         },
         getIconName(type) {
             switch (type) {
-                case 'WARN': return 'warning';
-                case 'DANGER': return 'error';
+                case 'WARN': return 'alert';
+                case 'DANGER': return 'alert';
                 default: return 'info';
             }
         },

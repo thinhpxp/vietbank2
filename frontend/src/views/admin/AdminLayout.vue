@@ -87,11 +87,16 @@ export default {
 .layout-sidebar {
   text-align: left;
   width: var(--sidebar-width);
-  background: var(--sidebar-bg);
+  background: #0c56a5;
   color: white;
   /* padding: 20px; */
   transition: width 0.3s ease, opacity 0.3s ease;
   overflow: hidden;
+}
+
+.layout-sidebar h3 {
+  margin-left: 10px;
+  color: white;
 }
 
 .admin-layout.is-collapsed {
