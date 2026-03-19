@@ -42,8 +42,19 @@
                 <input v-model="newType.description" placeholder="Mô tả..." class="admin-input" style="flex: 1">
 
                 <label class="admin-checkbox-label" style="white-space: nowrap; margin-right: 10px;">
-                    <input type="checkbox" v-model="newType.allow_relations"> Cho phép liên kết đến đối tượng khác
+                    <input type="checkbox" v-model="newType.allow_relations"> Cho phép liên kết
                 </label>
+
+                <label class="admin-checkbox-label" style="white-space: nowrap; margin-right: 10px;">
+                    <input type="checkbox" v-model="newType.is_restricted"> Hạn chế (Restricted)
+                </label>
+
+                <div class="whitelist-select-wrapper" style="margin-right: 10px; width: 200px;">
+                    <p style="font-size: 10px; margin: 0; color: #666;">Whitelist liên kết:</p>
+                    <select v-model="newType.allowed_relation_types" multiple class="admin-input" style="height: 60px;">
+                        <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }} ({{ t.code }})</option>
+                    </select>
+                </div>
 
                 <button @click="addType" class="btn-action btn-create btn-icon-only" :disabled="!canCreate"
                     :title="canCreate ? 'Thêm Loại đối tượng' : 'Không có quyền tạo'">
@@ -136,7 +147,32 @@
                     </template>
                 </vxe-column>
 
-                <vxe-column field="dynamic_summary_template" title="Thông tin thêm" width="200">
+                <vxe-column field="is_restricted" title="Hạn chế" width="100">
+                    <template #default="{ row }">
+                        <input v-if="editingId === row.id" v-model="editingData.is_restricted" type="checkbox" />
+                        <span v-else :class="['admin-badge', row.is_restricted ? 'badge-admin' : 'badge-inactive']">
+                            {{ row.is_restricted ? '✓ Hạn chế' : '---' }}
+                        </span>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="allowed_relation_types" title="Whitelist" min-width="200">
+                    <template #default="{ row }">
+                        <div v-if="editingId === row.id">
+                            <select v-model="editingData.allowed_relation_types" multiple class="vxe-input-minimal" style="height: 80px;">
+                                <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
+                            </select>
+                        </div>
+                        <div v-else class="whitelist-tags">
+                            <span v-for="code in row.allowed_relation_types_codes" :key="code" class="admin-badge badge-role" style="margin-right: 2px;">
+                                {{ code }}
+                            </span>
+                            <span v-if="!row.allowed_relation_types_codes || row.allowed_relation_types_codes.length === 0" style="color: #999;">Public (Tất cả)</span>
+                        </div>
+                    </template>
+                </vxe-column>
+
+                <vxe-column field="dynamic_summary_template" title="Thông tin thêm" width="180">
                     <template #default="{ row }">
                         <input v-if="editingId === row.id" v-model="editingData.dynamic_summary_template"
                             class="vxe-input-minimal" />
@@ -221,7 +257,11 @@ export default {
     data() {
         return {
             types: [],
-            newType: { code: '', name: '', description: '', identity_field_key: '', form_display_mode: null, layout_position: null, dynamic_summary_template: '', allow_relations: true, order: null },
+            newType: { 
+                code: '', name: '', description: '', identity_field_key: '', 
+                form_display_mode: null, layout_position: null, dynamic_summary_template: '', 
+                allow_relations: true, is_restricted: false, allowed_relation_types: [], order: null 
+            },
             editingId: null,
             editingData: null,
             filters: { search: '' },
@@ -262,7 +302,11 @@ export default {
             }
             try {
                 await MasterService.createObjectType(this.newType);
-                this.newType = { code: '', name: '', description: '', identity_field_key: '', form_display_mode: null, layout_position: null, dynamic_summary_template: '', order: null };
+                this.newType = { 
+                    code: '', name: '', description: '', identity_field_key: '', 
+                    form_display_mode: null, layout_position: null, dynamic_summary_template: '', 
+                    allow_relations: true, is_restricted: false, allowed_relation_types: [], order: null 
+                };
                 this.fetchTypes();
                 this.showSuccess('Thêm loại đối tượng thành công!');
             } catch (e) {
@@ -310,5 +354,20 @@ export default {
 <style scoped>
 .data-table-vxe {
     margin-top: 10px;
+}
+.whitelist-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 0;
+}
+.badge-role {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+}
+.whitelist-select-wrapper select[multiple] {
+    scrollbar-width: thin;
+    font-size: 12px;
 }
 </style>

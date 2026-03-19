@@ -10,7 +10,8 @@ const defaultConfig = {
     linkColor: '#94a3b8',
     linkHoverColor: '#ffffff',
     activeLinkColor: '#10b981',
-    activeLinkBgColor: 'rgba(16, 185, 129, 0.1)'
+    activeLinkBgColor: 'rgba(16, 185, 129, 0.1)',
+    autoSaveEnabled: true
 };
 
 export const useSystemStore = defineStore('system', {
@@ -34,6 +35,7 @@ export const useSystemStore = defineStore('system', {
                 linkHoverColor: data.link_hover_color ?? defaultConfig.linkHoverColor,
                 activeLinkColor: data.active_link_color ?? defaultConfig.activeLinkColor,
                 activeLinkBgColor: data.active_link_bg_color ?? defaultConfig.activeLinkBgColor,
+                autoSaveEnabled: data.auto_save_enabled ?? defaultConfig.autoSaveEnabled,
             };
         },
 
@@ -48,6 +50,7 @@ export const useSystemStore = defineStore('system', {
                 link_hover_color: config.linkHoverColor,
                 active_link_color: config.activeLinkColor,
                 active_link_bg_color: config.activeLinkBgColor,
+                auto_save_enabled: config.autoSaveEnabled,
             };
         },
 

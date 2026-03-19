@@ -138,6 +138,17 @@
             </section>
 
             <section class="admin-form-section">
+                <h4>Cấu hình Tính năng</h4>
+                <div class="admin-field">
+                    <label class="admin-checkbox-label">
+                        <input type="checkbox" v-model="editConfig.autoSaveEnabled" />
+                        Tự động lưu (Auto-save/Snapshot) mỗi 2 phút
+                    </label>
+                    <p class="hint mt-1">Nếu tắt, hệ thống sẽ không tự động tạo bản lưu tạm (snapshot) khi người dùng đang soạn thảo. Người dùng sẽ phải lưu thủ công.</p>
+                </div>
+            </section>
+
+            <section class="admin-form-section">
                 <h4>Hướng dẫn &amp; Mẻo</h4>
                 <ul class="settings-tips">
                     <li><strong>Brand Name:</strong> Xuất hiện trên thanh Navbar và tiêu đề trình duyệt.</li>
@@ -187,7 +198,8 @@ export default {
                 linkColor: systemStore.linkColor,
                 linkHoverColor: systemStore.linkHoverColor,
                 activeLinkColor: systemStore.activeLinkColor,
-                activeLinkBgColor: systemStore.activeLinkBgColor
+                activeLinkBgColor: systemStore.activeLinkBgColor,
+                autoSaveEnabled: systemStore.autoSaveEnabled
             },
             authStore: useAuthStore(),
             systemStore
@@ -203,10 +215,38 @@ export default {
                 this.editConfig.linkColor !== this.systemStore.linkColor ||
                 this.editConfig.linkHoverColor !== this.systemStore.linkHoverColor ||
                 this.editConfig.activeLinkColor !== this.systemStore.activeLinkColor ||
-                this.editConfig.activeLinkBgColor !== this.systemStore.activeLinkBgColor;
+                this.editConfig.activeLinkBgColor !== this.systemStore.activeLinkBgColor ||
+                this.editConfig.autoSaveEnabled !== this.systemStore.autoSaveEnabled;
+        }
+    },
+    watch: {
+        // Đồng bộ lại editConfig khi Store thay đổi (Ví dụ: khi loadFromServer hoàn tất muộn)
+        'systemStore.brandName': {
+            handler() { this.syncWithStore(); },
+            immediate: false
+        },
+        'systemStore.autoSaveEnabled': {
+            handler() { this.syncWithStore(); },
+            immediate: false
         }
     },
     methods: {
+        syncWithStore() {
+            // Chỉ đồng bộ nếu người dùng chưa sửa gì (hoặc có thể ép buộc đồng bộ nếu cần)
+            // Ở đây ta ưu tiên giá trị từ server nếu component mới mount hoặc người dùng chưa tương tác
+            Object.assign(this.editConfig, {
+                brandName: this.systemStore.brandName,
+                logoUrl: this.systemStore.logoUrl,
+                logoType: this.systemStore.logoType,
+                navbarColor: this.systemStore.navbarColor,
+                brandColor: this.systemStore.brandColor,
+                linkColor: this.systemStore.linkColor,
+                linkHoverColor: this.systemStore.linkHoverColor,
+                activeLinkColor: this.systemStore.activeLinkColor,
+                activeLinkBgColor: this.systemStore.activeLinkBgColor,
+                autoSaveEnabled: this.systemStore.autoSaveEnabled
+            });
+        },
         async handleLogoUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -262,7 +302,8 @@ export default {
                     linkColor: this.systemStore.linkColor,
                     linkHoverColor: this.systemStore.linkHoverColor,
                     activeLinkColor: this.systemStore.activeLinkColor,
-                    activeLinkBgColor: this.systemStore.activeLinkBgColor
+                    activeLinkBgColor: this.systemStore.activeLinkBgColor,
+                    autoSaveEnabled: this.systemStore.autoSaveEnabled
                 };
                 this.$toast.info('Đã khôi phục cài đặt mặc định.');
             } catch (error) {

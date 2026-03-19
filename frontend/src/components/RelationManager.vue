@@ -7,12 +7,12 @@
       </button>
     </div>
 
-    <div v-if="relations.length === 0" class="no-relations">
+    <div v-if="visibleRelations.length === 0" class="no-relations">
       Chưa có liên kết dẫn chiếu nào.
     </div>
 
     <div v-else class="relation-list">
-      <div v-for="rel in relations" :key="rel.id" class="relation-item">
+      <div v-for="rel in visibleRelations" :key="rel.id" class="relation-item">
         <div class="rel-info">
           <span class="rel-type-badge">{{ $t(rel.relation_type) }}</span>
 
@@ -212,10 +212,45 @@ export default {
   },
   computed: {
     filteredPossibleTargets() {
-      // Chỉ hiện các object KHÁC với object hiện tại VÀ cho phép gán liên kết
+      // Tìm object hiện tại để lấy loại và whitelist của nó
+      const currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+      const currentWhitelist = currentObj ? (currentObj.allowed_relation_types_codes || []) : [];
+
+      // Chỉ hiện các object KHÁC với object hiện tại VÀ cho phép gán liên kết VÀ ĐÃ HOÀN THIỆN
       return this.profileObjects.filter(obj => {
         if (obj.id === this.masterObjectId) return false;
         if (obj.allow_relations === false) return false;
+        if (obj.is_complete === false) return false;
+
+        if (currentWhitelist.length > 0) {
+          if (!currentWhitelist.includes(obj.object_type)) return false;
+        }
+
+        return true;
+      });
+    },
+    visibleRelations() {
+      const currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+      const currentWhitelist = currentObj ? (currentObj.allowed_relation_types_codes || []) : [];
+
+      return this.relations.filter(rel => {
+        const otherId = this.isSource(rel) ? rel.target_object : rel.source_object;
+        const otherObj = this.profileObjects.find(o => o.id === otherId);
+        if (!otherObj) return false;
+        if (!otherObj.is_complete) return false;
+
+        // --- MỚI: Chỉ hiển thị các liên kết hợp lệ theo Whitelist hai chiều ---
+        // 1. Kiểm tra từ phía hiện tại: Nếu đối tượng hiện tại bị Hạn chế hoặc có Whitelist
+        if (currentObj.is_restricted || currentWhitelist.length > 0) {
+          if (!currentWhitelist.includes(otherObj.object_type)) return false;
+        }
+
+        // 2. Kiểm tra từ phía đối tượng kia: Nếu đối tượng kia bị Hạn chế hoặc có Whitelist
+        const otherWhitelist = otherObj.allowed_relation_types_codes || [];
+        if (otherObj.is_restricted || otherWhitelist.length > 0) {
+          if (!otherWhitelist.includes(currentObj.object_type)) return false;
+        }
+
         return true;
       });
     },
@@ -252,6 +287,12 @@ export default {
         console.error('Lỗi tải quan hệ:', e);
       }
     },
+    isObjectComplete(objectId) {
+      // Tìm object trong danh sách profile để kiểm tra độ hoàn thiện
+      const obj = this.profileObjects.find(o => o.id === objectId);
+      if (obj) return obj.is_complete;
+      return true; // Nếu không tìm thấy trong profile (là object hệ thống), coi như hoàn thiện
+    },
     isSource(rel) {
       return rel.source_object === this.masterObjectId;
     },
@@ -276,8 +317,27 @@ export default {
         try {
           // Lưu ý: Có thể lọc theo objectType nếu cần thiết kế chặt chẽ hơn
           const res = await MasterService.searchMasterObjects(q);
-          // Lọc bỏ chính nó nếu xuất hiện trong kết quả tìm kiếm
-          this.globalSearchResults = res.data.filter(obj => obj.id !== this.masterObjectId);
+          
+          // Lấy thông tin object hiện tại
+          const currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+          const currentWhitelist = currentObj ? (currentObj.allowed_relation_types_codes || []) : [];
+
+          // Lọc kết quả tìm kiếm toàn cục theo whitelist
+          this.globalSearchResults = res.data.filter(obj => {
+            if (obj.id === this.masterObjectId) return false;
+            
+            // 1. Nếu Target bị Restricted, Source phải có quyền
+            if (obj.is_restricted) {
+              if (!currentWhitelist.includes(obj.object_type)) return false;
+            }
+            
+            // 2. Nếu Source có Whitelist, Target phải thuộc đó
+            if (currentWhitelist.length > 0) {
+              if (!currentWhitelist.includes(obj.object_type)) return false;
+            }
+            
+            return true;
+          });
         } catch (e) {
           console.error('Lỗi tìm kiếm đối tượng:', e);
         } finally {

@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Quy tắc Phát triển Dự án (Development Rules) - Cập nhật 10/03/2026
 
 Tài liệu này định nghĩa các tiêu chuẩn kỹ thuật, cấu trúc và quy trình bắt buộc phải tuân thủ sau khi hệ thống đã chuyển đổi sang **Pinia State Management** và chuẩn hóa lớp **Service Layer**.

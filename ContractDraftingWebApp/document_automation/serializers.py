@@ -435,11 +435,28 @@ class LoanProfileSerializer(serializers.ModelSerializer):
             specific_fvs = FieldValue.objects.filter(loan_profile=obj, master_object=master)
             fv_dict = {fv.field.placeholder_key: fv.value for fv in specific_fvs}
             
+            # Get whitelist metadata
+            try:
+                obj_type = MasterObjectType.objects.filter(code=t_code).first()
+                is_restricted = obj_type.is_restricted if obj_type else False
+                whitelist = [t.code for t in obj_type.allowed_relation_types.all()] if obj_type else []
+                allow_relations = obj_type.allow_relations if obj_type else True
+            except Exception:
+                is_restricted = False
+                whitelist = []
+                allow_relations = True
+
             item_data = {
                 "id": master.id,
                 "roles": link.roles,
                 "individual_field_values": fv_dict,
-                "master_object": { "id": master.id, "object_type": t_code }
+                "master_object": { 
+                    "id": master.id, 
+                    "object_type": t_code,
+                    "is_restricted": is_restricted,
+                    "allowed_relation_types_codes": whitelist,
+                    "allow_relations": allow_relations
+                }
             }
             
             if t_code not in sections:
@@ -484,9 +501,21 @@ class LoanProfileSerializer(serializers.ModelSerializer):
 # --- UNIVERSAL ENTITY SERIALIZERS (New Architecture) ---
 
 class MasterObjectTypeSerializer(serializers.ModelSerializer):
+    allowed_relation_types_codes = serializers.SlugRelatedField(
+        many=True,
+        read_only=True,
+        slug_field='code',
+        source='allowed_relation_types'
+    )
+    
     class Meta:
         model = MasterObjectType
-        fields = ['id', 'code', 'name', 'description', 'is_system', 'identity_field_key', 'form_display_mode', 'dynamic_summary_template', 'allow_relations', 'order', 'layout_position']
+        fields = [
+            'id', 'code', 'name', 'description', 'is_system', 
+            'identity_field_key', 'form_display_mode', 'dynamic_summary_template', 
+            'allow_relations', 'is_restricted', 'allowed_relation_types', 'allowed_relation_types_codes',
+            'order', 'layout_position'
+        ]
         extra_kwargs = {
             'code': {
                 'error_messages': {
@@ -523,6 +552,7 @@ def get_master_object_additional_info(obj):
     except Exception:
         return ""
 
+
 class MasterObjectSerializer(serializers.ModelSerializer):
     """Universal serializer for all entity types (Person, Asset, Savings, etc.)"""
     display_name = serializers.SerializerMethodField()
@@ -531,6 +561,9 @@ class MasterObjectSerializer(serializers.ModelSerializer):
     profiles_count = serializers.SerializerMethodField()
     field_values = serializers.SerializerMethodField()
     object_type_display = serializers.SerializerMethodField()
+    allow_relations = serializers.SerializerMethodField()
+    is_restricted = serializers.SerializerMethodField()
+    allowed_relation_types_codes = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterObject
@@ -538,7 +571,8 @@ class MasterObjectSerializer(serializers.ModelSerializer):
             'id', 'object_type', 'object_type_display', 'display_name', 'additional_info',
             'created_at', 'updated_at', 'last_updated_by_name', 
             'profiles_count', 'related_profiles', 'field_values', 
-            'relations_out', 'relations_in'
+            'relations_out', 'relations_in', 'allow_relations',
+            'is_restricted', 'allowed_relation_types_codes'
         ]
     
     # New fields for Relations and Profiles
@@ -563,16 +597,42 @@ class MasterObjectSerializer(serializers.ModelSerializer):
 
 
     def get_relations_out(self, obj):
-        """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source)"""
-        # Bỏ lọc disallowed_types để đảm bảo các quan hệ đặc thù (như Chi nhánh) vẫn hiển thị
+        """Lấy tất cả các quan hệ mà đối tượng này là NGUỒN (Source) và hợp lệ theo Whitelist"""
         rels = obj.relations_as_source.all()
-        return MasterObjectRelationSerializer(rels, many=True).data
+        valid_rels = []
+        for rel in rels:
+            if self._is_relation_valid(rel):
+                valid_rels.append(rel)
+        return MasterObjectRelationSerializer(valid_rels, many=True).data
 
     def get_relations_in(self, obj):
-        """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target)"""
-        # Bỏ lọc disallowed_types
+        """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target) và hợp lệ theo Whitelist"""
         rels = obj.relations_as_target.all()
-        return MasterObjectRelationSerializer(rels, many=True).data
+        valid_rels = []
+        for rel in rels:
+            if self._is_relation_valid(rel):
+                valid_rels.append(rel)
+        return MasterObjectRelationSerializer(valid_rels, many=True).data
+
+    def _is_relation_valid(self, rel):
+        """Helper kiểm tra tính hợp lệ của liên kết dựa trên Whitelist hai chiều"""
+        try:
+            s_type_cfg = MasterObjectType.objects.filter(code=rel.source_object.object_type).first()
+            t_type_cfg = MasterObjectType.objects.filter(code=rel.target_object.object_type).first()
+            if not s_type_cfg or not t_type_cfg: return True
+
+            # 1. Kiểm tra từ phía Source
+            if s_type_cfg.is_restricted or s_type_cfg.allowed_relation_types.exists():
+                if not s_type_cfg.allowed_relation_types.filter(code=t_type_cfg.code).exists():
+                    return False
+            
+            # 2. Kiểm tra từ phía Target
+            if t_type_cfg.is_restricted or t_type_cfg.allowed_relation_types.exists():
+                if not t_type_cfg.allowed_relation_types.filter(code=s_type_cfg.code).exists():
+                    return False
+            
+            return True
+        except: return True
 
     def get_additional_info(self, obj):
         return get_master_object_additional_info(obj)
@@ -599,16 +659,75 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True)
         return {fv.field.placeholder_key: fv.value for fv in fvs}
 
+    def get_allow_relations(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.object_type).first()
+            return obj_type.allow_relations if obj_type else True
+        except Exception:
+            return True
+
+    def get_is_restricted(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.object_type).first()
+            return obj_type.is_restricted if obj_type else False
+        except Exception:
+            return False
+
+    def get_allowed_relation_types_codes(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.object_type).first()
+            if obj_type:
+                return [t.code for t in obj_type.allowed_relation_types.all()]
+            return []
+        except Exception:
+            return []
+
 class MasterObjectLiteSerializer(serializers.ModelSerializer):
     """Serializer rút gọn cho tìm kiếm, tối ưu payload"""
     display_name = serializers.CharField(read_only=True)
     additional_info = serializers.SerializerMethodField()
     object_type_display = serializers.SerializerMethodField()
     field_values = serializers.SerializerMethodField()
+    allow_relations = serializers.SerializerMethodField()
+    is_restricted = serializers.SerializerMethodField()
+    allowed_relation_types_codes = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterObject
-        fields = ['id', 'object_type', 'object_type_display', 'display_name', 'additional_info', 'field_values']
+        fields = [
+            'id', 'object_type', 'object_type_display', 'display_name', 
+            'additional_info', 'field_values', 'allow_relations',
+            'is_restricted', 'allowed_relation_types_codes'
+        ]
+
+    def get_allow_relations(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.object_type).first()
+            return obj_type.allow_relations if obj_type else True
+        except Exception:
+            return True
+
+    def get_is_restricted(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.object_type).first()
+            return obj_type.is_restricted if obj_type else False
+        except Exception:
+            return False
+
+    def get_allowed_relation_types_codes(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.object_type).first()
+            if obj_type:
+                return [t.code for t in obj_type.allowed_relation_types.all()]
+            return []
+        except Exception:
+            return []
 
     def get_additional_info(self, obj):
         # Tái sử dụng logic từ serializer chính hoặc gọi trực tiếp (vì đây là class riêng nên copy tạm logic để độc lập)
@@ -635,6 +754,7 @@ class MasterObjectLiteSerializer(serializers.ModelSerializer):
         fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True)
         return {fv.field.placeholder_key: fv.value for fv in fvs}
 
+
 # 8. Serializer cho Relation (MỚI)
 class MasterObjectRelationSerializer(serializers.ModelSerializer):
     source_name = serializers.CharField(source='source_object.display_name', read_only=True)
@@ -644,18 +764,56 @@ class MasterObjectRelationSerializer(serializers.ModelSerializer):
     
     source_additional_info = serializers.SerializerMethodField()
     target_additional_info = serializers.SerializerMethodField()
+    source_is_restricted = serializers.SerializerMethodField()
+    target_is_restricted = serializers.SerializerMethodField()
+    source_allowed_relation_types_codes = serializers.SerializerMethodField()
+    target_allowed_relation_types_codes = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterObjectRelation
         fields = ['id', 'source_object', 'target_object', 'relation_type', 'created_at', 
                   'source_name', 'target_name', 'target_type', 'source_type',
-                  'source_additional_info', 'target_additional_info']
+                  'source_additional_info', 'target_additional_info',
+                  'source_is_restricted', 'target_is_restricted',
+                  'source_allowed_relation_types_codes', 'target_allowed_relation_types_codes']
 
     def get_source_additional_info(self, obj):
         return get_master_object_additional_info(obj.source_object)
 
     def get_target_additional_info(self, obj):
         return get_master_object_additional_info(obj.target_object)
+
+    def get_source_is_restricted(self, obj):
+        try:
+            from .models import MasterObjectType
+            cfg = MasterObjectType.objects.filter(code=obj.source_object.object_type).first()
+            return cfg.is_restricted if cfg else False
+        except: return False
+
+    def get_target_is_restricted(self, obj):
+        try:
+            from .models import MasterObjectType
+            cfg = MasterObjectType.objects.filter(code=obj.target_object.object_type).first()
+            return cfg.is_restricted if cfg else False
+        except: return False
+
+    def get_source_allowed_relation_types_codes(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.source_object.object_type).first()
+            if obj_type:
+                return [t.code for t in obj_type.allowed_relation_types.all()]
+            return []
+        except: return []
+
+    def get_target_allowed_relation_types_codes(self, obj):
+        try:
+            from .models import MasterObjectType
+            obj_type = MasterObjectType.objects.filter(code=obj.target_object.object_type).first()
+            if obj_type:
+                return [t.code for t in obj_type.allowed_relation_types.all()]
+            return []
+        except: return []
 
 
 class LoanProfileObjectLinkSerializer(serializers.ModelSerializer):
@@ -721,7 +879,7 @@ class SystemConfigSerializer(serializers.ModelSerializer):
         fields = [
             'brand_name', 'logo_url', 'navbar_color', 'brand_color',
             'link_color', 'link_hover_color', 'active_link_color',
-            'active_link_bg_color', 'updated_at'
+            'active_link_bg_color', 'auto_save_enabled', 'updated_at'
         ]
         read_only_fields = ['updated_at']
 

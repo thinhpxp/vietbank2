@@ -48,7 +48,7 @@
       </div>
 
       <!-- Quản lý liên kết (Relations) -->
-      <RelationManager v-if="localAsset.master_object && localAsset.master_object.id"
+      <RelationManager v-if="isComplete"
         :masterObjectId="localAsset.master_object.id" :profileObjects="profileObjects" :currentObjectType="selectedType"
         :refreshTrigger="refreshTrigger" :allFields="allFields" :disabled="disabled" />
     </div>
@@ -140,6 +140,14 @@ export default {
       }
 
       return type.name;
+    },
+    isComplete() {
+      if (!this.localAsset.master_object || !this.localAsset.master_object.id || !this.selectedType) return false;
+      const type = this.assetTypes.find(t => t.code === this.selectedType);
+      if (!type || !type.identity_field_key) return true;
+      const fv = this.localAsset.individual_field_values || {};
+      const idValue = fv[type.identity_field_key];
+      return !!(idValue && (typeof idValue !== 'string' || idValue.trim() !== ''));
     }
   },
   watch: {

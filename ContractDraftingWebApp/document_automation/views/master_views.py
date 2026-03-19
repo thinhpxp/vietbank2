@@ -75,7 +75,11 @@ class MasterObjectTypeViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 class MasterObjectViewSet(viewsets.ModelViewSet):
-    serializer_class = MasterObjectSerializer
+    def get_serializer_class(self):
+        """Sử dụng Serializer rút gọn cho danh sách để tối ưu hiệu năng"""
+        if self.action == 'list':
+            return MasterObjectLiteSerializer
+        return MasterObjectSerializer
     permission_classes = [permissions.DjangoModelPermissions]
 
     def get_permissions(self):
@@ -250,6 +254,32 @@ class MasterObjectRelationViewSet(viewsets.ModelViewSet):
         if not source_id or not target_id: return Response({"error": "Thiếu source_id hoặc target_id"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             source, target = MasterObject.objects.get(id=source_id), MasterObject.objects.get(id=target_id)
+            
+            # --- MỚI: Kiểm tra Whitelist liên kết hai chiều ---
+            from ..models import MasterObjectType
+            s_type = MasterObjectType.objects.filter(code=source.object_type).first()
+            t_type = MasterObjectType.objects.filter(code=target.object_type).first()
+            
+            if s_type and t_type:
+                # 1. Kiểm tra từ phía Source: Nếu Source có Whitelist hoặc bị Restricted
+                if s_type.is_restricted or s_type.allowed_relation_types.exists():
+                    if not s_type.allowed_relation_types.filter(code=t_type.code).exists():
+                        allowed_names = ", ".join([t.name for t in s_type.allowed_relation_types.all()]) or "None"
+                        return Response({
+                            "error": f"Loại đối tượng '{s_type.name}' không cho phép liên kết tới '{t_type.name}'. Danh sách trắng: {allowed_names}.",
+                            "code": "WHITELIST_VIOLATION_SOURCE"
+                        }, status=status.HTTP_403_FORBIDDEN)
+
+                # 2. Kiểm tra từ phía Target: Nếu Target có Whitelist hoặc bị Restricted
+                if t_type.is_restricted or t_type.allowed_relation_types.exists():
+                    if not t_type.allowed_relation_types.filter(code=s_type.code).exists():
+                        allowed_names = ", ".join([t.name for t in t_type.allowed_relation_types.all()]) or "None"
+                        return Response({
+                            "error": f"Loại đối tượng '{t_type.name}' đang bị hạn chế và không chấp nhận liên kết từ '{s_type.name}'.",
+                            "code": "WHITELIST_VIOLATION_TARGET"
+                        }, status=status.HTTP_403_FORBIDDEN)
+            # ---------------------------------------
+
             relation, created = MasterObjectRelation.objects.get_or_create(source_object=source, target_object=target, relation_type=rtype)
             return Response(MasterObjectRelationSerializer(relation).data)
         except MasterObject.DoesNotExist: return Response({"error": "Không tìm thấy đối tượng"}, status=status.HTTP_404_NOT_FOUND)

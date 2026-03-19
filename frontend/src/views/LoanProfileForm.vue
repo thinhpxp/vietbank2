@@ -121,8 +121,8 @@
                     :allSections="fullProfileData"
                     @computed-update="handleComputedUpdate($event, segment.code, index)" />
 
-                  <RelationManager v-if="item.master_object && item.master_object.id"
-                    :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
+                  <RelationManager v-if="isObjectComplete(item, segment.code)"
+                    :masterObjectId="item.master_object.id" :profileObjects="allProfileObjects"
                     :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                     :disabled="isReadOnly" />
                 </div>
@@ -149,7 +149,7 @@
               <div v-if="computedAssetList.length === 0" class="empty-state-standard">Chưa có tài sản nào.</div>
               <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
                 <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                  :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                  :profileObjects="allProfileObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                   :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
                   @remove="removeAssetList(index)"
                   @computed-update="handleComputedUpdate($event, asset._originalType, asset._originalIdx)" />
@@ -179,7 +179,7 @@
               </div>
               <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
                 <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                  :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                  :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allProfileObjects"
                   :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
                   @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
                   @computed-update="handleComputedUpdate($event, 'PERSON', index)" />
@@ -206,7 +206,7 @@
           </div>
 
           <!-- Type: DEDICATED (Khu vực riêng - VD: Hợp đồng) -->
-          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated" :class="{ 'is-collapsed': segment._isCollapsed }">
+          <div v-if="segment.type === 'DEDICATED'" class="premium-card theme-dedicated" :class="{ 'is-collapsed': isSegmentCollapsed(segment) }">
             <div class="card-header-glass" @click="toggleSegmentCollapse(segment)">
               <div class="header-left">
                 <SvgIcon name="chevron-down" size="sm" customClass="toggle-icon-svg" />
@@ -253,8 +253,8 @@
                     :allSections="fullProfileData"
                     @computed-update="handleComputedUpdate($event, segment.code, index)" />
 
-                  <RelationManager v-if="item.master_object && item.master_object.id"
-                    :masterObjectId="item.master_object.id" :profileObjects="allSavedObjects"
+                  <RelationManager v-if="isObjectComplete(item, segment.code)"
+                    :masterObjectId="item.master_object.id" :profileObjects="allProfileObjects"
                     :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                     :disabled="isReadOnly" />
                 </div>
@@ -281,7 +281,7 @@
               <div v-if="computedAssetList.length === 0" class="empty-state-standard">Chưa có tài sản nào.</div>
               <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
                 <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
-                  :profileObjects="allSavedObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
+                  :profileObjects="allProfileObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
                   :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
                   @remove="removeAssetList(index)"
                   @computed-update="handleComputedUpdate($event, asset._originalType, asset._originalIdx)" />
@@ -311,7 +311,7 @@
               </div>
               <div v-for="(person, index) in objectSections['PERSON']" :key="person.master_object?.id || person._uid">
                 <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
-                  :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allSavedObjects"
+                  :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allProfileObjects"
                   :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
                   @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
                   @computed-update="handleComputedUpdate($event, 'PERSON', index)" />
@@ -461,6 +461,7 @@ import HistoryTimeline from '../components/HistoryTimeline.vue';
 import SvgIcon from '../components/common/SvgIcon.vue';
 import { errorHandlingMixin } from '../utils/errorHandler';
 import { useAuthStore } from '@/store/auth.store';
+import { useSystemStore } from '@/store/system.store';
 
 export default {
   name: 'LoanProfileForm',
@@ -534,7 +535,8 @@ export default {
   },
   setup() {
     const authStore = useAuthStore();
-    return { authStore };
+    const systemStore = useSystemStore();
+    return { authStore, systemStore };
   },
   computed: {
     userBranchId() {
@@ -642,7 +644,7 @@ export default {
     isAssetRight() { return false; },
     isPersonRight() { return false; },
     // Danh sách tất cả các đối tượng đã lưu (có ID) trong hồ sơ hiện tại
-    allSavedObjects() {
+    allProfileObjects() {
       const list = [];
       Object.keys(this.objectSections).forEach(typeCode => {
         this.objectSections[typeCode].forEach(item => {
@@ -653,31 +655,33 @@ export default {
             let displayName = '';
             const fv = item.individual_field_values || {};
 
+            let is_complete = true;
             if (typeConfig && typeConfig.identity_field_key) {
               displayName = fv[typeConfig.identity_field_key];
-            }
-
-            if (!displayName) {
-              // Fallback labels
-              displayName = fv.ho_ten ||
-                fv.ten_tai_san ||
-                fv.so_dien_thoai ||
-                fv.bien_so_xe ||
-                fv.chung_nhan_qsdd ||
-                `#${item.master_object.id}`;
+              if (!displayName || (typeof displayName === 'string' && displayName.trim() === '')) {
+                is_complete = false;
+              }
             }
 
             list.push({
               id: item.master_object.id,
-              object_type: typeName,
+              object_type: typeCode, // Sử dụng code gốc để so khớp whitelist
+              typeName: typeName,
               origin_type_code: typeCode,
               allow_relations: typeConfig ? (typeConfig.allow_relations !== false) : true,
-              display_name: `[${this.$t(typeName)}] ${displayName}`
+              is_restricted: item.master_object.is_restricted,
+              allowed_relation_types_codes: item.master_object.allowed_relation_types_codes || [],
+              is_complete: is_complete,
+              display_name: `[${this.$t(typeName)}] ${displayName || '(Chưa có định danh)'}`
             });
           }
         });
       });
       return list;
+    },
+    // Trả về danh sách chỉ các đối tượng đã hoàn thiện (cho menu chọn)
+    completeProfileObjects() {
+      return this.allProfileObjects.filter(obj => obj.is_complete);
     },
     // --- UOS COMPUTED ---
     dedicatedSections() {
@@ -766,12 +770,14 @@ export default {
       this.currentId = this.id;
       await this.fetchProfileData(this.id);
     }
-    // Thiết lập Auto-save định kỳ 2 phút (120000ms)
-    this.autoSaveInterval = setInterval(() => {
-      if (this.currentId || this.id) {
-        this.saveProfile(true); // silent = true
-      }
-    }, 120000);
+    // Thiết lập Auto-save định kỳ 2 phút (120000ms) - Chỉ chạy nếu được bật trong cấu hình
+    if (this.systemStore.autoSaveEnabled) {
+      this.autoSaveInterval = setInterval(() => {
+        if (this.currentId || this.id) {
+          this.saveProfile(true); // silent = true
+        }
+      }, 120000);
+    }
     // ĐÃ XÓA: Tự động addEntity('PERSON') và addEntity(null) để tránh tạo rác
   },
   watch: {
@@ -1209,6 +1215,12 @@ export default {
         return;
       }
 
+      // 0.5 Kiểm tra tính hợp lệ và hoàn thiện (Chỉ khi lưu thủ công)
+      if (!silent) {
+        if (!this.validateObjectCompleteness()) return;
+        if (!this.validateInternalDuplicates()) return;
+      }
+
       // 1. Kiểm tra TRÙNG LẶP MASTER (Phase 1.3 - Snapshot principle)
       // LUÔN kiểm tra, kể cả khi auto-save (silent) để đảm bảo không "lén" lưu đối tượng trùng mà không xác nhận
       const dupes = [];
@@ -1306,6 +1318,44 @@ export default {
       } finally {
         if (!silent) this.isSaving = false;
       }
+    },
+    isObjectComplete(item, typeCode) {
+      if (!item.master_object || !item.master_object.id) return false;
+      const typeConfig = this.objectTypes.find(t => t.code === typeCode);
+      if (!typeConfig || !typeConfig.identity_field_key) return true; // Nếu không có quy định định danh, coi như "đủ" để hiện RelationManager
+
+      const idKey = typeConfig.identity_field_key;
+      const idValue = item.individual_field_values?.[idKey];
+      return !!(idValue && (typeof idValue !== 'string' || idValue.trim() !== ''));
+    },
+    validateObjectCompleteness() {
+      if (!this.objectTypes || this.objectTypes.length === 0) return true;
+      let errors = [];
+
+      Object.keys(this.objectSections).forEach(typeCode => {
+        const typeConfig = this.objectTypes.find(t => t.code === typeCode);
+        if (!typeConfig || !typeConfig.identity_field_key) return;
+
+        const idKey = typeConfig.identity_field_key;
+        const items = this.objectSections[typeCode] || [];
+
+        items.forEach((item, index) => {
+          const idValue = item.individual_field_values?.[idKey];
+          if (!idValue || (typeof idValue === 'string' && idValue.trim() === '')) {
+            const typeName = typeConfig.name || typeCode;
+            errors.push(`${typeName} #${index + 1} thiếu định danh (${idKey})`);
+          }
+        });
+      });
+
+      if (errors.length > 0) {
+        this.showWarning(
+          `Hồ sơ có đối tượng chưa hoàn thiện: \n- ${errors.join('\n- ')} \nVui lòng nhập đầy đủ thông tin định danh trước khi lưu.`,
+          'Thông tin chưa hoàn thiện'
+        );
+        return false;
+      }
+      return true;
     },
     validateInternalDuplicates() {
       if (!this.objectTypes || this.objectTypes.length === 0) return true;

@@ -492,7 +492,27 @@ export default {
                         uniqueRelsMap.set(r.id, r);
                     }
                 });
-                const allRels = Array.from(uniqueRelsMap.values());
+                // Lọc quan hệ theo Whitelist hai chiều
+                const allRels = Array.from(uniqueRelsMap.values()).filter(rel => {
+                    const s_type = rel.source_type;
+                    const t_type = rel.target_type;
+                    const s_restricted = rel.source_is_restricted;
+                    const t_restricted = rel.target_is_restricted;
+                    const s_whitelist = rel.source_allowed_relation_types_codes || [];
+                    const t_whitelist = rel.target_allowed_relation_types_codes || [];
+
+                    // Rule for Source
+                    if (s_restricted || s_whitelist.length > 0) {
+                        if (!s_whitelist.includes(t_type)) return false;
+                    }
+
+                    // Rule for Target
+                    if (t_restricted || t_whitelist.length > 0) {
+                        if (!t_whitelist.includes(s_type)) return false;
+                    }
+
+                    return true;
+                });
 
                 this.ownershipRelations = allRels.filter(r => r.relation_type === 'OWNER');
                 this.otherRelations = allRels.filter(r => r.relation_type !== 'OWNER');

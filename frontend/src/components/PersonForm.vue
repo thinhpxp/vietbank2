@@ -44,7 +44,7 @@
       </div>
 
       <!-- 4. Quản lý liên kết (Relations) -->
-      <RelationManager v-if="localPerson.master_object && localPerson.master_object.id"
+      <RelationManager v-if="isComplete"
         :masterObjectId="localPerson.master_object.id" :profileObjects="profileObjects" :currentObjectType="'PERSON'"
         :refreshTrigger="refreshTrigger" :allFields="allFields" :disabled="disabled" />
     </div>
@@ -101,6 +101,14 @@ export default {
     personLabel() {
       const type = this.availableTypes.find(t => t.code === 'PERSON');
       return type ? type.name : 'Người liên quan';
+    },
+    isComplete() {
+      if (!this.localPerson.master_object || !this.localPerson.master_object.id) return false;
+      const type = this.availableTypes.find(t => t.code === 'PERSON');
+      if (!type || !type.identity_field_key) return true;
+      const fv = this.localPerson.individual_field_values || {};
+      const idValue = fv[type.identity_field_key];
+      return !!(idValue && (typeof idValue !== 'string' || idValue.trim() !== ''));
     }
   },
   watch: {

@@ -54,6 +54,15 @@
           </vxe-table>
         </div>
       </div>
+      
+      <!-- Section: Các liên kết liên quan (MỚI) -->
+      <div v-if="objectData.allow_relations" class="mt-8 pt-4 border-t border-dashed border-gray-200">
+        <RelationManager 
+          :masterObjectId="objectData.id" 
+          :allFields="activeFieldDefinitions"
+          :currentObjectType="objectData.object_type"
+        />
+      </div>
     </div>
 
     <template #footer>
@@ -70,7 +79,10 @@ import BaseModal from './BaseModal.vue';
 
 export default {
   name: 'ObjectDetailModal',
-  components: { BaseModal },
+  components: { 
+    BaseModal,
+    RelationManager: () => import('./RelationManager.vue')
+  },
   props: {
     objectId: {
       type: [Number, String],
@@ -85,11 +97,20 @@ export default {
   data() {
     return {
       loading: false,
+      loadingFields: false,
       error: null,
-      objectData: null
+      objectData: null,
+      localFieldDefinitions: [] // Danh sách field được tải độc lập cho loại đối tượng này
     };
   },
   computed: {
+    // Ưu tiên sử dụng localFieldDefinitions, nếu không có mới dùng props
+    activeFieldDefinitions() {
+      if (this.localFieldDefinitions && this.localFieldDefinitions.length > 0) {
+        return this.localFieldDefinitions;
+      }
+      return this.fieldDefinitions || [];
+    },
     fieldValues() {
       if (!this.objectData || !this.objectData.field_values) return {};
 
@@ -99,7 +120,7 @@ export default {
 
       // Chỉ lấy các giá trị mà field definition cho phép loại đối tượng này
       Object.keys(rawValues).forEach(key => {
-        const fieldDef = this.fieldDefinitions.find(f => f.placeholder_key === key);
+        const fieldDef = this.activeFieldDefinitions.find(f => f.placeholder_key === key);
 
         // Nếu không tìm thấy định nghĩa, hiển thị mặc định (để tránh mất dữ liệu quan trọng)
         if (!fieldDef) {
@@ -158,6 +179,7 @@ export default {
         } else {
           this.objectData = null;
           this.error = null;
+          this.localFieldDefinitions = [];
         }
       }
     }
@@ -170,6 +192,11 @@ export default {
       try {
         const response = await MasterService.getObjectById(id);
         this.objectData = response.data;
+
+        // TIẾP THEO: Tải định nghĩa trường cho loại đối tượng này
+        if (this.objectData && this.objectData.object_type) {
+          await this.fetchLocalFields(this.objectData.object_type);
+        }
       } catch (err) {
         console.error("Lỗi tải chi tiết đối tượng:", err);
         this.error = this.$t('LOI_TAI_DU_LIEU');
@@ -177,10 +204,32 @@ export default {
         this.loading = false;
       }
     },
+    async fetchLocalFields(type) {
+      this.loadingFields = true;
+      try {
+        const res = await MasterService.getActiveFieldsGrouped(type);
+        const flatFields = [];
+        if (res && res.data) {
+          Object.keys(res.data).forEach(groupName => {
+            if (Array.isArray(res.data[groupName])) {
+              res.data[groupName].forEach(field => {
+                flatFields.push({ ...field, group_name: groupName });
+              });
+            }
+          });
+        }
+        this.localFieldDefinitions = flatFields;
+      } catch (error) {
+        console.error('Lỗi khi tải metadata cho modal chi tiết:', error);
+        // Không chặn hiển thị nếu lỗi tải metadata, sẽ dùng fallback là slug
+      } finally {
+        this.loadingFields = false;
+      }
+    },
     getLabel(key) {
-      // 1. Tìm trong định nghĩa trường (ưu tiên cao nhất)
-      if (this.fieldDefinitions && this.fieldDefinitions.length > 0) {
-        const field = this.fieldDefinitions.find(f => f.placeholder_key === key);
+      // 1. Tìm trong định nghĩa trường (ưu tiên cao nhất - dùng danh sách đã được sync theo type)
+      if (this.activeFieldDefinitions && this.activeFieldDefinitions.length > 0) {
+        const field = this.activeFieldDefinitions.find(f => f.placeholder_key === key);
         if (field) return field.label;
       }
 

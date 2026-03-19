@@ -19,7 +19,7 @@
         <router-link to="/admin/audit-logs">📜 Nhật ký hệ thống</router-link>
         <router-link to="/admin/users">🛡️ Quản lý Truy cập</router-link>
         <router-link v-if="hasNotificationAccess" to="/admin/notifications">🔔 Quản lý Thông báo</router-link>
-        <router-link to="/admin/settings">⚙️ Cài đặt Thương hiệu</router-link>
+        <router-link to="/admin/settings">⚙️ Cài đặt Hệ thống</router-link>
         <hr />
         <router-link to="/">🏠 Dashboard</router-link>
       </nav>

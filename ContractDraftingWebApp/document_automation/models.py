@@ -229,6 +229,19 @@ class MasterObjectType(models.Model):
         verbose_name="Cho phép gán liên kết",
         help_text="Nếu tắt, đối tượng này sẽ không xuất hiện trong danh sách gán quan hệ và không hiển thị khu vực 'Các liên kết liên quan'"
     )
+    is_restricted = models.BooleanField(
+        default=False, 
+        verbose_name="Hạn chế quyền truy cập (Restricted)",
+        help_text="Nếu bật, loại đối tượng này sẽ bị ẩn khỏi tìm kiếm chung, chỉ những loại đối tượng có trong Whitelist mới thấy nhau"
+    )
+    allowed_relation_types = models.ManyToManyField(
+        'self', 
+        blank=True, 
+        symmetrical=False, 
+        related_name='allowed_by',
+        verbose_name="Whitelist liên kết (Allowed Types)",
+        help_text="Danh sách các loại đối tượng mà loại này ĐƯỢC PHÉP liên kết tới. Nếu để trống = Cho phép tất cả (Public)"
+    )
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -475,6 +488,10 @@ class SystemConfig(models.Model):
     link_hover_color = models.CharField(max_length=20, default='#ffffff', verbose_name="Màu link khi hover")
     active_link_color = models.CharField(max_length=20, default='#10b981', verbose_name="Màu link đang chọn")
     active_link_bg_color = models.CharField(max_length=50, default='rgba(16, 185, 129, 0.1)', verbose_name="Màu nền link đang chọn")
+    
+    # Feature toggles
+    auto_save_enabled = models.BooleanField(default=True, verbose_name="Bật tự động lưu (Snapshot 2p)")
+    
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Cập nhật lần cuối")
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Người cập nhật")
 
