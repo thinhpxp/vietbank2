@@ -186,6 +186,7 @@ export default {
       globalSearchResults: [],
       searching: false,
       searchTimeout: null,
+      currentMasterObject: null, // Lưu thông tin đối tượng hiện tại (đặc biệt hữu ích cho Master Data mode)
 
       // === BƯỚC 1: ĐỊNH NGHĨA BẢN ĐỒ QUAN HỆ ===
       // Thêm đối tượng này vào data()
@@ -217,25 +218,51 @@ export default {
   computed: {
     filteredPossibleTargets() {
       // Tìm object hiện tại để lấy loại và whitelist của nó
-      const currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+      let currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+      if (!currentObj && this.currentMasterObject) {
+        currentObj = this.currentMasterObject;
+      }
+      
+      const currentType = currentObj ? currentObj.object_type : this.currentObjectType;
       const currentWhitelist = currentObj ? (currentObj.allowed_relation_types_codes || []) : [];
+      const currentIsRestricted = currentObj ? !!currentObj.is_restricted : false;
 
-      // Chỉ hiện các object KHÁC với object hiện tại VÀ cho phép gán liên kết VÀ ĐÃ HOÀN THIỆN
+      // Chỉ hiện các đối tượng KHÁC với đối tượng hiện tại VÀ cho phép gán liên kết VÀ ĐÃ HOÀN THIỆN
       return this.profileObjects.filter(obj => {
         if (obj.id === this.masterObjectId) return false;
         if (obj.allow_relations === false) return false;
         if (obj.is_complete === false) return false;
 
-        if (currentWhitelist.length > 0) {
+        // --- KIỂM TRA WHITELIST HAI CHIỀU ---
+        
+        // 1. Nếu Source bị Hạn chế hoặc có Whitelist -> Target phải thuộc đó
+        if (currentIsRestricted || currentWhitelist.length > 0) {
           if (!currentWhitelist.includes(obj.object_type)) return false;
+        }
+
+        // 2. Nếu Target bị Hạn chế -> Target phải cho phép Source.type
+        if (obj.is_restricted) {
+          const targetWhitelist = obj.allowed_relation_types_codes || [];
+          if (!targetWhitelist.includes(currentType)) return false;
         }
 
         return true;
       });
     },
     visibleRelations() {
-      const currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+      if (!this.loanProfileId) {
+        // --- CHẾ ĐỘ TOÀN CỤC (Master Data): Hiển thị tất cả quan hệ hiện có ---
+        return this.relations;
+      }
+
+      let currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+      if (!currentObj && this.currentMasterObject) {
+        currentObj = this.currentMasterObject;
+      }
+      
+      const currentType = currentObj ? currentObj.object_type : this.currentObjectType;
       const currentWhitelist = currentObj ? (currentObj.allowed_relation_types_codes || []) : [];
+      const currentIsRestricted = currentObj ? !!currentObj.is_restricted : false;
 
       return this.relations.filter(rel => {
         const otherId = this.isSource(rel) ? rel.target_object : rel.source_object;
@@ -243,16 +270,17 @@ export default {
         if (!otherObj) return false;
         if (!otherObj.is_complete) return false;
 
-        // --- MỚI: Chỉ hiển thị các liên kết hợp lệ theo Whitelist hai chiều ---
-        // 1. Kiểm tra từ phía hiện tại: Nếu đối tượng hiện tại bị Hạn chế hoặc có Whitelist
-        if (currentObj.is_restricted || currentWhitelist.length > 0) {
+        // --- CHẾ ĐỘ HỒ SƠ: Kiểm tra Whitelist hai chiều ---
+        
+        // 1. Kiểm tra từ phía hiện tại (Source role)
+        if (currentIsRestricted || currentWhitelist.length > 0) {
           if (!currentWhitelist.includes(otherObj.object_type)) return false;
         }
 
-        // 2. Kiểm tra từ phía đối tượng kia: Nếu đối tượng kia bị Hạn chế hoặc có Whitelist
-        const otherWhitelist = otherObj.allowed_relation_types_codes || [];
-        if (otherObj.is_restricted || otherWhitelist.length > 0) {
-          if (!otherWhitelist.includes(currentObj.object_type)) return false;
+        // 2. Kiểm tra từ phía đối tượng kia (Target role)
+        if (otherObj.is_restricted) {
+          const otherWhitelist = otherObj.allowed_relation_types_codes || [];
+          if (!otherWhitelist.includes(currentType)) return false;
         }
 
         return true;
@@ -286,6 +314,8 @@ export default {
           params.loan_profile_id = this.loanProfileId;
         }
         const res = await MasterService.getObjectById(this.masterObjectId, params);
+        this.currentMasterObject = res.data; // Lưu lại để dùng cho kiểm tra whitelist/search
+        
         // Gộp quan hệ đi và quan hệ đến
         this.relations = [
           ...(res.data.relations_out || []),
@@ -326,22 +356,29 @@ export default {
           // Lưu ý: Có thể lọc theo objectType nếu cần thiết kế chặt chẽ hơn
           const res = await MasterService.searchMasterObjects(q);
           
-          // Lấy thông tin object hiện tại
-          const currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+          // Lấy thông tin đối tượng hiện tại và whitelist của nó
+          let currentObj = this.profileObjects.find(o => o.id === this.masterObjectId);
+          if (!currentObj && this.currentMasterObject) {
+            currentObj = this.currentMasterObject;
+          }
+          
+          const currentType = currentObj ? currentObj.object_type : this.currentObjectType;
           const currentWhitelist = currentObj ? (currentObj.allowed_relation_types_codes || []) : [];
+          const currentIsRestricted = currentObj ? !!currentObj.is_restricted : false;
 
-          // Lọc kết quả tìm kiếm toàn cục theo whitelist
+          // Lọc kết quả tìm kiếm toàn cục theo whitelist hai chiều
           this.globalSearchResults = res.data.filter(obj => {
             if (obj.id === this.masterObjectId) return false;
             
-            // 1. Nếu Target bị Restricted, Source phải có quyền
-            if (obj.is_restricted) {
+            // 1. Nếu Source có hạn chế -> Target phải thuộc whitelist
+            if (currentIsRestricted || currentWhitelist.length > 0) {
               if (!currentWhitelist.includes(obj.object_type)) return false;
             }
             
-            // 2. Nếu Source có Whitelist, Target phải thuộc đó
-            if (currentWhitelist.length > 0) {
-              if (!currentWhitelist.includes(obj.object_type)) return false;
+            // 2. Nếu Target bị Hạn chế -> Target phải cho phép Source.type
+            if (obj.is_restricted) {
+              const targetWhitelist = obj.allowed_relation_types_codes || [];
+              if (!targetWhitelist.includes(currentType)) return false;
             }
             
             return true;

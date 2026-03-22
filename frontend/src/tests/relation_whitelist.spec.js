@@ -7,6 +7,7 @@ import RelationManager from '@/components/RelationManager.vue'
 vi.mock('@/services/master.service', () => ({
   default: {
     searchMasterObjects: vi.fn(),
+    getObjectById: vi.fn(() => Promise.resolve({ data: { relations_out: [], relations_in: [] } })),
   }
 }))
 vi.mock('@/services/relation.service', () => ({

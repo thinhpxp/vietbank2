@@ -177,7 +177,10 @@ class UserSerializer(serializers.ModelSerializer):
         from .models import MasterObject
         if branch_id:
             try:
-                profile.branch = MasterObject.objects.get(id=int(branch_id), object_type='BRANCH')
+                branch = MasterObject.objects.get(id=int(branch_id), object_type='BRANCH')
+                if branch.deleted_at is not None:
+                    raise serializers.ValidationError({'branch_id': 'Chi nhánh này đã ngưng hoạt động, không thể chọn.'})
+                profile.branch = branch
             except (MasterObject.DoesNotExist, ValueError, TypeError):
                 pass
         else:
@@ -313,7 +316,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
         if branch_id:
             from .models import MasterObject
             try:
-                user.profile.branch = MasterObject.objects.get(id=branch_id, object_type='BRANCH')
+                branch = MasterObject.objects.get(id=branch_id, object_type='BRANCH')
+                if branch.deleted_at is not None:
+                    raise serializers.ValidationError({'branch_id': 'Chi nhánh này đã ngưng hoạt động, không thể chọn.'})
+                user.profile.branch = branch
             except MasterObject.DoesNotExist:
                 pass
                 
@@ -730,6 +736,7 @@ class MasterObjectLiteSerializer(serializers.ModelSerializer):
     is_restricted = serializers.SerializerMethodField()
     allowed_relation_types_codes = serializers.SerializerMethodField()
     is_deleted = serializers.SerializerMethodField()
+    last_updated_by_name = serializers.CharField(source='last_updated_by.username', read_only=True)
 
     class Meta:
         model = MasterObject
@@ -737,7 +744,8 @@ class MasterObjectLiteSerializer(serializers.ModelSerializer):
             'id', 'object_type', 'object_type_display', 'display_name', 
             'additional_info', 'field_values', 'allow_relations',
             'is_restricted', 'allowed_relation_types_codes',
-            'deleted_at', 'is_deleted'
+            'deleted_at', 'is_deleted',
+            'created_at', 'updated_at', 'last_updated_by_name'
         ]
 
     def get_allow_relations(self, obj):

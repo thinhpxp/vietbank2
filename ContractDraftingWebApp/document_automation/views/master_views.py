@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 import logging
 
 from ..models import MasterObjectType, MasterObject, MasterObjectRelation, Field, FieldValue, LoanProfileObjectLink
@@ -101,8 +102,18 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
             if not include_deleted:
                 qs = qs.filter(deleted_at__isnull=True)
         
-        # Lọc theo drafts nếu cần (mặc định hiện cả nháp)
+        # 1. Lọc theo drafts nếu cần (mặc định hiện cả nháp)
         if not include_drafts: qs = qs.filter(is_draft=False)
+
+        # 2. Tìm kiếm theo từ khóa (Text Search)
+        search_query = self.request.query_params.get('q', self.request.query_params.get('search', '')).strip()
+        if search_query:
+            qs = qs.filter(
+                Q(object_type__icontains=search_query) |
+                Q(fieldvalue__value__icontains=search_query)
+            ).distinct()
+
+        # 3. Lọc theo loại đối tượng
         object_types = self.request.query_params.get('object_type', None)
         if object_types:
             codes = [c.strip() for c in object_types.split(',') if c.strip()]

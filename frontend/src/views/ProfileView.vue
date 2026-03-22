@@ -54,16 +54,7 @@
                     </div>
 
                     <!-- Chọn Chi nhánh / Đơn vị -->
-                    <div class="form-group">
-                        <label>🏢 Chi nhánh / Đơn vị công tác</label>
-                        <vxe-select v-model="profileForm.branch_id" class="admin-select-full" filterable clearable placeholder="-- Chọn chi nhánh / đơn vị --">
-                            <vxe-option :value="null" label="-- Chưa chọn đơn vị --"></vxe-option>
-                            <vxe-option v-for="b in branches" :key="b.id" :value="b.id" :label="b.display_name"></vxe-option>
-                        </vxe-select>
-                        <small v-if="branches.length === 0" class="text-muted">
-                            Chưa có chi nhánh nào được cấu hình. Liên hệ Admin để thiết lập.
-                        </small>
-                    </div>
+                    <BranchSelect v-model="profileForm.branch_id" />
 
                     <div class="form-actions">
                         <button type="submit" class="btn-action btn-primary" :disabled="isUpdatingProfile">
@@ -148,12 +139,13 @@
 import UserService from '@/services/user.service';
 import MasterService from '@/services/master.service';
 import DynamicForm from '@/components/DynamicForm.vue';
+import BranchSelect from '@/components/common/BranchSelect.vue';
 import { useAuthStore } from '@/store/auth.store';
 
 export default {
     name: 'ProfileView',
     title: 'Quản lý tài khoản',
-    components: { DynamicForm },
+    components: { DynamicForm, BranchSelect },
     data() {
         return {
             loading: true,
@@ -168,7 +160,6 @@ export default {
                 department: '',
                 branch_id: null
             },
-            branches: [],
             dynamicGroups: {},
             dynamicValues: {},
             passwordForm: {
@@ -188,8 +179,7 @@ export default {
     async mounted() {
         await Promise.all([
             this.fetchUserData(),
-            this.fetchDynamicFields(),
-            this.fetchBranches()
+            this.fetchDynamicFields()
         ]);
     },
     methods: {
@@ -209,14 +199,6 @@ export default {
                 this.$toast.error('Không thể tải thông tin cá nhân');
             } finally {
                 this.loading = false;
-            }
-        },
-        async fetchBranches() {
-            try {
-                const res = await MasterService.getBranches();
-                this.branches = res.data || [];
-            } catch (e) {
-                console.warn('Không thể tải danh sách chi nhánh:', e);
             }
         },
         async fetchDynamicFields() {
@@ -383,9 +365,5 @@ export default {
     .profile-right {
         width: 100%;
     }
-}
-
-.admin-select-full {
-    width: 100%;
 }
 </style>

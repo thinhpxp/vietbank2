@@ -952,3 +952,16 @@ select.vxe-input-minimal {
     cursor: pointer;
     padding-right: 20px;
 }
+
+/* 16. Inactive Option Styles for Selects */
+.option-inactive {
+    color: var(--slate-400) !important;
+    font-style: italic;
+    background-color: var(--slate-50);
+}
+
+/* 17. Full-width Select Dropdown */
+.admin-select-full {
+    padding: 10px;
+    width: 100%;
+}

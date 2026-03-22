@@ -397,7 +397,7 @@ export default {
     computed: {
         filteredItems() {
             // Define searchable fields based on type
-            let searchFields = ['ho_ten', 'so_giay_chung_nhan', 'display_name'];
+            let searchFields = ['ho_ten', 'so_giay_chung_nhan', 'display_name', 'additional_info'];
 
             return this.filterArray(this.items, this.filters, {
                 search: { type: 'text', fields: searchFields }
