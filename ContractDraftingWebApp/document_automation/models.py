@@ -179,6 +179,11 @@ class LoanProfile(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name="Trạng thái")
     lock_password = models.CharField(max_length=100, blank=True, null=True, verbose_name="Mật khẩu khóa (Dev)")
     
+    # Soft Delete fields
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời điểm xóa")
+    deleted_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='deleted_profiles', verbose_name="Người thực hiện xóa")
+    delete_reason = models.TextField(blank=True, null=True, verbose_name="Lý do xóa")
+
     # Pessimistic Locking fields
     editing_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,

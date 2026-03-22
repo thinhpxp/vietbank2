@@ -378,15 +378,19 @@ class LoanProfileSerializer(serializers.ModelSerializer):
     
     # MỚI: Tóm tắt các mã định danh để hiển thị ở danh sách (VD: Số HĐTC)
     search_identifiers = serializers.SerializerMethodField()
+    is_deleted = serializers.SerializerMethodField()
 
     class Meta:
         model = LoanProfile
         fields = [
             'id', 'name', 'status', 'created_at', 'updated_at', 'created_by_user_name', 
             'field_values', 'people', 'attorneys', 'assets', 'object_sections', 'form_view_slug', 'form_view_name',
-            'search_identifiers'
+            'search_identifiers', 'deleted_at', 'delete_reason', 'is_deleted'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'is_deleted']
+
+    def get_is_deleted(self, obj):
+        return obj.deleted_at is not None
 
     # Logic 1: Gom các FieldValue chung
     def get_field_values(self, obj):
@@ -455,7 +459,8 @@ class LoanProfileSerializer(serializers.ModelSerializer):
                     "object_type": t_code,
                     "is_restricted": is_restricted,
                     "allowed_relation_types_codes": whitelist,
-                    "allow_relations": allow_relations
+                    "allow_relations": allow_relations,
+                    "is_deleted": master.deleted_at is not None
                 }
             }
             
@@ -525,22 +530,25 @@ class MasterObjectTypeSerializer(serializers.ModelSerializer):
         }
 
 # --- HELPERS ---
-def get_master_object_additional_info(obj):
-    """
-    Helper function to generate additional info based on dynamic_summary_template.
-    Used by both MasterObjectSerializer and MasterObjectRelationSerializer.
-    """
+def get_master_object_additional_info(obj, loan_profile_id=None):
     import re
     try:
         from .models import MasterObjectType, FieldValue
-        obj_type_cfg = MasterObjectType.objects.filter(code=obj.object_type).first()
+        obj_type_code = obj.object_type if hasattr(obj, 'object_type') else obj.get('object_type')
+        obj_type_cfg = MasterObjectType.objects.filter(code=obj_type_code).first()
         template = obj_type_cfg.dynamic_summary_template if obj_type_cfg else ""
         if not template:
             return ""
         
-        # Lấy tất cả field values của object này
-        fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True).select_related('field')
-        fv_dict = {fv.field.placeholder_key: fv.value for fv in fvs}
+        # 1. Lấy giá trị Master Data (mặc định)
+        fvs_master = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True).select_related('field')
+        fv_dict = {fv.field.placeholder_key: fv.value for fv in fvs_master}
+        
+        # 2. Nếu có loan_profile_id, lấy giá trị trong hồ sơ và ghi đè
+        if loan_profile_id:
+            fvs_profile = FieldValue.objects.filter(master_object=obj, loan_profile_id=loan_profile_id).select_related('field')
+            for fv in fvs_profile:
+                fv_dict[fv.field.placeholder_key] = fv.value
         
         # Thay thế {key} bằng value
         def replace_match(match):
@@ -549,7 +557,8 @@ def get_master_object_additional_info(obj):
         
         result = re.sub(r'\{(\w+)\}', replace_match, template)
         return result
-    except Exception:
+    except Exception as e:
+        print(f"DEBUG: Error in get_master_object_additional_info: {e}")
         return ""
 
 
@@ -564,6 +573,7 @@ class MasterObjectSerializer(serializers.ModelSerializer):
     allow_relations = serializers.SerializerMethodField()
     is_restricted = serializers.SerializerMethodField()
     allowed_relation_types_codes = serializers.SerializerMethodField()
+    is_deleted = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterObject
@@ -572,13 +582,16 @@ class MasterObjectSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'last_updated_by_name', 
             'profiles_count', 'related_profiles', 'field_values', 
             'relations_out', 'relations_in', 'allow_relations',
-            'is_restricted', 'allowed_relation_types_codes'
+            'is_restricted', 'allowed_relation_types_codes', 'is_deleted'
         ]
     
     # New fields for Relations and Profiles
     relations_out = serializers.SerializerMethodField()
     relations_in = serializers.SerializerMethodField()
     related_profiles = serializers.SerializerMethodField()
+
+    def get_is_deleted(self, obj):
+        return obj.deleted_at is not None
 
     def get_related_profiles(self, obj):
         """Lấy danh sách các hồ sơ vay mà đối tượng này tham gia"""
@@ -590,7 +603,8 @@ class MasterObjectSerializer(serializers.ModelSerializer):
                 "form_name": link.loan_profile.form_view.name if link.loan_profile.form_view else "N/A",
                 "status": link.loan_profile.status,
                 "created_at": link.loan_profile.created_at,
-                "roles": link.roles
+                "roles": link.roles,
+                "is_deleted": link.loan_profile.deleted_at is not None
             }
             for link in links
         ]
@@ -603,7 +617,7 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         for rel in rels:
             if self._is_relation_valid(rel):
                 valid_rels.append(rel)
-        return MasterObjectRelationSerializer(valid_rels, many=True).data
+        return MasterObjectRelationSerializer(valid_rels, many=True, context=self.context).data
 
     def get_relations_in(self, obj):
         """Lấy tất cả các quan hệ mà đối tượng này là ĐÍCH (Target) và hợp lệ theo Whitelist"""
@@ -612,11 +626,14 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         for rel in rels:
             if self._is_relation_valid(rel):
                 valid_rels.append(rel)
-        return MasterObjectRelationSerializer(valid_rels, many=True).data
+        return MasterObjectRelationSerializer(valid_rels, many=True, context=self.context).data
 
     def _is_relation_valid(self, rel):
-        """Helper kiểm tra tính hợp lệ của liên kết dựa trên Whitelist hai chiều"""
+        """Helper kiểm tra tính hợp lệ của liên kết dựa trên Whitelist (Phase 10: Luôn hiện cả đối tượng đã xóa để làm mờ)"""
         try:
+            # Phase 10: Không còn chặn dựa trên deleted_at tại đây để hỗ trợ "Liên kết lịch sử"
+            # Tuy nhiên, nếu là ROOT thì có thể muốn filter khác? Không, cứ hiện hết để làm mờ.
+
             s_type_cfg = MasterObjectType.objects.filter(code=rel.source_object.object_type).first()
             t_type_cfg = MasterObjectType.objects.filter(code=rel.target_object.object_type).first()
             if not s_type_cfg or not t_type_cfg: return True
@@ -635,7 +652,10 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         except: return True
 
     def get_additional_info(self, obj):
-        return get_master_object_additional_info(obj)
+        loan_profile_id = self.context.get('loan_profile_id')
+        if not loan_profile_id and 'request' in self.context:
+            loan_profile_id = self.context['request'].query_params.get('loan_profile_id')
+        return get_master_object_additional_info(obj, loan_profile_id=loan_profile_id)
 
     def get_display_name(self, obj):
         """Sử dụng thuộc tính display_name đã được định nghĩa trong Model"""
@@ -655,9 +675,24 @@ class MasterObjectSerializer(serializers.ModelSerializer):
         return obj.profile_links.count()
 
     def get_field_values(self, obj):
-        """Return all canonical field values for this object"""
-        fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True)
-        return {fv.field.placeholder_key: fv.value for fv in fvs}
+        """Return all canonical field values for this object, prioritizing profile context"""
+        from .models import FieldValue
+        
+        # 1. Master Data
+        fvs_master = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True).select_related('field')
+        fv_dict = {fv.field.placeholder_key: fv.value for fv in fvs_master}
+        
+        # 2. Profile Context
+        loan_profile_id = self.context.get('loan_profile_id')
+        if not loan_profile_id and 'request' in self.context:
+            loan_profile_id = self.context['request'].query_params.get('loan_profile_id')
+            
+        if loan_profile_id:
+            fvs_profile = FieldValue.objects.filter(master_object=obj, loan_profile_id=loan_profile_id).select_related('field')
+            for fv in fvs_profile:
+                fv_dict[fv.field.placeholder_key] = fv.value
+                
+        return fv_dict
 
     def get_allow_relations(self, obj):
         try:
@@ -694,13 +729,15 @@ class MasterObjectLiteSerializer(serializers.ModelSerializer):
     allow_relations = serializers.SerializerMethodField()
     is_restricted = serializers.SerializerMethodField()
     allowed_relation_types_codes = serializers.SerializerMethodField()
+    is_deleted = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterObject
         fields = [
             'id', 'object_type', 'object_type_display', 'display_name', 
             'additional_info', 'field_values', 'allow_relations',
-            'is_restricted', 'allowed_relation_types_codes'
+            'is_restricted', 'allowed_relation_types_codes',
+            'deleted_at', 'is_deleted'
         ]
 
     def get_allow_relations(self, obj):
@@ -729,20 +766,14 @@ class MasterObjectLiteSerializer(serializers.ModelSerializer):
         except Exception:
             return []
 
+    def get_is_deleted(self, obj):
+        return obj.deleted_at is not None
+
     def get_additional_info(self, obj):
-        # Tái sử dụng logic từ serializer chính hoặc gọi trực tiếp (vì đây là class riêng nên copy tạm logic để độc lập)
-        import re
-        try:
-            obj_type_cfg = MasterObjectType.objects.filter(code=obj.object_type).first()
-            template = obj_type_cfg.dynamic_summary_template if obj_type_cfg else ""
-            if not template: return ""
-            fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True).select_related('field')
-            fv_dict = {fv.field.placeholder_key: fv.value for fv in fvs}
-            def replace_match(match):
-                key = match.group(1)
-                return str(fv_dict.get(key, f"{{{key}}}"))
-            return re.sub(r'\{(\w+)\}', replace_match, template)
-        except: return ""
+        loan_profile_id = self.context.get('loan_profile_id')
+        if not loan_profile_id and 'request' in self.context:
+            loan_profile_id = self.context['request'].query_params.get('loan_profile_id')
+        return get_master_object_additional_info(obj, loan_profile_id=loan_profile_id)
 
     def get_object_type_display(self, obj):
         try:
@@ -751,8 +782,25 @@ class MasterObjectLiteSerializer(serializers.ModelSerializer):
             return obj.object_type
 
     def get_field_values(self, obj):
-        fvs = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True)
-        return {fv.field.placeholder_key: fv.value for fv in fvs}
+        """Return all canonical field values for this object, prioritizing profile context"""
+        from .models import FieldValue
+        
+        # 1. Master Data
+        fvs_master = FieldValue.objects.filter(master_object=obj, loan_profile__isnull=True).select_related('field')
+        fv_dict = {fv.field.placeholder_key: fv.value for fv in fvs_master}
+        
+        # 2. Profile Context
+        loan_profile_id = self.context.get('loan_profile_id')
+        if not loan_profile_id and 'request' in self.context:
+            loan_profile_id = self.context['request'].query_params.get('loan_profile_id')
+            
+        if loan_profile_id:
+            fvs_profile = FieldValue.objects.filter(master_object=obj, loan_profile_id=loan_profile_id).select_related('field')
+            for fv in fvs_profile:
+                fv_dict[fv.field.placeholder_key] = fv.value
+                
+        return fv_dict
+
 
 
 # 8. Serializer cho Relation (MỚI)
@@ -768,20 +816,37 @@ class MasterObjectRelationSerializer(serializers.ModelSerializer):
     target_is_restricted = serializers.SerializerMethodField()
     source_allowed_relation_types_codes = serializers.SerializerMethodField()
     target_allowed_relation_types_codes = serializers.SerializerMethodField()
+    
+    # Phase 10: Thêm thông tin trạng thái xóa
+    source_is_deleted = serializers.SerializerMethodField()
+    target_is_deleted = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterObjectRelation
         fields = ['id', 'source_object', 'target_object', 'relation_type', 'created_at', 
                   'source_name', 'target_name', 'target_type', 'source_type',
                   'source_additional_info', 'target_additional_info',
+                  'source_is_deleted', 'target_is_deleted',
                   'source_is_restricted', 'target_is_restricted',
                   'source_allowed_relation_types_codes', 'target_allowed_relation_types_codes']
 
+    def get_source_is_deleted(self, obj):
+        return obj.source_object.deleted_at is not None
+
+    def get_target_is_deleted(self, obj):
+        return obj.target_object.deleted_at is not None
+
     def get_source_additional_info(self, obj):
-        return get_master_object_additional_info(obj.source_object)
+        loan_profile_id = self.context.get('loan_profile_id')
+        if not loan_profile_id and 'request' in self.context:
+            loan_profile_id = self.context['request'].query_params.get('loan_profile_id')
+        return get_master_object_additional_info(obj.source_object, loan_profile_id=loan_profile_id)
 
     def get_target_additional_info(self, obj):
-        return get_master_object_additional_info(obj.target_object)
+        loan_profile_id = self.context.get('loan_profile_id')
+        if not loan_profile_id and 'request' in self.context:
+            loan_profile_id = self.context['request'].query_params.get('loan_profile_id')
+        return get_master_object_additional_info(obj.target_object, loan_profile_id=loan_profile_id)
 
     def get_source_is_restricted(self, obj):
         try:

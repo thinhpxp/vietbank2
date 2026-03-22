@@ -26,7 +26,12 @@
         <template #footer>
             <div v-if="readOnly" class="text-warning text-sm mr-auto font-bold flex items-center gap-2">
                 <SvgIcon name="alert" size="sm" />
-                <span>Bạn hiện chỉ xem được thông tin, vì người khác đang chỉnh sửa đối tượng này</span>
+                <span v-if="editObject && editObject.is_deleted">
+                    ĐỐI TƯỢNG ĐÃ BỊ XÓA: Bạn chỉ có thể xem, không thể chỉnh sửa dữ liệu đã xóa.
+                </span>
+                <span v-else>
+                    {{ lockedBy ? `ĐANG KHÓA: Người dùng ${lockedBy} đang chỉnh sửa đối tượng này.` : 'CHẾ ĐỘ XEM: Bạn không có quyền chỉnh sửa đối tượng này.' }}
+                </span>
             </div>
             <button class="btn-action btn-secondary" @click="close">Hủy</button>
             <button v-if="!readOnly" class="btn-action btn-save" @click="handleSave" :disabled="isSaving">
@@ -51,7 +56,8 @@ export default {
         type: String, // 'PERSON', 'ASSET', 'SAVINGS'
         typeName: { type: String, default: 'Đối tượng' },
         editObject: Object, // Null if creating
-        readOnly: { type: Boolean, default: false }
+        readOnly: { type: Boolean, default: false },
+        lockedBy: { type: String, default: null }
     },
     emits: ['close', 'success'],
     data() {

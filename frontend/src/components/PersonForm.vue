@@ -46,7 +46,7 @@
       <!-- 4. Quản lý liên kết (Relations) -->
       <RelationManager v-if="isComplete"
         :masterObjectId="localPerson.master_object.id" :profileObjects="profileObjects" :currentObjectType="'PERSON'"
-        :refreshTrigger="refreshTrigger" :allFields="allFields" :disabled="disabled" />
+        :refreshTrigger="refreshTrigger" :allFields="allFields" :disabled="disabled" :loanProfileId="loanProfileId" />
     </div>
 
     <ObjectSelectModal :isOpen="isModalOpen" type="person" @close="isModalOpen = false" @select="onPersonSelect" />
@@ -74,7 +74,8 @@ export default {
     allFields: { type: Array, default: () => [] },
     disabled: { type: Boolean, default: false },
     refreshTrigger: { type: Number, default: 0 },
-    allSections: { type: Object, default: () => ({}) }
+    allSections: { type: Object, default: () => ({}) },
+    loanProfileId: { type: [Number, String], default: null }
   },
   emits: ['update:person', 'remove', 'computed-update'],
   data() {

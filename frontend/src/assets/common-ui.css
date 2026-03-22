@@ -798,6 +798,68 @@ body.is-resizing * {
     display: block;
 }
 
+/* 14. Soft Delete Styles (Unified) */
+.row-deleted-blurred {
+    opacity: 0.5;
+    filter: grayscale(0.8) blur(0.5px);
+    background-color: rgba(241, 245, 249, 0.5) !important;
+    transition: all 0.3s ease;
+}
+
+.row-deleted-blurred:hover {
+    filter: none;
+    opacity: 0.8;
+    background-color: rgba(241, 245, 249, 0.8) !important;
+}
+
+/* Ensure interactive elements in blurred rows are still clickable */
+.row-deleted-blurred .vxe-body--column {
+    pointer-events: none !important;
+}
+
+/* Riêng cột hành động và các nút hành động KHÔNG được chặn pointer-events */
+.row-deleted-blurred .vxe-body--column:last-child,
+.row-deleted-blurred .action-buttons-container,
+.row-deleted-blurred .btn-action {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    filter: none !important;
+    opacity: 1 !important;
+    position: relative;
+    z-index: 10;
+}
+
+.action-buttons-container {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.btn-restore {
+    background: var(--slate-100);
+    color: var(--color-primary);
+}
+
+.btn-restore:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-hard-delete {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.btn-hard-delete:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.text-deleted {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
 /* 14. Banners & Overlays */
 .lock-banner {
     background: var(--color-warning-light);

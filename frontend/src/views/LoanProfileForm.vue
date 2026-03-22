@@ -124,7 +124,7 @@
                   <RelationManager v-if="isObjectComplete(item, segment.code)"
                     :masterObjectId="item.master_object.id" :profileObjects="allProfileObjects"
                     :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                    :disabled="isReadOnly" />
+                    :disabled="isReadOnly" :loanProfileId="currentId || id" />
                 </div>
               </div>
             </div>
@@ -150,7 +150,7 @@
               <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
                 <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
                   :profileObjects="allProfileObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                  :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
+                  :allSections="fullProfileData" :loanProfileId="currentId || id" @update:asset="updateAssetList(index, $event)"
                   @remove="removeAssetList(index)"
                   @computed-update="handleComputedUpdate($event, asset._originalType, asset._originalIdx)" />
               </div>
@@ -181,7 +181,7 @@
                 <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
                   :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allProfileObjects"
                   :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
-                  @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
+                  :loanProfileId="currentId || id" @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
                   @computed-update="handleComputedUpdate($event, 'PERSON', index)" />
               </div>
             </div>
@@ -256,7 +256,7 @@
                   <RelationManager v-if="isObjectComplete(item, segment.code)"
                     :masterObjectId="item.master_object.id" :profileObjects="allProfileObjects"
                     :currentObjectType="segment.code" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                    :disabled="isReadOnly" />
+                    :disabled="isReadOnly" :loanProfileId="currentId || id" />
                 </div>
               </div>
             </div>
@@ -282,7 +282,7 @@
               <div v-for="(asset, index) in computedAssetList" :key="asset.master_object?.id || asset._uid">
                 <AssetForm :index="index" :asset="asset" :assetFields="getAssetFields()" :availableTypes="objectTypes"
                   :profileObjects="allProfileObjects" :refreshTrigger="relationRefreshTrigger" :allFields="allFields"
-                  :allSections="fullProfileData" @update:asset="updateAssetList(index, $event)"
+                  :allSections="fullProfileData" :loanProfileId="currentId || id" @update:asset="updateAssetList(index, $event)"
                   @remove="removeAssetList(index)"
                   @computed-update="handleComputedUpdate($event, asset._originalType, asset._originalIdx)" />
               </div>
@@ -313,7 +313,7 @@
                 <PersonForm :index="index" :person="person" :personFields="getFieldsForType('PERSON')"
                   :availableRoles="availableRoles" :availableTypes="objectTypes" :profileObjects="allProfileObjects"
                   :refreshTrigger="relationRefreshTrigger" :allFields="allFields" :allSections="fullProfileData"
-                  @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
+                  :loanProfileId="currentId || id" @update:person="updateEntity('PERSON', index, $event)" @remove="removeEntity('PERSON', index)"
                   @computed-update="handleComputedUpdate($event, 'PERSON', index)" />
               </div>
             </div>

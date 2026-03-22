@@ -108,7 +108,21 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
     serializer_class = LoanProfileSerializer
     permission_classes = [permissions.DjangoModelPermissions]
     def get_queryset(self):
+        # Mặc định chỉ hiện các hồ sơ chưa bị xóa
         queryset = LoanProfile.objects.all().prefetch_related('fieldvalue_set__field', 'object_links__master_object')
+        
+        # Nếu không phải là ROOT/Admin, chỉ được xem các hồ sơ chưa bị xóa mềm
+        if not (self.request.user.is_superuser or self.request.user.is_staff):
+            queryset = queryset.filter(deleted_at__isnull=True)
+        else:
+            # Đối với Admin, cho phép lọc bản ghi đã xóa qua query param ?show_deleted=1
+            show_deleted = self.request.query_params.get('show_deleted')
+            if show_deleted != '1':
+                # Mặc định admin cũng chỉ muốn thấy cái chưa xóa trừ khi yêu cầu cụ thể
+                # Tuy nhiên, ở Dashboard ta thường muốn hiện cả cái đã xóa để làm mờ
+                # Nên ở đây ta sẽ cho phép hiện tất cả nếu là admin, Dashboard sẽ tự làm mờ
+                pass
+
         search_query = self.request.query_params.get('search')
         if search_query:
             matching_mo_ids = FieldValue.objects.filter(value__icontains=search_query, master_object__isnull=False).values_list('master_object_id', flat=True)
@@ -132,9 +146,30 @@ class LoanProfileViewSet(viewsets.ModelViewSet):
         log_action(user, 'UPDATE', 'LoanProfile', instance.id, f"Cập nhật hồ sơ: {instance.name}")
 
     def perform_destroy(self, instance):
+        # Triển khai Soft Delete
+        instance.deleted_at = timezone.now()
+        instance.deleted_by_user = self.request.user if self.request.user.is_authenticated else None
+        instance.delete_reason = self.request.query_params.get('reason', '') or self.request.data.get('reason', '')
+        instance.save()
+        log_action(self.request.user, 'DELETE', 'LoanProfile', instance.id, f"Xóa hồ sơ (Soft Delete): {instance.name}. Lý do: {instance.delete_reason}")
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrManager])
+    def restore(self, request, pk=None):
+        instance = get_object_or_404(LoanProfile, pk=pk)
+        instance.deleted_at = None
+        instance.deleted_by_user = None
+        instance.delete_reason = None
+        instance.save()
+        log_action(request.user, 'UPDATE', 'LoanProfile', instance.id, f"Khôi phục hồ sơ: {instance.name}")
+        return Response({"status": "success", "message": "Hồ sơ đã được khôi phục."})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def hard_delete(self, request, pk=None):
+        instance = get_object_or_404(LoanProfile, pk=pk)
         p_id, p_name = instance.id, instance.name
         instance.delete()
-        log_action(self.request.user, 'DELETE', 'LoanProfile', p_id, f"Xóa hồ sơ: {p_name}")
+        log_action(request.user, 'DELETE', 'LoanProfile', p_id, f"Xóa vĩnh viễn hồ sơ: {p_name}")
+        return Response({"status": "success", "message": "Hồ sơ đã được xóa hoàn toàn khỏi hệ thống."})
 
     @action(detail=True, methods=['get'])
     def history(self, request, pk=None):

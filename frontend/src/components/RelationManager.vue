@@ -13,7 +13,7 @@
 
     <div v-else class="relation-list">
       <div v-for="rel in visibleRelations" :key="rel.id" class="relation-item">
-        <div class="rel-info">
+        <div class="rel-info" :class="{ 'rel-info-deleted': isOtherDeleted(rel) }">
           <span class="rel-type-badge">{{ $t(rel.relation_type) }}</span>
 
           <span class="rel-target">
@@ -21,16 +21,19 @@
 
             <!-- Logic hiển thị: Nếu trong hồ sơ thì text thường, ngoài hồ sơ thì link -->
             <strong v-if="isObjectInProfile(isSource(rel) ? rel.target_object : rel.source_object)"
-              class="internal-obj-text">
+              class="internal-obj-text" :class="{ 'text-muted-deleted': isOtherDeleted(rel) }">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
+              <span v-if="isOtherDeleted(rel)" class="badge-deleted-inline">[Đã xóa]</span>
               <span v-if="isSource(rel) ? rel.target_additional_info : rel.source_additional_info">
                 | {{ isSource(rel) ? rel.target_additional_info : rel.source_additional_info }}
               </span>
             </strong>
             <span v-else class="external-link"
+              :class="{ 'text-muted-deleted': isOtherDeleted(rel) }"
               @click.stop="viewObjectDetail(isSource(rel) ? rel.target_object : rel.source_object)"
               title="Xem chi tiết đối tượng">
               {{ isSource(rel) ? rel.target_name : rel.source_name }}
+              <span v-if="isOtherDeleted(rel)" class="badge-deleted-inline">[Đã xóa]</span>
               <span v-if="isSource(rel) ? rel.target_additional_info : rel.source_additional_info">
                 | {{ isSource(rel) ? rel.target_additional_info : rel.source_additional_info }}
               </span>
@@ -40,7 +43,7 @@
 
           </span>
         </div>
-        <button v-if="!disabled" class="btn-remove-rel" @click="removeRelation(rel.id)"
+        <button v-if="!disabled && !isOtherDeleted(rel)" class="btn-remove-rel" @click="removeRelation(rel.id)"
           title="Xóa liên kết">&times;</button>
       </div>
     </div>
@@ -58,7 +61,7 @@
     />
 
     <!-- Modal xem chi tiết -->
-    <ObjectDetailModal :objectId="viewingObjectId" :fieldDefinitions="allFields" @close="viewingObjectId = null" />
+    <ObjectDetailModal :objectId="viewingObjectId" :fieldDefinitions="allFields" :loanProfileId="loanProfileId" @close="viewingObjectId = null" />
 
     <!-- Modal chọn đối tượng để liên kết -->
     <BaseModal :isOpen="showAddModal" title="Gán mối quan hệ mới" @close="closeModal">
@@ -160,7 +163,8 @@ export default {
     allFields: { type: Array, default: () => [] },
     currentObjectType: { type: String, default: '' },
     refreshTrigger: { type: Number, default: 0 },
-    disabled: { type: Boolean, default: false }
+    disabled: { type: Boolean, default: false },
+    loanProfileId: { type: [Number, String], default: null }
   },
   data() {
     return {
@@ -277,7 +281,11 @@ export default {
     async fetchRelations() {
       if (!this.masterObjectId) return;
       try {
-        const res = await MasterService.getObjectById(this.masterObjectId);
+        const params = {};
+        if (this.loanProfileId) {
+          params.loan_profile_id = this.loanProfileId;
+        }
+        const res = await MasterService.getObjectById(this.masterObjectId, params);
         // Gộp quan hệ đi và quan hệ đến
         this.relations = [
           ...(res.data.relations_out || []),
@@ -397,6 +405,9 @@ export default {
       // Nếu không, quay về mặc định để tránh lỗi
       return this.isSource(rel) ? 'có quan hệ với' : 'là quan hệ của';
     },
+    isOtherDeleted(rel) {
+      return this.isSource(rel) ? rel.target_is_deleted : rel.source_is_deleted;
+    }
   }
 };
 </script>
@@ -636,5 +647,28 @@ export default {
   font-size: 0.75em;
   color: #718096;
   font-style: italic;
+}
+
+/* HISTORICAL RELATIONS STYLES (Phase 10) */
+.rel-info-deleted {
+  opacity: 0.6;
+  filter: grayscale(100%);
+}
+
+.text-muted-deleted {
+  color: #94a3b8 !important;
+  text-decoration: line-through !important;
+}
+
+.badge-deleted-inline {
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 0.7em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-left: 4px;
+  font-weight: bold;
+  text-decoration: none !important;
+  display: inline-block;
 }
 </style>

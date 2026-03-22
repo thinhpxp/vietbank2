@@ -27,23 +27,32 @@ export function formatError(error) {
         const data = error.response.data;
 
         // Message chính
-        if (data && typeof data === 'object' && !data.message && !data.error) {
+        if (data && typeof data === 'object' && !data.message && !data.error && !data.detail) {
             // DRF field-specific errors: {"field": ["error message"]}
             const errors = [];
             Object.keys(data).forEach(key => {
                 const fieldName = translate(key);
                 const fieldErrors = data[key];
+                
+                // Helper to format individual message (handles objects/strings)
+                const formatMsg = (msg) => {
+                    if (typeof msg === 'object' && msg !== null) {
+                        return msg.message || msg.detail || JSON.stringify(msg);
+                    }
+                    return translate(msg);
+                };
+
                 if (Array.isArray(fieldErrors)) {
                     fieldErrors.forEach(msg => {
-                        errors.push(`• ${fieldName}: ${translate(msg)}`);
+                        errors.push(`• <b style="color: #000;">${fieldName}</b>: <span style="color: #000233;">${formatMsg(msg)}</span>`);
                     });
                 } else {
-                    errors.push(`• ${fieldName}: ${translate(fieldErrors)}`);
+                    errors.push(`• <b style="color: #000;">${fieldName}</b>: <span style="color: #000233;">${formatMsg(fieldErrors)}</span>`);
                 }
             });
 
             if (errors.length > 0) {
-                message = "Dữ liệu nhập vào chưa hợp lệ:\n" + errors.join('\n');
+                message = "Dữ liệu nhập vào chưa hợp lệ:<br>" + errors.join('<br>');
             } else {
                 message = `Lỗi ${status}: ${error.response.statusText}`;
             }

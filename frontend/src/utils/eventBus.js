@@ -52,7 +52,8 @@ const eventBus = new EventBus();
 export const EVENTS = {
     SHOW_GLOBAL_ERROR: 'show-global-error',
     SHOW_GLOBAL_SUCCESS: 'show-global-success',
-    SHOW_GLOBAL_WARNING: 'show-global-warning'
+    SHOW_GLOBAL_WARNING: 'show-global-warning',
+    SHOW_GLOBAL_CONFIRM: 'show-global-confirm',
 };
 
 export default eventBus;

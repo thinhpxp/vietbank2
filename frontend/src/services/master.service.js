@@ -81,8 +81,8 @@ const MasterService = {
         return api.get('/master-objects/', { params });
     },
 
-    getObjectById(id) {
-        return api.get(`/master-objects/${id}/`);
+    getObjectById(id, params = {}) {
+        return api.get(`/master-objects/${id}/`, { params });
     },
 
     createObject(data) {
@@ -93,8 +93,16 @@ const MasterService = {
         return api.put(`/master-objects/${id}/`, data);
     },
 
-    deleteObject(id) {
-        return api.delete(`/master-objects/${id}/`);
+    deleteObject(id, reason = '') {
+        return api.delete(`/master-objects/${id}/`, { data: { reason } });
+    },
+
+    hardDeleteObject(id) {
+        return api.post(`/master-objects/${id}/hard_delete/`);
+    },
+
+    restoreObject(id) {
+        return api.post(`/master-objects/${id}/restore/`);
     },
 
     bulkDeleteObjects(ids) {

@@ -61,6 +61,7 @@
           :masterObjectId="objectData.id" 
           :allFields="activeFieldDefinitions"
           :currentObjectType="objectData.object_type"
+          :loanProfileId="loanProfileId"
         />
       </div>
     </div>
@@ -92,6 +93,10 @@ export default {
     fieldDefinitions: {
       type: Array,
       default: () => []
+    },
+    loanProfileId: {
+      type: [Number, String],
+      default: null
     }
   },
   data() {

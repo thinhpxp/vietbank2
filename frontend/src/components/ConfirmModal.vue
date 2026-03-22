@@ -7,12 +7,23 @@
                     <h3>{{ title }}</h3>
                 </div>
                 <div class="modal-body">
-                    <p v-if="message" class="modal-message">{{ message }}</p>
+                    <p v-if="message" class="modal-message" v-html="message"></p>
                     <slot />
 
                     <!-- Error Code (nếu có) -->
                     <div v-if="errorCode" class="error-code">
                         <strong>Mã lỗi:</strong> {{ errorCode }}
+                    </div>
+                    
+                    <!-- Nhập lý do (dùng cho xóa/khôi phục) -->
+                    <div v-if="showReason" class="reason-section">
+                        <label class="reason-label">{{ reasonLabel }}</label>
+                        <textarea 
+                            v-model="localReason" 
+                            class="reason-textarea" 
+                            :placeholder="reasonPlaceholder" 
+                            rows="2"
+                        ></textarea>
                     </div>
 
                     <!-- Chi tiết lỗi có thể mở rộng -->
@@ -34,7 +45,12 @@
                     <button v-if="mode === 'confirm'" class="btn-cancel" @click="cancel">
                         {{ cancelText }}
                     </button>
-                    <button class="btn-confirm" :class="confirmButtonClass" @click="confirm">
+                    <button 
+                        class="btn-confirm" 
+                        :class="confirmButtonClass" 
+                        :disabled="isConfirmDisabled"
+                        @click="confirm"
+                    >
                         {{ confirmText }}
                     </button>
                 </div>
@@ -58,13 +74,17 @@ export default {
         details: { type: String, default: '' }, // Chi tiết kỹ thuật (stack trace, JSON, etc.)
         showTimestamp: { type: Boolean, default: false }, // Hiển thị timestamp
         closeOnOverlay: { type: Boolean, default: false }, // Đóng khi click overlay
-        overlayVariant: { type: String, default: 'transparent' } // 'dim', 'light', 'transparent'
+        overlayVariant: { type: String, default: 'transparent' }, // 'dim', 'light', 'transparent'
+        showReason: { type: Boolean, default: false }, // Hiển thị ô nhập lý do
+        reasonLabel: { type: String, default: 'Lý do thực hiện:' },
+        reasonPlaceholder: { type: String, default: 'Nhập lý do tại đây...' }
     },
     emits: ['confirm', 'cancel'],
     data() {
         return {
             showDetails: false,
             timestamp: new Date().toLocaleString('vi-VN'),
+            localReason: '', // Lưu giá trị lý do người dùng nhập
             // Drag state
             isDragging: false,
             dragX: 0,
@@ -100,11 +120,18 @@ export default {
             return {
                 transform: `translate(${this.dragX}px, ${this.dragY}px)`
             };
+        },
+        isConfirmDisabled() {
+            // Nếu có ô nhập lý do, yêu cầu không được để trống (sau khi trim)
+            if (this.showReason) {
+                return !this.localReason || this.localReason.trim().length === 0;
+            }
+            return false;
         }
     },
     methods: {
         confirm() {
-            this.$emit('confirm');
+            this.$emit('confirm', this.localReason);
         },
         cancel() {
             this.$emit('cancel');
@@ -250,6 +277,56 @@ export default {
     font-size: 13px;
 }
 
+/* Reason Input */
+.reason-section {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.reason-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.reason-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: 12px 15px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 80px;
+    background: #ffffff;
+    transition: all 0.2s ease-in-out;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    color: #374151;
+}
+
+.reason-textarea::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.reason-textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    background: #ffffff;
+    box-shadow: 
+        inset 0 1px 2px rgba(0, 0, 0, 0.05),
+        0 0 0 4px rgba(52, 152, 219, 0.15);
+}
+
+.reason-textarea:hover {
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
 /* Error Details (Expandable) */
 .error-details {
     margin-top: 15px;
@@ -335,6 +412,14 @@ export default {
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-confirm:disabled {
+    background: #ccc !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+    box-shadow: none !important;
 }
 
 /* Button variants */

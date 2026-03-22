@@ -57,7 +57,7 @@
             <div v-if="loading" class="loading-state">Đang tải dữ liệu...</div>
             <div v-else class="data-table-vxe">
                 <vxe-table border round :data="filteredItems" :row-config="{ isHover: true }"
-                    :column-config="{ resizable: true }"
+                    :column-config="{ resizable: true }" :row-class-name="rowClassName"
                     :sort-config="{ trigger: 'cell', defaultSort: { field: 'id', order: 'desc' } }"
                     @checkbox-change="handleCheckboxChange" @checkbox-all="handleCheckboxAll">
 
@@ -102,23 +102,41 @@
                         </template>
                     </vxe-column>
 
-                    <vxe-column title="Hành động" width="250" fixed="right">
+                    <vxe-column title="Hành động" width="280" fixed="right">
                         <template #default="{ row }">
-                            <div class="flex gap-2">
-                                <button class="btn-action btn-secondary btn-icon-only" @click="viewRelated(row)"
-                                    title="Xem liên kết">
-                                    <SvgIcon name="users" size="sm" />
-                                </button>
-                                <button class="btn-action btn-edit btn-icon-only" @click="editObject(row)"
-                                    :disabled="!authStore.hasPermission('document_automation.change_masterobject')"
-                                    :title="authStore.hasPermission('document_automation.change_masterobject') ? 'Sửa' : 'Không có quyền sửa'">
-                                    <SvgIcon name="edit" size="sm" />
-                                </button>
-                                <button class="btn-action btn-delete btn-icon-only" @click="confirmDelete(row)"
-                                    :disabled="!authStore.hasPermission('document_automation.delete_masterobject')"
-                                    :title="authStore.hasPermission('document_automation.delete_masterobject') ? 'Xóa' : 'Không có quyền xóa'">
-                                    <SvgIcon name="trash" size="sm" />
-                                </button>
+                            <div class="action-buttons-container">
+                                <!-- Group: Actions for Active items -->
+                                <template v-if="!row.is_deleted">
+                                    <button class="btn-action btn-secondary btn-icon-only" @click="viewRelated(row)"
+                                        title="Xem liên kết">
+                                        <SvgIcon name="users" size="sm" />
+                                    </button>
+                                    <button class="btn-action btn-edit btn-icon-only" @click="editObject(row)"
+                                        :disabled="!authStore.hasPermission('document_automation.change_masterobject')"
+                                        :title="authStore.hasPermission('document_automation.change_masterobject') ? 'Sửa' : 'Không có quyền sửa'">
+                                        <SvgIcon name="edit" size="sm" />
+                                    </button>
+                                    <button class="btn-action btn-delete btn-icon-only" @click="confirmDelete(row)"
+                                        :disabled="!authStore.hasPermission('document_automation.delete_masterobject')"
+                                        :title="authStore.hasPermission('document_automation.delete_masterobject') ? 'Xóa' : 'Không có quyền xóa'">
+                                        <SvgIcon name="trash" size="sm" />
+                                    </button>
+                                </template>
+
+                                <!-- Group: Actions for Deleted items (ROOT only) -->
+                                <template v-else-if="authStore.isSuperuser">
+                                    <button class="btn-action btn-secondary btn-icon-only" @click="viewRelated(row)"
+                                        title="Xem liên kết">
+                                        <SvgIcon name="users" size="sm" />
+                                    </button>
+                                    <button class="btn-action btn-restore btn-icon-only" @click="confirmRestore(row)" title="KHÔI PHỤC">
+                                        <SvgIcon name="refresh-cw" size="sm" />
+                                    </button>
+                                    <button class="btn-action btn-hard-delete btn-icon-only" @click="confirmHardDelete(row)"
+                                        title="XÓA VĨNH VIỄN">
+                                        <SvgIcon name="trash-2" size="sm" />
+                                    </button>
+                                </template>
                             </div>
                         </template>
                     </vxe-column>
@@ -168,8 +186,11 @@
                             <div v-if="relatedProfiles.length === 0" class="empty-mini">Chưa có hồ sơ liên quan.</div>
                             <div v-for="item in relatedProfiles" :key="'p-' + item.id"
                                 class="side-compact-card clickable-card" @click="goToProfile(item.id)">
-                                <div class="card-main">
-                                    <div class="font-bold text-slate-700">📄 {{ item.name }}</div>
+                                <div class="card-main" :class="{ 'row-deleted-blurred': item.is_deleted }">
+                                    <div class="font-bold text-slate-700" :class="{ 'text-deleted': item.is_deleted }">
+                                        📄 {{ item.name }}
+                                        <span v-if="item.is_deleted" class="badge-role" style="background: #ef4444; color: white;">[ĐÃ XÓA]</span>
+                                    </div>
                                     <div class="text-xs text-gray-500">
                                         {{ item.form_name }} | {{ $t(item.status) }} | {{ formatDate(item.created_at) }}
                                     </div>
@@ -188,13 +209,15 @@
                             </h4>
                             <div v-for="rel in ownershipRelations" :key="'own-' + rel.id"
                                 class="side-compact-card clickable-card"
-                                @click="viewChildDetails(rel.isSource ? rel.target_object : rel.source_object)">
-                                <div class="card-main">
+                                @click="viewChildDetails(rel.isSource ? rel.target_object : rel.source_object, rel.isSource ? rel.target_is_deleted : rel.source_is_deleted)">
+                                <div class="card-main" :class="{ 'row-deleted-blurred': rel.isSource ? rel.target_is_deleted : rel.source_is_deleted }">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-bold text-slate-800">
+                                        <span class="font-bold text-slate-800" :class="{ 'text-deleted': rel.isSource ? rel.target_is_deleted : rel.source_is_deleted }">
                                             {{ rel.isSource ? (rel.target_type === 'PERSON' ? '👤 ' : '🏠 ') +
                                                 rel.target_name : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
                                                 rel.source_name }}
+                                            <span v-if="rel.isSource ? rel.target_is_deleted : rel.source_is_deleted" 
+                                                  class="badge-role" style="background: #ef4444; color: white; scale: 0.8;">[ĐÃ XÓA]</span>
                                             <span v-if="rel.isSource ? rel.target_additional_info : rel.source_additional_info"
                                                 class="font-normal text-gray-500">
                                                 | {{ rel.isSource ? rel.target_additional_info : rel.source_additional_info }}
@@ -207,7 +230,6 @@
                                         {{ rel.isSource ? 'Liên kết tới' : 'Cung cấp bởi' }} | {{ $t(rel.isSource ?
                                             rel.target_type : rel.source_type) }}
                                     </div>
-
                                 </div>
                             </div>
                         </div>
@@ -225,12 +247,14 @@
                             </div>
                             <div v-for="rel in otherRelations" :key="'other-' + rel.id"
                                 class="side-compact-card clickable-card"
-                                @click="viewChildDetails(rel.isSource ? rel.target_object : rel.source_object)">
-                                <div class="card-main">
-                                    <div class="font-bold text-slate-700">
+                                @click="viewChildDetails(rel.isSource ? rel.target_object : rel.source_object, rel.isSource ? rel.target_is_deleted : rel.source_is_deleted)">
+                                <div class="card-main" :class="{ 'row-deleted-blurred': rel.isSource ? rel.target_is_deleted : rel.source_is_deleted }">
+                                    <div class="font-bold text-slate-700" :class="{ 'text-deleted': rel.isSource ? rel.target_is_deleted : rel.source_is_deleted }">
                                         {{ rel.isSource ? (rel.target_type === 'PERSON' ? '👤 ' : '🏠 ') +
                                             rel.target_name : (rel.source_type === 'PERSON' ? '👤 ' : '🏠 ') +
                                             rel.source_name }}
+                                        <span v-if="rel.isSource ? rel.target_is_deleted : rel.source_is_deleted" 
+                                              class="badge-role" style="background: #ef4444; color: white; scale: 0.8;">[ĐÃ XÓA]</span>
                                         <span v-if="rel.isSource ? rel.target_additional_info : rel.source_additional_info"
                                             class="font-normal text-gray-500">
                                             | {{ rel.isSource ? rel.target_additional_info : rel.source_additional_info }}
@@ -242,7 +266,6 @@
                                         <span>| {{ $t(rel.isSource ? rel.target_type : rel.source_type)
                                         }}</span>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
@@ -299,7 +322,9 @@
         <!-- CREATE/EDIT MODAL -->
         <MasterCreateModal :isOpen="showCreateModal" :type="tempOverrideType || activeTab"
             :typeName="tempOverrideTypeName || currentTypeName" :editObject="targetEditObject"
-            :readOnly="!!editingLockedBy" :key="targetEditObject ? targetEditObject.id : 'new'" @close="closeEditModal"
+            :readOnly="!!editingLockedBy || (targetEditObject && targetEditObject.is_deleted)" 
+            :lockedBy="editingLockedBy"
+            :key="targetEditObject ? targetEditObject.id : 'new'" @close="closeEditModal"
             @success="fetchData" />
     </div>
 </template>
@@ -313,6 +338,7 @@ import ConfirmModal from '../../components/ConfirmModal.vue';
 import MasterCreateModal from '../../components/MasterCreateModal.vue';
 import { errorHandlingMixin } from '../../utils/errorHandler';
 import { FilterableTableMixin } from '@/mixins/FilterableTableMixin';
+import eventBus, { EVENTS } from '@/utils/eventBus';
 
 export default {
     name: 'MasterData',
@@ -396,6 +422,10 @@ export default {
         this.stopHeartbeat();
     },
     methods: {
+        rowClassName({ row }) {
+            if (row.is_deleted) return 'row-deleted-blurred';
+            return '';
+        },
         getIdentityValue(item) {
             const typeConfig = this.objectTypes.find(t => t.code === (item.object_type || this.activeTab));
             if (typeConfig && typeConfig.identity_field_key) {
@@ -472,8 +502,9 @@ export default {
             this.relatedTab = 'profiles'; // Reset tab
 
             try {
-                // 2. Fetch Master Relations (Categorized & Deduplicated)
-                const resDetail = await MasterService.getObjectById(obj.id);
+                // 1. Fetch relations (Phase 10: support deleted objects via include_deleted)
+                const params = obj.is_deleted ? { include_deleted: true } : {};
+                const resDetail = await MasterService.getObjectById(obj.id, params);
                 const detail = resDetail.data;
 
                 const allRelsRaw = [];
@@ -539,21 +570,74 @@ export default {
                 hour: '2-digit', minute: '2-digit'
             });
         },
-        confirmDelete(obj, type) {
-            this.deleteTarget = obj;
-            this.deleteTargetType = type;
-            this.showDeleteModal = true;
+        confirmDelete(row) {
+            eventBus.emit(EVENTS.SHOW_GLOBAL_CONFIRM, {
+                title: 'Xác nhận xóa',
+                message: `Bạn có chắc muốn xóa <b>${row.display_name}</b>? dữ liệu sẽ được chuyển sang trạng thái làm mờ.`,
+                type: 'warning',
+                showReason: true,
+                onConfirm: (reason) => {
+                    this.executeDelete(row.id, reason);
+                }
+            });
         },
-        async executeDelete() {
+        async executeDelete(id, reason) {
             try {
-                await MasterService.deleteObject(this.deleteTarget.id);
-                this.showDeleteModal = false;
-                this.fetchData();
+                this.loading = true;
+                await MasterService.deleteObject(id, reason);
                 this.$toast.success('Đã xóa thành công!');
+                await this.fetchData();
             } catch (error) {
-                this.showDeleteModal = false;
                 this.showError(error, 'Lỗi khi xóa');
+            } finally {
+                this.loading = false;
             }
+        },
+        async confirmRestore(row) {
+            eventBus.emit(EVENTS.SHOW_GLOBAL_CONFIRM, {
+                title: 'KHÔI PHỤC ĐỐI TƯỢNG',
+                message: `Bạn có chắc chắn muốn khôi phục <b>${row.display_name}</b>? dữ liệu sẽ quay lại trạng thái hoạt động bình thường.`,
+                type: 'success',
+                showReason: false,
+                onConfirm: async () => {
+                    try {
+                        this.loading = true;
+                        await MasterService.restoreObject(row.id);
+                        this.$toast.success('Đã khôi phục thành công!');
+                        await this.fetchData();
+                    } catch (e) {
+                        this.showError(e, 'Lỗi khi khôi phục');
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            });
+        },
+        confirmHardDelete(row) {
+            eventBus.emit(EVENTS.SHOW_GLOBAL_CONFIRM, {
+                title: 'XÓA VĨNH VIỄN',
+                message: `<div class="alert alert-danger">⚠️ <b>CẢNH BÁO:</b> Đối tượng <b>${row.display_name}</b> sẽ bị xóa VĨNH VIỄN khỏi hệ thống cùng với mọi liên kết lịch sử. Hành động này không thể hoàn tác!</div>`,
+                type: 'error',
+                showReason: true,
+                reasonLabel: 'Lý do xóa vĩnh viễn (Phải có):',
+                onConfirm: async (reason) => {
+                    if (!reason) {
+                        this.$toast.warning('Yêu cầu nhập lý do xóa vĩnh viễn');
+                        return;
+                    }
+                    try {
+                        this.loading = true;
+                        // Lưu lý do qua Audit Log thủ công hoặc Backend tự log
+                        await MasterService.hardDeleteObject(row.id);
+                        this.$toast.success('Đã xóa vĩnh viễn!');
+                        await this.fetchData();
+                    } catch (e) {
+                        this.showError(e, 'Lỗi xóa vĩnh viễn');
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            });
         },
         handleCheckboxChange({ selection }) {
             this.selectedIds = (selection || []).map(row => row.id);
@@ -653,11 +737,12 @@ export default {
             const routeData = this.$router.resolve({ path: `/edit/${id}` });
             window.open(routeData.href, '_blank');
         },
-        async viewChildDetails(objectId) {
+        async viewChildDetails(objectId, isDeleted = false) {
             // Fetch full details of the child object then open modal
             try {
                 this.relatedLoading = true;
-                const res = await MasterService.getObjectById(objectId);
+                const params = isDeleted ? { include_deleted: true } : {};
+                const res = await MasterService.getObjectById(objectId, params);
                 // Flatten fields like we do in fetchData
                 const fullObj = {
                     ...res.data,
@@ -737,5 +822,12 @@ export default {
 .unified-side-body {
     padding: 20px;
     background: var(--slate-50);
+}
+
+
+/* Soft Delete styles are now globally defined in common-ui.css */
+.text-deleted {
+    text-decoration: line-through;
+    opacity: 0.6;
 }
 </style>

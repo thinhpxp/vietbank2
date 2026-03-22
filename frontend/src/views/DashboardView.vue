@@ -66,6 +66,7 @@
     <div v-else class="data-table-vxe">
       <vxe-table border round :data="filteredProfiles" :row-config="{ isHover: true }"
         :column-config="{ resizable: true }"
+        :row-class-name="getRowClass"
         :sort-config="{ trigger: 'cell', defaultSort: { field: 'created_at', order: 'desc' } }">
 
         <vxe-column field="id" title="ID" width="80" sortable></vxe-column>
@@ -103,26 +104,41 @@
 
         <vxe-column title="Hành động" width="350" fixed="right">
           <template #default="{ row }">
-            <div class="flex gap-2">
-              <button class="btn-action btn-edit btn-icon-only" @click="editProfile(row.id)"
-                :disabled="!authStore.hasPermission('document_automation.change_loanprofile')"
-                :title="authStore.hasPermission('document_automation.change_loanprofile') ? 'Sửa hồ sơ' : 'Không có quyền sửa'">
-                <SvgIcon name="edit" size="sm" />
-              </button>
-              <button class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal(row)"
-                :disabled="!authStore.hasPermission('document_automation.add_loanprofile')"
-                :title="authStore.hasPermission('document_automation.add_loanprofile') ? 'Sao chép hồ sơ' : 'Không có quyền tạo'">
-                <SvgIcon name="copy" size="sm" />
-              </button>
-              <button class="btn-action btn-download btn-icon-only" @click="openDownloadModal(row)"
-                title="Xuất Hợp đồng">
-                <SvgIcon name="download" size="sm" />
-              </button>
-              <button class="btn-action btn-delete btn-icon-only" @click="deleteProfile(row.id)"
-                :disabled="!authStore.hasPermission('document_automation.delete_loanprofile')"
-                :title="authStore.hasPermission('document_automation.delete_loanprofile') ? 'Xóa hồ sơ' : 'Không có quyền xóa'">
-                <SvgIcon name="trash" size="sm" />
-              </button>
+            <div class="flex gap-2 action-buttons-container">
+              <!-- Nhóm nút cho hồ sơ CHƯA xóa -->
+              <template v-if="!row.is_deleted">
+                <button class="btn-action btn-edit btn-icon-only" @click="editProfile(row.id)"
+                  :disabled="!authStore.hasPermission('document_automation.change_loanprofile')"
+                  :title="authStore.hasPermission('document_automation.change_loanprofile') ? 'Sửa hồ sơ' : 'Không có quyền sửa'">
+                  <SvgIcon name="edit" size="sm" />
+                </button>
+                <button class="btn-action btn-copy btn-icon-only" @click="openDuplicateModal(row)"
+                  :disabled="!authStore.hasPermission('document_automation.add_loanprofile')"
+                  :title="authStore.hasPermission('document_automation.add_loanprofile') ? 'Sao chép hồ sơ' : 'Không có quyền tạo'">
+                  <SvgIcon name="copy" size="sm" />
+                </button>
+                <button class="btn-action btn-download btn-icon-only" @click="openDownloadModal(row)"
+                  title="Xuất Hợp đồng">
+                  <SvgIcon name="download" size="sm" />
+                </button>
+                <button class="btn-action btn-delete btn-icon-only" @click="deleteProfile(row.id)"
+                  :disabled="!authStore.hasPermission('document_automation.delete_loanprofile')"
+                  :title="authStore.hasPermission('document_automation.delete_loanprofile') ? 'Xóa hồ sơ' : 'Không có quyền xóa'">
+                  <SvgIcon name="trash" size="sm" />
+                </button>
+              </template>
+
+              <!-- Nhóm nút cho hồ sơ ĐÃ xóa (Chỉ hiện cho ROOT/Admin) -->
+              <template v-else-if="authStore.isRoot || authStore.isAdmin">
+                <button class="btn-action btn-restore btn-icon-only" @click="restoreProfile(row.id)"
+                  title="Khôi phục hồ sơ">
+                  <SvgIcon name="refresh-cw" size="sm" />
+                </button>
+                <button class="btn-action btn-hard-delete btn-icon-only" @click="hardDeleteProfile(row.id)"
+                  title="Xóa vĩnh viễn (ROOT)">
+                   <SvgIcon name="trash-2" size="sm" />
+                </button>
+              </template>
             </div>
           </template>
         </vxe-column>
@@ -133,10 +149,19 @@
     <ContractDownloader :isOpen="isModalOpen" :profileId="currentProfileId" :profileName="currentProfileName"
       @close="isModalOpen = false" />
 
-    <!-- Confirm Delete Modal -->
-    <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa"
-      :message="`Bạn có chắc muốn xóa hồ sơ '${deleteTargetName}'? Hành động này không thể hoàn tác.`" confirmText="Xóa"
+    <!-- Confirm Delete Modal (Soft Delete) -->
+    <ConfirmModal :visible="showDeleteModal" title="Xác nhận xóa hồ sơ"
+      :message="`Bạn có chắc muốn xóa hồ sơ '${deleteTargetName}'? Hồ sơ sẽ được chuyển vào trạng thái lưu trữ.`" 
+      confirmText="Xóa mềm"
+      :showReason="true"
       @confirm="confirmDelete" @cancel="showDeleteModal = false" />
+
+    <!-- Confirm Hard Delete Modal (ROOT ONLY) -->
+    <ConfirmModal :visible="showHardDeleteModal" title="XÁC NHẬN XÓA VĨNH VIỄN"
+      :message="`CẢNH BÁO: Bạn đang thực hiện xóa vĩnh viễn hồ sơ '${hardDeleteTargetName}'. Hành động này KHÔNG THỂ HOÀN TÁC và sẽ xóa mọi dữ liệu liên quan.`" 
+      confirmText="XÓA VĨNH VIỄN"
+      :showReason="true"
+      @confirm="confirmHardDelete" @cancel="showHardDeleteModal = false" />
 
     <!-- Duplicate Modal -->
     <InputModal :visible="showDuplicateModal" title="Tạo bản sao hồ sơ" label="Tên hồ sơ mới:"
@@ -200,6 +225,10 @@ export default {
       showDeleteModal: false,
       deleteTargetId: null,
       deleteTargetName: '',
+      // Hard Delete
+      showHardDeleteModal: false,
+      hardDeleteTargetId: null,
+      hardDeleteTargetName: '',
       // Duplicate Modal
       showDuplicateModal: false,
       duplicateTargetId: null,
@@ -266,18 +295,51 @@ export default {
       this.deleteTargetName = profile ? profile.name : '';
       this.showDeleteModal = true;
     },
-    async confirmDelete() {
+    async confirmDelete(reason) {
       if (this.deleteTargetId) {
         try {
-          await LoanService.delete(this.deleteTargetId);
+          await LoanService.delete(this.deleteTargetId, reason);
           this.showDeleteModal = false;
           this.deleteTargetId = null;
+          this.$toast.success('Đã xóa mềm hồ sơ');
           this.fetchProfiles();
         } catch (error) {
           this.showDeleteModal = false;
           this.showError(error, 'Lỗi khi xóa hồ sơ');
         }
       }
+    },
+    async restoreProfile(id) {
+      try {
+        await LoanService.restore(id);
+        this.$toast.success('Đã khôi phục hồ sơ');
+        this.fetchProfiles();
+      } catch (error) {
+        this.showError(error, 'Lỗi khi khôi phục hồ sơ');
+      }
+    },
+    hardDeleteProfile(id) {
+      const profile = this.profiles.find(p => p.id === id);
+      this.hardDeleteTargetId = id;
+      this.hardDeleteTargetName = profile ? profile.name : '';
+      this.showHardDeleteModal = true;
+    },
+    async confirmHardDelete(reason) {
+      if (this.hardDeleteTargetId) {
+        try {
+          await LoanService.hardDelete(this.hardDeleteTargetId, reason);
+          this.showHardDeleteModal = false;
+          this.hardDeleteTargetId = null;
+          this.$toast.success('Đã xóa vĩnh viễn hồ sơ');
+          this.fetchProfiles();
+        } catch (error) {
+          this.showHardDeleteModal = false;
+          this.showError(error, 'Lỗi khi xóa vĩnh viễn');
+        }
+      }
+    },
+    getRowClass({ row }) {
+      return row.is_deleted ? 'row-deleted-blurred' : '';
     },
     // THAY ĐỔI 6: Hàm mở Modal
     openDownloadModal(profile) {
@@ -367,4 +429,6 @@ export default {
   color: var(--slate-500);
   margin-top: 2px;
 }
+
+/* Soft Delete styles are now globally defined in common-ui.css */
 </style>

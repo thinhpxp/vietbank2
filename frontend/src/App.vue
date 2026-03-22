@@ -59,6 +59,21 @@
     <!-- Global Warning Modal -->
     <ConfirmModal :visible="showWarningModal" :title="warningModalTitle" :message="warningModalMessage" type="warning"
       mode="alert" confirmText="Đóng" @confirm="showWarningModal = false" @cancel="showWarningModal = false" />
+
+    <!-- Global Specialized Confirm Modal (For Delete/Restore with Reason) -->
+    <ConfirmModal 
+      :visible="showConfirmModal" 
+      :title="confirmModalTitle" 
+      :message="confirmModalMessage" 
+      :type="confirmModalType"
+      mode="confirm" 
+      :showReason="confirmModalShowReason"
+      :reasonLabel="confirmModalReasonLabel"
+      confirmText="Xác nhận" 
+      cancelText="Hủy"
+      @confirm="handleGlobalConfirm" 
+      @cancel="closeConfirmModal" 
+    />
   </div>
 </template>
 
@@ -92,6 +107,15 @@ export default {
       showWarningModal: false,
       warningModalTitle: 'Cảnh báo',
       warningModalMessage: '',
+
+      // Global Specialized Confirm Modal State
+      showConfirmModal: false,
+      confirmModalTitle: 'Xác nhận',
+      confirmModalMessage: '',
+      confirmModalType: 'warning',
+      confirmModalShowReason: false,
+      confirmModalReasonLabel: 'Lý do thực hiện:',
+      confirmModalAction: null, // Lưu callback function
 
       authStore: useAuthStore(),
       systemStore: useSystemStore()
@@ -146,6 +170,25 @@ export default {
         this.warningModalTitle = data.title || 'Cảnh báo';
       }
       this.showWarningModal = true;
+    },
+    openGlobalConfirm(data) {
+      this.confirmModalTitle = data.title || 'Xác nhận';
+      this.confirmModalMessage = data.message || 'Bạn có chắc chắn muốn thực hiện?';
+      this.confirmModalType = data.type || 'warning';
+      this.confirmModalShowReason = !!data.showReason;
+      this.confirmModalReasonLabel = data.reasonLabel || 'Lý do thực hiện:';
+      this.confirmModalAction = data.onConfirm; // Đây là callback
+      this.showConfirmModal = true;
+    },
+    handleGlobalConfirm(reason) {
+      if (this.confirmModalAction && typeof this.confirmModalAction === 'function') {
+        this.confirmModalAction(reason);
+      }
+      this.closeConfirmModal();
+    },
+    closeConfirmModal() {
+      this.showConfirmModal = false;
+      this.confirmModalAction = null;
     }
   },
   mounted() {
@@ -155,11 +198,13 @@ export default {
     eventBus.on(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
     eventBus.on(EVENTS.SHOW_GLOBAL_SUCCESS, this.openGlobalSuccess);
     eventBus.on(EVENTS.SHOW_GLOBAL_WARNING, this.openGlobalWarning);
+    eventBus.on(EVENTS.SHOW_GLOBAL_CONFIRM, this.openGlobalConfirm);
   },
   unmounted() {
     eventBus.off(EVENTS.SHOW_GLOBAL_ERROR, this.openGlobalError);
     eventBus.off(EVENTS.SHOW_GLOBAL_SUCCESS, this.openGlobalSuccess);
     eventBus.off(EVENTS.SHOW_GLOBAL_WARNING, this.openGlobalWarning);
+    eventBus.off(EVENTS.SHOW_GLOBAL_CONFIRM, this.openGlobalConfirm);
   }
 }
 </script>

@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.db import transaction
 import logging
 
-from ..models import MasterObjectType, MasterObject, MasterObjectRelation, Field, FieldValue
+from ..models import MasterObjectType, MasterObject, MasterObjectRelation, Field, FieldValue, LoanProfileObjectLink
 from ..serializers import MasterObjectTypeSerializer, MasterObjectSerializer, MasterObjectRelationSerializer, MasterObjectLiteSerializer
 from ..permissions import IsAdminOrManager
 from .system_views import log_action, format_changes
@@ -89,10 +89,19 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        # Mặc định lọc bỏ các đối tượng thuộc loại USER_EXT (dữ liệu hệ thống)
-        qs = MasterObject.objects.filter(deleted_at__isnull=True).exclude(object_type='USER_EXT').order_by('-id')
+        # Phase 10: Mặc định lấy cả các bản ghi đã xóa để Frontend thực hiện làm mờ & khóa
+        qs = MasterObject.objects.all().exclude(object_type='USER_EXT').order_by('-id')
+        
+        include_deleted = self.request.query_params.get('include_deleted', 'false').lower() == 'true'
         include_drafts = self.request.query_params.get('include_drafts', 'false').lower() == 'true'
-        if getattr(self, 'detail', False): return MasterObject.objects.all()
+        
+        # Nếu là Detail View (retrieve, update...), mặc định lọc bỏ đối tượng đã xóa
+        # Trừ khi có tham số include_deleted=true hoặc đang thực hiện restore/hard_delete
+        if getattr(self, 'detail', False) and self.action not in ['restore', 'hard_delete']:
+            if not include_deleted:
+                qs = qs.filter(deleted_at__isnull=True)
+        
+        # Lọc theo drafts nếu cần (mặc định hiện cả nháp)
         if not include_drafts: qs = qs.filter(is_draft=False)
         object_types = self.request.query_params.get('object_type', None)
         if object_types:
@@ -198,9 +207,56 @@ class MasterObjectViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         o_id, o_type = instance.id, instance.object_type
+        
+        # 1. Dependency Check: Chặn xóa nếu đối tượng đang được dùng trong hồ sơ đã KHÓA
+        finalized_links = LoanProfileObjectLink.objects.filter(
+            master_object=instance,
+            loan_profile__status='FINALIZED'
+        )
+        if finalized_links.exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(f"Không thể xóa {o_type} này vì đang được sử dụng trong hồ sơ đã hoàn tất/khóa.")
+
+        # 2. Lấy lý do xóa từ request (nếu có)
+        reason = self.request.data.get('reason', 'Xóa hờ dữ liệu gốc')
+        
         instance.deleted_at = timezone.now()
         instance.save()
-        log_action(self.request.user, 'DELETE', f'MasterObject:{o_type}', o_id, f"Xóa hờ dữ liệu gốc")
+        log_action(self.request.user, 'DELETE', f'MasterObject:{o_type}', o_id, f"Hành động: Xóa hờ. Lý do: {reason}")
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def hard_delete(self, request, pk=None):
+        """Xóa vĩnh viễn đối tượng khỏi Database (Chỉ dành cho ROOT/Superuser)"""
+        if not request.user.is_superuser:
+            return Response({"error": "Chỉ tài khoản Quản trị tối cao mới có quyền xóa vĩnh viễn."}, 
+                            status=status.HTTP_403_FORBIDDEN)
+        
+        # Lấy bản ghi kể cả đã bị soft-delete trước đó
+        instance = MasterObject.objects.filter(pk=pk).first()
+        if not instance:
+            return Response({"error": "Không tìm thấy đối tượng."}, status=status.HTTP_404_NOT_FOUND)
+            
+        o_id, o_type = instance.id, instance.object_type
+        instance.delete() # Xóa vật lý
+        log_action(request.user, 'HARD_DELETE', f'MasterObject:{o_type}', o_id, "Xóa vĩnh viễn dữ liệu khỏi hệ thống")
+        return Response({"message": "Đối tượng đã được xóa vĩnh viễn."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def restore(self, request, pk=None):
+        """Khôi phục đối tượng đã bị xóa mềm (Chỉ dành cho ROOT/Superuser)"""
+        if not request.user.is_superuser:
+            return Response({"error": "Chỉ tài khoản Quản trị tối cao mới có quyền khôi phục."}, 
+                            status=status.HTTP_403_FORBIDDEN)
+        
+        instance = MasterObject.objects.filter(pk=pk).first()
+        if not instance:
+            return Response({"error": "Không tìm thấy đối tượng."}, status=status.HTTP_404_NOT_FOUND)
+            
+        o_id, o_type = instance.id, instance.object_type
+        instance.deleted_at = None
+        instance.save()
+        log_action(request.user, 'RESTORE', f'MasterObject:{o_type}', o_id, "Khôi phục dữ liệu gốc")
+        return Response({"message": "Đối tượng đã được khôi phục thành công."}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'])
     def search(self, request):

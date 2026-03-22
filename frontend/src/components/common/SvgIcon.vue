@@ -238,6 +238,11 @@ const icons = {
     h('line', { x1: '12', y1: '8', x2: '12', y2: '12' }),
     h('line', { x1: '12', y1: '16', x2: '12.01', y2: '16' })
   ]),
+
+  // Aliases for Lucide naming conventions
+  'trash-2': () => icons.trash(),
+  'refresh-cw': () => icons.refresh(),
+  'rotate-ccw': () => icons.refresh()
 };
 
 export default defineComponent({
@@ -246,7 +251,7 @@ export default defineComponent({
     name: {
       type: String,
       required: true,
-      validator: (value) => Object.keys(icons).includes(value)
+      validator: (value) => !!icons[value]
     },
     size: {
       type: [String, Number],

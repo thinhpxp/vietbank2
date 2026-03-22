@@ -67,10 +67,13 @@ const dictionary = {
     'NO ACTIVE ACCOUNT FOUND WITH THE GIVEN CREDENTIALS': 'Tên đăng nhập hoặc mật khẩu không chính xác.',
     'USER ACCOUNT IS DISABLED.': 'Tài khoản của bạn đã bị khóa.',
     'TOKEN IS INVALID OR EXPIRED': 'Mã truy cập không hợp lệ hoặc đã hết hạn.',
+    'GIVEN TOKEN NOT VALID FOR ANY TOKEN TYPE': 'Phiên làm việc không hợp lệ hoặc đã hết hạn.',
 
     // Fields / Form Labels
-    'CODE': 'Mã',
+    'CODE': 'Mã lỗi',
     'NAME': 'Tên',
+    'DETAIL': 'Chi tiết',
+    'MESSAGES': 'Thông báo hệ thống',
     'ORDER': 'Thứ tự ưu tiên',
     'FORM_DISPLAY_MODE': 'Kiểu hiển thị',
     'LAYOUT_POSITION': 'Vị trí hiển thị',

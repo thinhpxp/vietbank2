@@ -45,8 +45,16 @@ const LoanService = {
         return api.get(`/loan-profiles/${id}/history/`);
     },
 
-    delete(id) {
-        return api.delete(`/loan-profiles/${id}/`);
+    delete(id, reason) {
+        return api.delete(`/loan-profiles/${id}/`, { params: { reason } });
+    },
+
+    restore(id) {
+        return api.post(`/loan-profiles/${id}/restore/`);
+    },
+
+    hardDelete(id, reason) {
+        return api.post(`/loan-profiles/${id}/hard_delete/`, { reason });
     }
 };
 
